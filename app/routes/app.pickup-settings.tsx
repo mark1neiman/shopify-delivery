@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useLoaderData, useNavigation } from "react-router";
+import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
 type CountryCode = string;
@@ -152,45 +153,20 @@ async function getConfig(admin: any): Promise<PickupConfig> {
   const raw = json.data?.shop?.metafield?.value;
   if (!raw) return DEFAULT_CONFIG;
 
+  if (!record) return DEFAULT_CONFIG;
   try {
-    const parsed = JSON.parse(raw);
-    return normalizeConfig(parsed);
+    return normalizeConfig(JSON.parse(record.config));
   } catch {
     return DEFAULT_CONFIG;
   }
 }
 
-async function saveConfig(admin: any, config: PickupConfig) {
-  const shopId = await getShopId(admin);
-
-  const mutation = `#graphql
-  mutation Save($metafields: [MetafieldsSetInput!]!) {
-    metafieldsSet(metafields: $metafields) {
-      metafields { id namespace key }
-      userErrors { field message }
-    }
-  }`;
-
-  const variables = {
-    metafields: [
-      {
-        ownerId: shopId,
-        namespace: "pickup",
-        key: "config",
-        type: "json",
-        value: JSON.stringify(config),
-      },
-    ],
-  };
-
-  const res = await admin.graphql(mutation, { variables });
-  const json = await res.json();
-
-  const errors = json.data?.metafieldsSet?.userErrors ?? [];
-  if (errors.length) {
-    const msg = errors.map((e: any) => e.message).join(", ");
-    throw new Error(msg);
-  }
+async function saveConfig(shop: string, config: PickupConfig) {
+  await prisma.pickupConfig.upsert({
+    where: { shop },
+    update: { config: JSON.stringify(config) },
+    create: { shop, config: JSON.stringify(config) },
+  });
 }
 
 function parseCountryRows(form: FormData): CountryConfig[] {
@@ -288,14 +264,14 @@ function parseCountryRows(form: FormData): CountryConfig[] {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { admin } = await authenticate.admin(request);
-  const config = await getConfig(admin);
+  const { session } = await authenticate.admin(request);
+  const config = await getConfig(session.shop);
 
   return Response.json({ config });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
   const form = await request.formData();
 
   const countries = parseCountryRows(form);
@@ -305,7 +281,7 @@ export async function action({ request }: ActionFunctionArgs) {
     providerMeta: DEFAULT_CONFIG.providerMeta,
   };
 
-  await saveConfig(admin, config);
+  await saveConfig(session.shop, config);
   return Response.json({ ok: true });
 }
 
