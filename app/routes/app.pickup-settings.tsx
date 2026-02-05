@@ -129,13 +129,26 @@ function normalizeConfig(raw: any): PickupConfig {
 const METAOBJECT_TYPE = "pickup_config";
 const METAOBJECT_HANDLE = "default";
 
+async function adminGraphql(admin: any, query: string, options?: { variables?: any }) {
+  if (typeof admin?.graphql === "function") {
+    return admin.graphql(query, options);
+  }
+  if (admin?.graphql?.query) {
+    return admin.graphql.query({ data: query, variables: options?.variables });
+  }
+  if (admin?.graphql?.request) {
+    return admin.graphql.request(query, { variables: options?.variables });
+  }
+  throw new Error("Admin GraphQL client is unavailable");
+}
+
 async function ensureMetaobjectDefinition(admin: any) {
   const query = `#graphql
   query Definition($type: String!) {
     metaobjectDefinitionByType(type: $type) { id type }
   }`;
 
-  const res = await admin.graphql(query, {
+  const res = await adminGraphql(admin, query, {
     variables: { type: METAOBJECT_TYPE },
   });
   const json = await res.json();
@@ -164,7 +177,7 @@ async function ensureMetaobjectDefinition(admin: any) {
     },
   };
 
-  const createRes = await admin.graphql(mutation, { variables });
+  const createRes = await adminGraphql(admin, mutation, { variables });
   const createJson = await createRes.json();
   const errors = createJson.data?.metaobjectDefinitionCreate?.userErrors ?? [];
   if (errors.length) {
@@ -181,7 +194,7 @@ async function getConfig(admin: any): Promise<PickupConfig> {
     }
   }`;
 
-  const res = await admin.graphql(query, {
+  const res = await adminGraphql(admin, query, {
     variables: { handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE } },
   });
   const json = await res.json();
@@ -222,7 +235,7 @@ async function saveConfig(admin: any, config: PickupConfig) {
     },
   };
 
-  const res = await admin.graphql(mutation, { variables });
+  const res = await adminGraphql(admin, mutation, { variables });
   const json = await res.json();
 
   const errors = json.data?.metaobjectUpsert?.userErrors ?? [];
