@@ -14,6 +14,7 @@
   const pointList = document.getElementById("pickup-point-list");
   const pointLabel = document.getElementById("pickup-point-label");
   const current = document.getElementById("pickup-current");
+  const fallbackNotice = document.getElementById("pickup-fallback");
   const DEFAULT_COUNTRY = (root.dataset.defaultCountry || "EE").toUpperCase();
   const i18n = {
     labelCountry: root.dataset.labelCountry || "Country",
@@ -26,6 +27,9 @@
     textNoPoints: root.dataset.textNoPoints || "No pickup points found.",
     textSelected: root.dataset.textSelected || "Selected",
     textPriceLabel: root.dataset.textPriceLabel || "Price",
+    textFallback:
+      root.dataset.textFallback ||
+      "Using fallback delivery settings. Add a Storefront access token to load saved config.",
     textSearchPlaceholder:
       root.dataset.textSearchPlaceholder || "Search by city / address / name",
   };
@@ -490,6 +494,10 @@
   const configResponse = await loadConfig();
   config = configResponse.config;
   const usedFallback = configResponse.usedFallback;
+  if (fallbackNotice) {
+    fallbackNotice.textContent = usedFallback ? i18n.textFallback : "";
+    fallbackNotice.hidden = !usedFallback;
+  }
 
   // Enabled countries from config
   const enabledCountries = (config.countries || []).filter((country) => country.enabled);

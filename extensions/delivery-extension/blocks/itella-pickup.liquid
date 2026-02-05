@@ -13,12 +13,14 @@
   data-text-selected="{{ 'pickup.text.selected' | t }}"
   data-text-price-label="{{ 'pickup.text.price_label' | t }}"
   data-text-search-placeholder="{{ 'pickup.text.search_placeholder' | t }}"
+  data-text-fallback="{{ 'pickup.text.fallback_notice' | t }}"
   data-storefront-token="{{ block.settings.storefront_access_token }}"
   data-config-metaobject-type="{{ block.settings.config_metaobject_type }}"
   data-config-metaobject-handle="{{ block.settings.config_metaobject_handle }}"
   data-config-metaobject-field="{{ block.settings.config_metaobject_field }}"
   data-storefront-api-version="{{ block.settings.storefront_api_version }}"
 >
+  <div class="pickup-fallback" id="pickup-fallback" hidden></div>
   <div class="pickup-section">
     <div class="pickup-title">{{ 'pickup.labels.country' | t }}</div>
     <button class="pickup-select" id="pickup-country-btn" type="button">
@@ -65,6 +67,16 @@
     padding:16px;
     background:#fff;
     max-width:520px;
+  }
+  .pickup-fallback{
+    margin-bottom:10px;
+    border:1px solid rgba(251,191,36,.4);
+    background:rgba(251,191,36,.16);
+    color:#92400e;
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:13px;
+    font-weight:600;
   }
   .pickup-section{
     padding:12px;
