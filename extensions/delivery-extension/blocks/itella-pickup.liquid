@@ -1,23 +1,40 @@
-<div class="pickup-card" id="pickup-root" data-default-country="{{ localization.country.iso_code }}">
+<div
+  class="pickup-card"
+  id="pickup-root"
+  data-default-country="{{ localization.country.iso_code }}"
+  data-label-country="{{ 'pickup.labels.country' | t }}"
+  data-label-provider="{{ 'pickup.labels.provider' | t }}"
+  data-label-pickup-point="{{ 'pickup.labels.pickup_point' | t }}"
+  data-label-delivery-price="{{ 'pickup.labels.delivery_price' | t }}"
+  data-label-total-with-delivery="{{ 'pickup.labels.total_with_delivery' | t }}"
+  data-text-loading="{{ 'pickup.text.loading' | t }}"
+  data-text-select-pickup="{{ 'pickup.text.select_pickup' | t }}"
+  data-text-pickup-not-required="{{ 'pickup.text.pickup_not_required' | t }}"
+  data-text-no-providers="{{ 'pickup.text.no_providers' | t }}"
+  data-text-no-points="{{ 'pickup.text.no_points' | t }}"
+  data-text-selected="{{ 'pickup.text.selected' | t }}"
+  data-text-price-label="{{ 'pickup.text.price_label' | t }}"
+  data-text-search-placeholder="{{ 'pickup.text.search_placeholder' | t }}"
+>
   <div class="pickup-section">
-    <div class="pickup-title">Country</div>
+    <div class="pickup-title">{{ 'pickup.labels.country' | t }}</div>
     <button class="pickup-select" id="pickup-country-btn" type="button">
       <span class="pickup-flag" id="pickup-country-flag"></span>
-      <span id="pickup-country-label">Loading…</span>
+      <span id="pickup-country-label">{{ 'pickup.text.loading' | t }}</span>
       <span class="pickup-chevron">▾</span>
     </button>
     <div class="pickup-menu" id="pickup-country-menu" hidden></div>
   </div>
 
   <div class="pickup-section">
-    <div class="pickup-title">Please select a service provider</div>
+    <div class="pickup-title">{{ 'pickup.labels.provider' | t }}</div>
 
     <div id="pickup-providers" class="pickup-providers"></div>
 
     <div class="pickup-points" id="pickup-points">
-      <div class="pickup-points-title">Pickup point</div>
+      <div class="pickup-points-title">{{ 'pickup.labels.pickup_point' | t }}</div>
       <button class="pickup-select" id="pickup-point-btn" type="button">
-        <span id="pickup-point-label">Select pickup point…</span>
+        <span id="pickup-point-label">{{ 'pickup.text.select_pickup' | t }}</span>
         <span class="pickup-chevron">▾</span>
       </button>
       <div class="pickup-menu pickup-points-menu" id="pickup-point-menu" hidden>
@@ -26,7 +43,7 @@
             id="pickup-search"
             class="pickup-input"
             type="text"
-            placeholder="Search by city / address / name"
+            placeholder="{{ 'pickup.text.search_placeholder' | t }}"
           />
         </div>
         <div id="pickup-point-list" class="pickup-point-list"></div>
@@ -34,6 +51,17 @@
     </div>
 
     <div id="pickup-current" class="pickup-current"></div>
+
+    <div class="pickup-summary" id="pickup-summary">
+      <div class="pickup-summary-row">
+        <span>{{ 'pickup.labels.delivery_price' | t }}</span>
+        <span id="pickup-delivery-price">—</span>
+      </div>
+      <div class="pickup-summary-row pickup-summary-total">
+        <span>{{ 'pickup.labels.total_with_delivery' | t }}</span>
+        <span id="pickup-total-with-delivery">—</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -145,6 +173,24 @@
     margin-top:6px;
     opacity:.8;
     font-size:14px;
+  }
+  .pickup-summary{
+    margin-top:12px;
+    padding-top:10px;
+    border-top:1px dashed rgba(0,0,0,.15);
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    font-size:14px;
+  }
+  .pickup-summary-row{
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+    color:#111827;
+  }
+  .pickup-summary-total{
+    font-weight:600;
   }
 </style>
 
