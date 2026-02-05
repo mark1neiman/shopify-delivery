@@ -140,7 +140,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   if (!ctx.admin) {
     return json({
-      config: DEFAULT_CONFIG,
+      config: { countries: [], providerMeta: DEFAULT_CONFIG.providerMeta },
       warning:
         "Admin API is unavailable for this app proxy request (no offline session). Open the app in Admin and reinstall/reset scopes if needed.",
     });

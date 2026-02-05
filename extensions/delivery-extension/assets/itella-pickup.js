@@ -316,7 +316,7 @@
   async function loadConfig() {
     try {
       // ✅ App Proxy endpoint (витрина)
-      const json = await fetchJSON("/apps/pickup-config");
+      const json = await fetchJSON(`/apps/pickup-config?ts=${Date.now()}`);
       if (json && json.config) return { config: json.config, usedFallback: false };
     } catch (e) {
       // fallback below
