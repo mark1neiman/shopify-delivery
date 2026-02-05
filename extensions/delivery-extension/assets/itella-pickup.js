@@ -14,16 +14,11 @@
   const pointList = document.getElementById("pickup-point-list");
   const pointLabel = document.getElementById("pickup-point-label");
   const current = document.getElementById("pickup-current");
-  const deliveryPriceEl = document.getElementById("pickup-delivery-price");
-  const totalWithDeliveryEl = document.getElementById("pickup-total-with-delivery");
-
   const DEFAULT_COUNTRY = (root.dataset.defaultCountry || "EE").toUpperCase();
   const i18n = {
     labelCountry: root.dataset.labelCountry || "Country",
     labelProvider: root.dataset.labelProvider || "Please select a service provider",
     labelPickupPoint: root.dataset.labelPickupPoint || "Pickup point",
-    labelDeliveryPrice: root.dataset.labelDeliveryPrice || "Delivery price",
-    labelTotalWithDelivery: root.dataset.labelTotalWithDelivery || "Subtotal with delivery",
     textLoading: root.dataset.textLoading || "Loading…",
     textSelectPickup: root.dataset.textSelectPickup || "Select pickup point…",
     textPickupNotRequired: root.dataset.textPickupNotRequired || "Pickup point not required",
@@ -182,15 +177,11 @@
   }
 
   async function updateCartTotals(price) {
-    if (!deliveryPriceEl || !totalWithDeliveryEl) return;
     const cart = await readCart();
     const currency = cart.currency || cart.currency_code || cart.presentment_currency;
     const deliveryCents = parsePriceToCents(price);
     const subtotalCents = cart.total_price || 0;
     const totalWithDelivery = subtotalCents + deliveryCents;
-
-    deliveryPriceEl.textContent = price ? formatMoney(deliveryCents, currency) : "—";
-    totalWithDeliveryEl.textContent = formatMoney(totalWithDelivery, currency);
 
     const totalTargets = document.querySelectorAll(
       "[data-itella-cart-total], .cart-subtotal__price, .totals__subtotal-value",
@@ -326,11 +317,11 @@
     try {
       // ✅ App Proxy endpoint (витрина)
       const json = await fetchJSON("/apps/pickup-config");
-      if (json && json.config) return json.config;
+      if (json && json.config) return { config: json.config, usedFallback: false };
     } catch (e) {
       // fallback below
     }
-    return FALLBACK_CONFIG;
+    return { config: FALLBACK_CONFIG, usedFallback: true };
   }
 
   async function loadPoints() {
@@ -462,15 +453,17 @@
   }
 
   // Boot
-  config = await loadConfig();
+  const configResponse = await loadConfig();
+  config = configResponse.config;
+  const usedFallback = configResponse.usedFallback;
 
   // Enabled countries from config
   const enabledCountries = (config.countries || []).filter((country) => country.enabled);
 
-  // If config empty → fallback
-  const finalCountries = enabledCountries.length
-    ? enabledCountries
-    : FALLBACK_CONFIG.countries;
+  // If config fetch failed → fallback
+  const finalCountries = usedFallback
+    ? FALLBACK_CONFIG.countries
+    : enabledCountries;
 
   renderCountryMenu(finalCountries);
 
