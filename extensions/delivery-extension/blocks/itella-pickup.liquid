@@ -13,12 +13,9 @@
   data-text-selected="{{ 'pickup.text.selected' | t }}"
   data-text-price-label="{{ 'pickup.text.price_label' | t }}"
   data-text-search-placeholder="{{ 'pickup.text.search_placeholder' | t }}"
-  data-storefront-token="{{ block.settings.storefront_access_token }}"
-  data-config-metaobject-type="{{ block.settings.config_metaobject_type }}"
-  data-config-metaobject-handle="{{ block.settings.config_metaobject_handle }}"
-  data-config-metaobject-field="{{ block.settings.config_metaobject_field }}"
-  data-storefront-api-version="{{ block.settings.storefront_api_version }}"
+  data-text-fallback="{{ 'pickup.text.fallback_notice' | t }}"
 >
+  <div class="pickup-fallback" id="pickup-fallback" hidden></div>
   <div class="pickup-section">
     <div class="pickup-title">{{ 'pickup.labels.country' | t }}</div>
     <button class="pickup-select" id="pickup-country-btn" type="button">
@@ -65,6 +62,16 @@
     padding:16px;
     background:#fff;
     max-width:520px;
+  }
+  .pickup-fallback{
+    margin-bottom:10px;
+    border:1px solid rgba(251,191,36,.4);
+    background:rgba(251,191,36,.16);
+    color:#92400e;
+    border-radius:12px;
+    padding:10px 12px;
+    font-size:13px;
+    font-weight:600;
   }
   .pickup-section{
     padding:12px;
@@ -195,34 +202,8 @@
   "target": "section",
   "settings": [
     {
-      "type": "text",
-      "id": "storefront_access_token",
-      "label": "Storefront access token",
-      "info": "Required to read pickup config via Storefront API"
-    },
-    {
-      "type": "text",
-      "id": "config_metaobject_type",
-      "label": "Config metaobject type",
-      "default": "pickup_config"
-    },
-    {
-      "type": "text",
-      "id": "config_metaobject_handle",
-      "label": "Config metaobject handle",
-      "default": "default"
-    },
-    {
-      "type": "text",
-      "id": "config_metaobject_field",
-      "label": "Config metaobject field key",
-      "default": "config"
-    },
-    {
-      "type": "text",
-      "id": "storefront_api_version",
-      "label": "Storefront API version",
-      "default": "2024-10"
+      "type": "paragraph",
+      "content": "Config is loaded via App Proxy at /apps/pickup-config."
     }
   ]
 }

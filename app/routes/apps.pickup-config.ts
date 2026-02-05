@@ -178,10 +178,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const configField = fields.find((field: any) => field.key === "config");
   const raw = configField?.value;
 
-  if (!record) return json({ config: DEFAULT_CONFIG });
+  if (!raw) return json({ config: DEFAULT_CONFIG });
 
   try {
-    const config = normalizeConfig(JSON.parse(record.config));
+    const config = normalizeConfig(JSON.parse(raw));
     return json({ config });
   } catch {
     return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in metaobject" });
