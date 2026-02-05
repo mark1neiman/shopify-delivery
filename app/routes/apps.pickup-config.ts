@@ -69,6 +69,22 @@ const DEFAULT_CONFIG: PickupConfig = {
   },
 };
 
+const METAOBJECT_TYPE = "pickup_config";
+const METAOBJECT_HANDLE = "default";
+
+async function adminGraphql(admin: any, query: string, options?: { variables?: any }) {
+  if (typeof admin?.graphql === "function") {
+    return admin.graphql(query, options);
+  }
+  if (admin?.graphql?.query) {
+    return admin.graphql.query({ data: query, variables: options?.variables });
+  }
+  if (admin?.graphql?.request) {
+    return admin.graphql.request(query, { variables: options?.variables });
+  }
+  throw new Error("Admin GraphQL client is unavailable");
+}
+
 function json(data: any, init?: ResponseInit) {
   return new Response(JSON.stringify(data), {
     status: init?.status ?? 200,
@@ -147,15 +163,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   const query = `#graphql
-  query {
-    shop {
-      metafield(namespace: "pickup", key: "config") { value type }
+  query Config($handle: MetaobjectHandleInput!) {
+    metaobjectByHandle(handle: $handle) {
+      fields { key value }
     }
   }`;
 
-  const res = await ctx.admin.graphql(query);
+  const res = await adminGraphql(ctx.admin, query, {
+    variables: { handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE } },
+  });
   const gql = await res.json();
-  const raw = gql.data?.shop?.metafield?.value;
+  const fields = gql.data?.metaobjectByHandle?.fields ?? [];
+  const configField = fields.find((field: any) => field.key === "config");
+  const raw = configField?.value;
 
   if (!raw) return json({ config: DEFAULT_CONFIG });
 
@@ -164,6 +184,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const config = normalizeConfig(parsed);
     return json({ config });
   } catch {
-    return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in metafield" });
+    return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in metaobject" });
   }
 }

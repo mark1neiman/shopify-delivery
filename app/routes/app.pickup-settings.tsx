@@ -70,16 +70,6 @@ const DEFAULT_CONFIG: PickupConfig = {
   },
 };
 
-async function getShopId(admin: any) {
-  const query = `#graphql
-  query {
-    shop { id }
-  }`;
-  const res = await admin.graphql(query);
-  const json = await res.json();
-  return json.data.shop.id as string;
-}
-
 function normalizeConfig(raw: any): PickupConfig {
   if (!raw) return DEFAULT_CONFIG;
 
@@ -135,21 +125,82 @@ function normalizeConfig(raw: any): PickupConfig {
   return DEFAULT_CONFIG;
 }
 
-async function getConfig(admin: any): Promise<PickupConfig> {
+const METAOBJECT_TYPE = "pickup_config";
+const METAOBJECT_HANDLE = "default";
+
+async function adminGraphql(admin: any, query: string, options?: { variables?: any }) {
+  if (typeof admin?.graphql === "function") {
+    return admin.graphql(query, options);
+  }
+  if (admin?.graphql?.query) {
+    return admin.graphql.query({ data: query, variables: options?.variables });
+  }
+  if (admin?.graphql?.request) {
+    return admin.graphql.request(query, { variables: options?.variables });
+  }
+  throw new Error("Admin GraphQL client is unavailable");
+}
+
+async function ensureMetaobjectDefinition(admin: any) {
   const query = `#graphql
-  query {
-    shop {
-      metafield(namespace: "pickup", key: "config") {
-        value
-        type
-      }
+  query Definition($type: String!) {
+    metaobjectDefinitionByType(type: $type) { id type }
+  }`;
+
+  const res = await adminGraphql(admin, query, {
+    variables: { type: METAOBJECT_TYPE },
+  });
+  const json = await res.json();
+  if (json.data?.metaobjectDefinitionByType?.id) return;
+
+  const mutation = `#graphql
+  mutation CreateDefinition($definition: MetaobjectDefinitionCreateInput!) {
+    metaobjectDefinitionCreate(definition: $definition) {
+      metaobjectDefinition { id type }
+      userErrors { field message }
     }
   }`;
 
-  const res = await admin.graphql(query);
+  const variables = {
+    definition: {
+      type: METAOBJECT_TYPE,
+      name: "Pickup config",
+      access: { storefront: "PUBLIC_READ" },
+      fieldDefinitions: [
+        {
+          key: "config",
+          name: "Config",
+          type: "json",
+        },
+      ],
+    },
+  };
+
+  const createRes = await adminGraphql(admin, mutation, { variables });
+  const createJson = await createRes.json();
+  const errors = createJson.data?.metaobjectDefinitionCreate?.userErrors ?? [];
+  if (errors.length) {
+    const msg = errors.map((e: any) => e.message).join(", ");
+    throw new Error(msg);
+  }
+}
+
+async function getConfig(admin: any): Promise<PickupConfig> {
+  const query = `#graphql
+  query Config($handle: MetaobjectHandleInput!) {
+    metaobjectByHandle(handle: $handle) {
+      fields { key value }
+    }
+  }`;
+
+  const res = await adminGraphql(admin, query, {
+    variables: { handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE } },
+  });
   const json = await res.json();
 
-  const raw = json.data?.shop?.metafield?.value;
+  const fields = json.data?.metaobjectByHandle?.fields ?? [];
+  const configField = fields.find((field: any) => field.key === "config");
+  const raw = configField?.value;
   if (!raw) return DEFAULT_CONFIG;
 
   try {
@@ -161,32 +212,32 @@ async function getConfig(admin: any): Promise<PickupConfig> {
 }
 
 async function saveConfig(admin: any, config: PickupConfig) {
-  const shopId = await getShopId(admin);
+  await ensureMetaobjectDefinition(admin);
 
   const mutation = `#graphql
-  mutation Save($metafields: [MetafieldsSetInput!]!) {
-    metafieldsSet(metafields: $metafields) {
-      metafields { id namespace key }
+  mutation Upsert($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
+    metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
+      metaobject { id handle }
       userErrors { field message }
     }
   }`;
 
   const variables = {
-    metafields: [
-      {
-        ownerId: shopId,
-        namespace: "pickup",
-        key: "config",
-        type: "json",
-        value: JSON.stringify(config),
-      },
-    ],
+    handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE },
+    metaobject: {
+      fields: [
+        {
+          key: "config",
+          value: JSON.stringify(config),
+        },
+      ],
+    },
   };
 
-  const res = await admin.graphql(mutation, { variables });
+  const res = await adminGraphql(admin, mutation, { variables });
   const json = await res.json();
 
-  const errors = json.data?.metafieldsSet?.userErrors ?? [];
+  const errors = json.data?.metaobjectUpsert?.userErrors ?? [];
   if (errors.length) {
     const msg = errors.map((e: any) => e.message).join(", ");
     throw new Error(msg);
@@ -289,6 +340,7 @@ function parseCountryRows(form: FormData): CountryConfig[] {
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { admin } = await authenticate.admin(request);
+  await ensureMetaobjectDefinition(admin);
   const config = await getConfig(admin);
 
   return Response.json({ config });

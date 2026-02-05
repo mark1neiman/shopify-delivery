@@ -13,6 +13,11 @@
   data-text-selected="{{ 'pickup.text.selected' | t }}"
   data-text-price-label="{{ 'pickup.text.price_label' | t }}"
   data-text-search-placeholder="{{ 'pickup.text.search_placeholder' | t }}"
+  data-storefront-token="{{ block.settings.storefront_access_token }}"
+  data-config-metaobject-type="{{ block.settings.config_metaobject_type }}"
+  data-config-metaobject-handle="{{ block.settings.config_metaobject_handle }}"
+  data-config-metaobject-field="{{ block.settings.config_metaobject_field }}"
+  data-storefront-api-version="{{ block.settings.storefront_api_version }}"
 >
   <div class="pickup-section">
     <div class="pickup-title">{{ 'pickup.labels.country' | t }}</div>
@@ -188,6 +193,37 @@
 {
   "name": "Pickup selector",
   "target": "section",
-  "settings": []
+  "settings": [
+    {
+      "type": "text",
+      "id": "storefront_access_token",
+      "label": "Storefront access token",
+      "info": "Required to read pickup config via Storefront API"
+    },
+    {
+      "type": "text",
+      "id": "config_metaobject_type",
+      "label": "Config metaobject type",
+      "default": "pickup_config"
+    },
+    {
+      "type": "text",
+      "id": "config_metaobject_handle",
+      "label": "Config metaobject handle",
+      "default": "default"
+    },
+    {
+      "type": "text",
+      "id": "config_metaobject_field",
+      "label": "Config metaobject field key",
+      "default": "config"
+    },
+    {
+      "type": "text",
+      "id": "storefront_api_version",
+      "label": "Storefront API version",
+      "default": "2024-10"
+    }
+  ]
 }
 {% endschema %}
