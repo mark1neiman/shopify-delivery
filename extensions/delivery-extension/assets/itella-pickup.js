@@ -6,20 +6,18 @@
   const countryMenu = document.getElementById("pickup-country-menu");
   const countryLabel = document.getElementById("pickup-country-label");
   const countryFlag = document.getElementById("pickup-country-flag");
+  const deliveryOptions = document.getElementById("pickup-delivery-options");
 
   const providersWrap = document.getElementById("pickup-providers");
+  const pointsWrap = document.getElementById("pickup-points");
   const search = document.getElementById("pickup-search");
-  const select = document.getElementById("pickup-point-select");
+  const pointBtn = document.getElementById("pickup-point-btn");
+  const pointMenu = document.getElementById("pickup-point-menu");
+  const pointList = document.getElementById("pickup-point-list");
+  const pointLabel = document.getElementById("pickup-point-label");
   const current = document.getElementById("pickup-current");
 
   const DEFAULT_COUNTRY = (root.dataset.defaultCountry || "EE").toUpperCase();
-
-  const COUNTRY_META = {
-    EE: { label: "Estonia", flag: "🇪🇪" },
-    LV: { label: "Latvia", flag: "🇱🇻" },
-    LT: { label: "Lithuania", flag: "🇱🇹" },
-    FI: { label: "Finland", flag: "🇫🇮" },
-  };
 
   // URLs you provided
   const LOCATIONS_BY_COUNTRY = {
@@ -31,17 +29,47 @@
 
   // Fallback if proxy config isn't available yet
   const FALLBACK_CONFIG = {
-    countries: ["EE", "LV", "LT", "FI"],
-    providersByCountry: {
-      EE: ["smartposti"],
-      LV: ["smartposti"],
-      LT: ["smartposti"],
-      FI: ["smartposti"],
-    },
+    countries: [
+      {
+        code: "EE",
+        label: "Estonia",
+        flagUrl: "https://flagcdn.com/w40/ee.png",
+        enabled: true,
+        providers: ["smartposti", "flat_rate"],
+        pricesByProvider: { smartposti: "3.99", flat_rate: "4.99" },
+      },
+      {
+        code: "LV",
+        label: "Latvia",
+        flagUrl: "https://flagcdn.com/w40/lv.png",
+        enabled: true,
+        providers: ["smartposti", "flat_rate"],
+        pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
+      },
+      {
+        code: "LT",
+        label: "Lithuania",
+        flagUrl: "https://flagcdn.com/w40/lt.png",
+        enabled: true,
+        providers: ["smartposti", "flat_rate"],
+        pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
+      },
+      {
+        code: "FI",
+        label: "Finland",
+        flagUrl: "https://flagcdn.com/w40/fi.png",
+        enabled: true,
+        providers: ["smartposti", "flat_rate"],
+        pricesByProvider: { smartposti: "6.99", flat_rate: "7.99" },
+      },
+    ],
     providerMeta: {
       smartposti: {
         title: "Smartposti parcel lockers",
         logo: "https://production.parcely.app/images/itella.png",
+      },
+      flat_rate: {
+        title: "Flat rate delivery",
       },
     },
   };
@@ -79,36 +107,47 @@
     });
   }
 
-  function setCountryUI(code) {
-    const meta = COUNTRY_META[code] || { label: code, flag: "🏳️" };
-    countryLabel.textContent = meta.label;
-    countryFlag.textContent = meta.flag;
+  function getCountryConfig(code) {
+    return (config.countries || []).find(
+      (country) => country.code === code,
+    );
   }
 
-  function renderCountryMenu(enabledCountries) {
+  function setCountryUI(country) {
+    countryLabel.textContent = country?.label || country?.code || "Unknown";
+    if (country?.flagUrl) {
+      countryFlag.style.backgroundImage = `url(${country.flagUrl})`;
+      countryFlag.textContent = "";
+    } else {
+      countryFlag.style.backgroundImage = "";
+      countryFlag.textContent = country?.code || "🏳️";
+    }
+  }
+
+  function renderCountryMenu(countries) {
     countryMenu.innerHTML = "";
 
-    enabledCountries.forEach((code) => {
-      const meta = COUNTRY_META[code] || { label: code, flag: "🏳️" };
+    countries.forEach((country) => {
+      const code = country.code;
 
       const btn = document.createElement("button");
       btn.type = "button";
       btn.innerHTML = `
-        <span style="width:22px">${meta.flag}</span>
+        <span class="pickup-flag" style="background-image:url('${country.flagUrl || ""}')"></span>
         <span style="min-width:30px">${code}</span>
-        <span style="opacity:.8">${meta.label}</span>
+        <span style="opacity:.8">${country.label || code}</span>
       `;
 
       btn.addEventListener("click", async () => {
         countryMenu.hidden = true;
-        await setCountry(code);
+        await setCountry(code, country);
       });
 
       countryMenu.appendChild(btn);
     });
   }
 
-  function renderProviders(providerKeys, providerMeta) {
+  function renderProviders(providerKeys, providerMeta, pricesByProvider) {
     providersWrap.innerHTML = "";
 
     if (!providerKeys || providerKeys.length === 0) {
@@ -118,6 +157,7 @@
 
     providerKeys.forEach((key) => {
       const meta = (providerMeta && providerMeta[key]) || { title: key, logo: "" };
+      const price = pricesByProvider?.[key];
 
       const label = document.createElement("label");
       label.className = "pickup-provider";
@@ -127,6 +167,11 @@
         <div style="display:flex;flex-direction:column;gap:2px;">
           <div style="font-weight:600">${key}</div>
           <div style="opacity:.75;font-size:13px">${meta.title || ""}</div>
+          ${
+            price
+              ? `<div style="font-size:12px;opacity:.7">Price: ${price}</div>`
+              : ""
+          }
         </div>
       `;
 
@@ -138,7 +183,7 @@
           itella_pickup_country: state.country,
         });
 
-        // If you add other providers later, switch logic here.
+        await setPointsVisibility();
         await loadPoints();
       });
 
@@ -147,16 +192,27 @@
   }
 
   function renderPoints(list) {
-    select.innerHTML = `<option value="">Select pickup point…</option>`;
+    pointList.innerHTML = "";
+
+    if (!list.length) {
+      pointList.innerHTML = `<div style="padding:10px 12px;opacity:.7">No pickup points found.</div>`;
+      return;
+    }
 
     list.forEach((p) => {
       const label = `${p.name} — ${p.address}${p.town ? ` (${p.town})` : ""}`;
-      const opt = document.createElement("option");
-      opt.value = p.id;
-      opt.textContent = label;
-      opt.dataset.name = p.name;
-      opt.dataset.address = p.address;
-      select.appendChild(opt);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "pickup-point-option";
+      btn.textContent = label;
+      btn.dataset.id = p.id;
+      btn.dataset.name = p.name;
+      btn.dataset.address = p.address;
+      btn.addEventListener("click", async () => {
+        await selectPoint(btn.dataset.id, btn.dataset.name, btn.dataset.address, label);
+        pointMenu.hidden = true;
+      });
+      pointList.appendChild(btn);
     });
   }
 
@@ -185,7 +241,13 @@
   }
 
   async function loadPoints() {
-    // only smartposti for now
+    if (state.provider !== "smartposti") {
+      state.points = [];
+      state.filtered = [];
+      renderPoints([]);
+      return;
+    }
+
     const url = LOCATIONS_BY_COUNTRY[state.country] || LOCATIONS_BY_COUNTRY.EE;
     const data = await fetchJSON(url);
 
@@ -211,17 +273,42 @@
     // restore selection if exists
     const attrs = await readCartAttributes();
     setCurrentUI(attrs);
-    if (attrs.itella_pickup_id) select.value = attrs.itella_pickup_id;
+    if (attrs.itella_pickup_id) {
+      pointLabel.textContent = attrs.itella_pickup_name || "Selected pickup point";
+    }
   }
 
-  async function setCountry(code) {
-    state.country = code;
-    setCountryUI(code);
+  function renderDeliveryOptions(country) {
+    if (!deliveryOptions) return;
 
-    const allowedProviders = (config.providersByCountry && config.providersByCountry[code]) || [];
+    const providers = country.providers || [];
+    if (!providers.length) {
+      deliveryOptions.innerHTML = `<span>No delivery methods for this country.</span>`;
+      return;
+    }
+
+    deliveryOptions.innerHTML = providers
+      .map((providerKey) => {
+        const meta = config.providerMeta?.[providerKey] || { title: providerKey };
+        const price = country.pricesByProvider?.[providerKey];
+        const priceLabel = price ? `${price}` : "—";
+        return `<span><span>${meta.title || providerKey}</span><strong>${priceLabel}</strong></span>`;
+      })
+      .join("");
+  }
+
+  async function setCountry(code, countryOverride) {
+    state.country = code;
+    const country = countryOverride || getCountryConfig(code);
+    if (!country) return;
+    setCountryUI(country);
+
+    const allowedProviders = country.providers || [];
     state.provider = allowedProviders[0] || "smartposti";
 
-    renderProviders(allowedProviders, config.providerMeta);
+    renderProviders(allowedProviders, config.providerMeta, country.pricesByProvider);
+    renderDeliveryOptions(country);
+    await setPointsVisibility();
 
     // Clear pickup selection on country change
     await writeCartAttributes({
@@ -237,14 +324,27 @@
     await loadPoints();
   }
 
+  async function setPointsVisibility() {
+    if (!pointsWrap) return;
+    const isPickup = state.provider === "smartposti";
+    pointsWrap.style.display = isPickup ? "flex" : "none";
+  }
+
   // UI events
   countryBtn.addEventListener("click", () => {
     countryMenu.hidden = !countryMenu.hidden;
   });
 
+  pointBtn.addEventListener("click", () => {
+    pointMenu.hidden = !pointMenu.hidden;
+  });
+
   document.addEventListener("click", (e) => {
     if (!countryMenu.contains(e.target) && !countryBtn.contains(e.target)) {
       countryMenu.hidden = true;
+    }
+    if (!pointMenu.contains(e.target) && !pointBtn.contains(e.target)) {
+      pointMenu.hidden = true;
     }
   });
 
@@ -261,16 +361,14 @@
     renderPoints(state.filtered);
   });
 
-  select.addEventListener("change", async () => {
-    const opt = select.options[select.selectedIndex];
-    const id = select.value;
-
+  async function selectPoint(id, name, address, label) {
     if (!id) {
       await writeCartAttributes({
         itella_pickup_id: "",
         itella_pickup_name: "",
         itella_pickup_address: "",
       });
+      pointLabel.textContent = "Select pickup point…";
       setCurrentUI({});
       return;
     }
@@ -279,24 +377,25 @@
       itella_pickup_country: state.country,
       itella_pickup_provider: state.provider,
       itella_pickup_id: id,
-      itella_pickup_name: opt.dataset.name || opt.textContent || "",
-      itella_pickup_address: opt.dataset.address || "",
+      itella_pickup_name: name || label || "",
+      itella_pickup_address: address || "",
     };
 
     await writeCartAttributes(payload);
+    pointLabel.textContent = name || label || "Selected pickup point";
     setCurrentUI(payload);
-  });
+  }
 
   // Boot
   config = await loadConfig();
 
   // Enabled countries from config
-  const enabledCountries = (config.countries || [])
-    .map((c) => (c || "").toUpperCase())
-    .filter((c) => COUNTRY_META[c]);
+  const enabledCountries = (config.countries || []).filter((country) => country.enabled);
 
   // If config empty → fallback
-  const finalCountries = enabledCountries.length ? enabledCountries : Object.keys(COUNTRY_META);
+  const finalCountries = enabledCountries.length
+    ? enabledCountries
+    : FALLBACK_CONFIG.countries;
 
   renderCountryMenu(finalCountries);
 
@@ -304,9 +403,9 @@
   const attrs = await readCartAttributes();
   const restoredCountry = (attrs.itella_pickup_country || DEFAULT_COUNTRY).toUpperCase();
 
-  const startCountry = finalCountries.includes(restoredCountry)
+  const startCountry = finalCountries.find((country) => country.code === restoredCountry)
     ? restoredCountry
-    : (finalCountries[0] || "EE");
+    : (finalCountries[0]?.code || "EE");
 
   await setCountry(startCountry);
 })();

@@ -300,35 +300,41 @@ export default function PickupSettingsPage() {
   const saving = nav.state !== "idle";
 
   const cfg = normalizeConfig(data.config);
+  const cardStyle = {
+    border: "1px solid rgba(0,0,0,.08)",
+    borderRadius: 16,
+    background: "white",
+    padding: 20,
+    boxShadow: "0 10px 20px rgba(0,0,0,.04)",
+  } as const;
 
   return (
-    <div style={{ padding: 24, maxWidth: 1100 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
-        Pickup & delivery settings
-      </h1>
-      <p style={{ marginTop: 0, opacity: 0.8 }}>
-        Manage countries, flags, providers and prices shown in the cart.
-      </p>
+    <div style={{ padding: 32, maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, marginBottom: 6 }}>
+          Pickup & delivery settings
+        </h1>
+        <p style={{ marginTop: 0, color: "#6b7280" }}>
+          Manage countries, flags, providers and prices shown in the cart.
+        </p>
+      </div>
 
       <Form method="post">
         <input type="hidden" name="countryCount" value={cfg.countries.length} />
 
-        <div
-          style={{
-            border: "1px solid rgba(0,0,0,.12)",
-            borderRadius: 16,
-            overflow: "hidden",
-          }}
-        >
+        <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "110px 1.2fr 1.4fr 1.6fr 1fr 1fr 120px",
+              gridTemplateColumns: "110px 1.4fr 1.8fr 1.7fr 1fr 1fr 120px",
               gap: 0,
               background: "rgba(0,0,0,.03)",
-              padding: "12px 16px",
+              padding: "14px 18px",
               fontWeight: 600,
-              fontSize: 13,
+              fontSize: 12,
+              color: "#4b5563",
+              textTransform: "uppercase",
+              letterSpacing: ".04em",
             }}
           >
             <div>Enabled</div>
@@ -345,12 +351,13 @@ export default function PickupSettingsPage() {
               key={country.code}
               style={{
                 display: "grid",
-                gridTemplateColumns: "110px 1.2fr 1.4fr 1.6fr 1fr 1fr 120px",
-                gap: 12,
-                padding: "14px 16px",
+                gridTemplateColumns: "110px 1.4fr 1.8fr 1.7fr 1fr 1fr 120px",
+                gap: 14,
+                padding: "16px 18px",
                 borderTop: "1px solid rgba(0,0,0,.08)",
                 alignItems: "center",
                 fontSize: 13,
+                background: index % 2 === 1 ? "rgba(0,0,0,.015)" : "white",
               }}
             >
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -367,13 +374,23 @@ export default function PickupSettingsPage() {
                   type="text"
                   name={`country_${index}_code`}
                   defaultValue={country.code}
-                  style={{ width: 60 }}
+                  style={{
+                    width: 64,
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,.12)",
+                  }}
                 />
                 <input
                   type="text"
                   name={`country_${index}_label`}
                   defaultValue={country.label}
-                  style={{ width: "100%" }}
+                  style={{
+                    width: "100%",
+                    padding: "8px 10px",
+                    borderRadius: 10,
+                    border: "1px solid rgba(0,0,0,.12)",
+                  }}
                 />
               </div>
 
@@ -382,6 +399,11 @@ export default function PickupSettingsPage() {
                 name={`country_${index}_flag`}
                 defaultValue={country.flagUrl}
                 placeholder="https://..."
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,.12)",
+                }}
               />
 
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -408,12 +430,22 @@ export default function PickupSettingsPage() {
                 name={`country_${index}_price_smartposti`}
                 defaultValue={country.pricesByProvider.smartposti ?? ""}
                 placeholder="e.g. 3.99"
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,.12)",
+                }}
               />
               <input
                 type="text"
                 name={`country_${index}_price_flat_rate`}
                 defaultValue={country.pricesByProvider.flat_rate ?? ""}
                 placeholder="e.g. 4.99"
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,.12)",
+                }}
               />
 
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -452,19 +484,34 @@ export default function PickupSettingsPage() {
                 type="text"
                 name="new_country_code"
                 placeholder="Code"
-                style={{ width: 70 }}
+                style={{
+                  width: 70,
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,.12)",
+                }}
               />
               <input
                 type="text"
                 name="new_country_label"
                 placeholder="Country name"
-                style={{ width: "100%" }}
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,.12)",
+                }}
               />
             </div>
             <input
               type="text"
               name="new_country_flag"
               placeholder="Flag URL"
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,.12)",
+              }}
             />
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -483,11 +530,21 @@ export default function PickupSettingsPage() {
               type="text"
               name="new_country_price_smartposti"
               placeholder="Smartposti price"
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,.12)",
+              }}
             />
             <input
               type="text"
               name="new_country_price_flat_rate"
               placeholder="Flat rate price"
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,.12)",
+              }}
             />
           </div>
         </div>
