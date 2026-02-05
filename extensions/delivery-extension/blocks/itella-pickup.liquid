@@ -130,9 +130,17 @@
   }
   .pickup-provider input{accent-color:#111}
   .pickup-provider img{width:84px;height:auto}
-  .pickup-points{display:flex;flex-direction:column;gap:8px}
+  .pickup-points{display:flex;flex-direction:column;gap:8px;position:relative}
   .pickup-points-title{font-weight:600;font-size:14px}
-  .pickup-points-menu{max-height:280px;overflow:auto}
+  .pickup-points-menu{
+    max-height:280px;
+    overflow:auto;
+    position:absolute;
+    left:0;
+    right:0;
+    top:100%;
+    z-index:20;
+  }
   .pickup-point-list{display:flex;flex-direction:column}
   .pickup-point-option{width:100%;border:0;background:#fff;text-align:left;padding:10px 12px;cursor:pointer}
   .pickup-point-option:hover{background:#f3f4f6}

@@ -6,8 +6,6 @@
   const countryMenu = document.getElementById("pickup-country-menu");
   const countryLabel = document.getElementById("pickup-country-label");
   const countryFlag = document.getElementById("pickup-country-flag");
-  const deliveryOptions = document.getElementById("pickup-delivery-options");
-
   const providersWrap = document.getElementById("pickup-providers");
   const pointsWrap = document.getElementById("pickup-points");
   const search = document.getElementById("pickup-search");
@@ -124,6 +122,23 @@
     }
   }
 
+  function getProviderMeta(providerKey) {
+    return (config.providerMeta && config.providerMeta[providerKey]) || {
+      title: providerKey,
+    };
+  }
+
+  async function syncProviderAttributes(country, providerKey) {
+    const meta = getProviderMeta(providerKey);
+    const price = country?.pricesByProvider?.[providerKey] || "";
+    await writeCartAttributes({
+      itella_pickup_provider: providerKey,
+      itella_pickup_country: country?.code || state.country,
+      itella_delivery_title: meta.title || providerKey,
+      itella_delivery_price: price,
+    });
+  }
+
   function renderCountryMenu(countries) {
     countryMenu.innerHTML = "";
 
@@ -147,7 +162,7 @@
     });
   }
 
-  function renderProviders(providerKeys, providerMeta, pricesByProvider) {
+  function renderProviders(providerKeys, pricesByProvider) {
     providersWrap.innerHTML = "";
 
     if (!providerKeys || providerKeys.length === 0) {
@@ -156,7 +171,8 @@
     }
 
     providerKeys.forEach((key) => {
-      const meta = (providerMeta && providerMeta[key]) || { title: key, logo: "" };
+      const meta = getProviderMeta(key);
+      const displayTitle = meta.title || key;
       const price = pricesByProvider?.[key];
 
       const label = document.createElement("label");
@@ -165,8 +181,12 @@
         <input type="radio" name="pickup_provider" ${state.provider === key ? "checked" : ""} />
         ${meta.logo ? `<img src="${meta.logo}" alt="${key}" />` : ""}
         <div style="display:flex;flex-direction:column;gap:2px;">
-          <div style="font-weight:600">${key}</div>
-          <div style="opacity:.75;font-size:13px">${meta.title || ""}</div>
+          <div style="font-weight:600">${displayTitle}</div>
+          ${
+            key !== displayTitle
+              ? `<div style="opacity:.6;font-size:12px">${key}</div>`
+              : ""
+          }
           ${
             price
               ? `<div style="font-size:12px;opacity:.7">Price: ${price}</div>`
@@ -177,11 +197,8 @@
 
       label.addEventListener("click", async () => {
         state.provider = key;
-
-        await writeCartAttributes({
-          itella_pickup_provider: key,
-          itella_pickup_country: state.country,
-        });
+        const country = getCountryConfig(state.country);
+        await syncProviderAttributes(country, key);
 
         await setPointsVisibility();
         await loadPoints();
@@ -245,6 +262,7 @@
       state.points = [];
       state.filtered = [];
       renderPoints([]);
+      pointLabel.textContent = "Pickup point not required";
       return;
     }
 
@@ -278,25 +296,6 @@
     }
   }
 
-  function renderDeliveryOptions(country) {
-    if (!deliveryOptions) return;
-
-    const providers = country.providers || [];
-    if (!providers.length) {
-      deliveryOptions.innerHTML = `<span>No delivery methods for this country.</span>`;
-      return;
-    }
-
-    deliveryOptions.innerHTML = providers
-      .map((providerKey) => {
-        const meta = config.providerMeta?.[providerKey] || { title: providerKey };
-        const price = country.pricesByProvider?.[providerKey];
-        const priceLabel = price ? `${price}` : "—";
-        return `<span><span>${meta.title || providerKey}</span><strong>${priceLabel}</strong></span>`;
-      })
-      .join("");
-  }
-
   async function setCountry(code, countryOverride) {
     state.country = code;
     const country = countryOverride || getCountryConfig(code);
@@ -306,8 +305,8 @@
     const allowedProviders = country.providers || [];
     state.provider = allowedProviders[0] || "smartposti";
 
-    renderProviders(allowedProviders, config.providerMeta, country.pricesByProvider);
-    renderDeliveryOptions(country);
+    renderProviders(allowedProviders, country.pricesByProvider);
+    await syncProviderAttributes(country, state.provider);
     await setPointsVisibility();
 
     // Clear pickup selection on country change
@@ -408,4 +407,16 @@
     : (finalCountries[0]?.code || "EE");
 
   await setCountry(startCountry);
+
+  const restoredProvider = attrs.itella_pickup_provider;
+  if (restoredProvider) {
+    state.provider = restoredProvider;
+    const country = getCountryConfig(startCountry);
+    if (country?.providers?.includes(restoredProvider)) {
+      renderProviders(country.providers, country.pricesByProvider);
+      await syncProviderAttributes(country, restoredProvider);
+      await setPointsVisibility();
+      await loadPoints();
+    }
+  }
 })();
