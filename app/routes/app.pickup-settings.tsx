@@ -70,16 +70,6 @@ const DEFAULT_CONFIG: PickupConfig = {
   },
 };
 
-async function getShopId(admin: any) {
-  const query = `#graphql
-  query {
-    shop { id }
-  }`;
-  const res = await admin.graphql(query);
-  const json = await res.json();
-  return json.data.shop.id as string;
-}
-
 function normalizeConfig(raw: any): PickupConfig {
   if (!raw) return DEFAULT_CONFIG;
 
@@ -133,6 +123,16 @@ function normalizeConfig(raw: any): PickupConfig {
   }
 
   return DEFAULT_CONFIG;
+}
+
+async function getShopId(admin: any) {
+  const query = `#graphql
+  query {
+    shop { id }
+  }`;
+  const res = await admin.graphql(query);
+  const json = await res.json();
+  return json.data.shop.id as string;
 }
 
 async function getConfig(admin: any): Promise<PickupConfig> {

@@ -314,14 +314,45 @@
   }
 
   async function loadConfig() {
-    try {
-      // ✅ App Proxy endpoint (витрина)
-      const json = await fetchJSON(`/apps/pickup-config?ts=${Date.now()}`);
-      if (json && json.config) return { config: json.config, usedFallback: false };
-    } catch (e) {
-      // fallback below
+    const token = root.dataset.storefrontToken;
+    const namespace = root.dataset.configNamespace || "pickup";
+    const key = root.dataset.configKey || "config";
+    const apiVersion = root.dataset.storefrontApiVersion || "2024-10";
+
+    if (!token) {
+      return { config: FALLBACK_CONFIG, usedFallback: true };
     }
-    return { config: FALLBACK_CONFIG, usedFallback: true };
+
+    try {
+      const res = await fetch(`/api/${apiVersion}/graphql.json`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Storefront-Access-Token": token,
+        },
+        body: JSON.stringify({
+          query: `query PickupConfig($namespace: String!, $key: String!) {
+            shop {
+              metafield(namespace: $namespace, key: $key) { value type }
+            }
+          }`,
+          variables: { namespace, key },
+        }),
+      });
+
+      if (!res.ok) {
+        return { config: FALLBACK_CONFIG, usedFallback: true };
+      }
+
+      const json = await res.json();
+      const raw = json?.data?.shop?.metafield?.value;
+      if (!raw) return { config: FALLBACK_CONFIG, usedFallback: true };
+
+      const parsed = JSON.parse(raw);
+      return { config: parsed, usedFallback: false };
+    } catch (e) {
+      return { config: FALLBACK_CONFIG, usedFallback: true };
+    }
   }
 
   async function loadPoints() {
