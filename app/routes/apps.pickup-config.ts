@@ -1,4 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
+import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
 type CountryCode = string;
@@ -154,11 +155,11 @@ function normalizeConfig(raw: any): PickupConfig {
 export async function loader({ request }: LoaderFunctionArgs) {
   const ctx = await authenticate.public.appProxy(request);
 
-  if (!ctx.admin) {
+  if (!ctx.session) {
     return json({
       config: { countries: [], providerMeta: DEFAULT_CONFIG.providerMeta },
       warning:
-        "Admin API is unavailable for this app proxy request (no offline session). Open the app in Admin and reinstall/reset scopes if needed.",
+        "App proxy session is unavailable. Open the app in Admin to refresh the session.",
     });
   }
 
@@ -177,11 +178,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const configField = fields.find((field: any) => field.key === "config");
   const raw = configField?.value;
 
-  if (!raw) return json({ config: DEFAULT_CONFIG });
+  if (!record) return json({ config: DEFAULT_CONFIG });
 
   try {
-    const parsed = JSON.parse(raw);
-    const config = normalizeConfig(parsed);
+    const config = normalizeConfig(JSON.parse(record.config));
     return json({ config });
   } catch {
     return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in metaobject" });

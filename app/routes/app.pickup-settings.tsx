@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useLoaderData, useNavigation } from "react-router";
+import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 
 type CountryCode = string;
@@ -203,9 +204,9 @@ async function getConfig(admin: any): Promise<PickupConfig> {
   const raw = configField?.value;
   if (!raw) return DEFAULT_CONFIG;
 
+  if (!record) return DEFAULT_CONFIG;
   try {
-    const parsed = JSON.parse(raw);
-    return normalizeConfig(parsed);
+    return normalizeConfig(JSON.parse(record.config));
   } catch {
     return DEFAULT_CONFIG;
   }
@@ -347,7 +348,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
   const form = await request.formData();
 
   const countries = parseCountryRows(form);
@@ -357,7 +358,7 @@ export async function action({ request }: ActionFunctionArgs) {
     providerMeta: DEFAULT_CONFIG.providerMeta,
   };
 
-  await saveConfig(admin, config);
+  await saveConfig(session.shop, config);
   return Response.json({ ok: true });
 }
 
