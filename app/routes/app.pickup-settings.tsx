@@ -456,8 +456,15 @@ export default function PickupSettingsPage() {
           ))}
         </div>
 
-        <div style={{ ...cardStyle, marginTop: 20 }}>
-          <h2 style={{ fontSize: 18, margin: 0 }}>Add new country</h2>
+        <div
+          style={{
+            marginTop: 20,
+            border: "1px dashed rgba(0,0,0,.2)",
+            borderRadius: 12,
+            padding: 16,
+          }}
+        >
+          <h2 style={{ fontSize: 16, margin: 0 }}>Add new country</h2>
           <div
             style={{
               display: "grid",
