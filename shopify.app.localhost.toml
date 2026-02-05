@@ -4,7 +4,7 @@ name = "Delivery app"
 # 2) убрать app_proxy
 
 [access_scopes]
-scopes = "write_products"
+scopes = "write_products,read_metafields,write_metafields"
 
 [webhooks]
 api_version = "2026-01"

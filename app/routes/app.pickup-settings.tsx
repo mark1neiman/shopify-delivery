@@ -126,10 +126,32 @@ function normalizeConfig(raw: any): PickupConfig {
   return DEFAULT_CONFIG;
 }
 
-async function getConfig(shop: string): Promise<PickupConfig> {
-  const record = await prisma.pickupConfig.findUnique({
-    where: { shop },
-  });
+async function getShopId(admin: any) {
+  const query = `#graphql
+  query {
+    shop { id }
+  }`;
+  const res = await admin.graphql(query);
+  const json = await res.json();
+  return json.data.shop.id as string;
+}
+
+async function getConfig(admin: any): Promise<PickupConfig> {
+  const query = `#graphql
+  query {
+    shop {
+      metafield(namespace: "pickup", key: "config") {
+        value
+        type
+      }
+    }
+  }`;
+
+  const res = await admin.graphql(query);
+  const json = await res.json();
+
+  const raw = json.data?.shop?.metafield?.value;
+  if (!raw) return DEFAULT_CONFIG;
 
   if (!record) return DEFAULT_CONFIG;
   try {
