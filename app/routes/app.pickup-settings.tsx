@@ -126,31 +126,69 @@ function normalizeConfig(raw: any): PickupConfig {
   return DEFAULT_CONFIG;
 }
 
-async function getShopId(admin: any) {
+const METAOBJECT_TYPE = "pickup_config";
+const METAOBJECT_HANDLE = "default";
+
+async function ensureMetaobjectDefinition(admin: any) {
   const query = `#graphql
-  query {
-    shop { id }
+  query Definition($type: String!) {
+    metaobjectDefinitionByType(type: $type) { id type }
   }`;
-  const res = await admin.graphql(query);
+
+  const res = await admin.graphql(query, {
+    variables: { type: METAOBJECT_TYPE },
+  });
   const json = await res.json();
-  return json.data.shop.id as string;
+  if (json.data?.metaobjectDefinitionByType?.id) return;
+
+  const mutation = `#graphql
+  mutation CreateDefinition($definition: MetaobjectDefinitionCreateInput!) {
+    metaobjectDefinitionCreate(definition: $definition) {
+      metaobjectDefinition { id type }
+      userErrors { field message }
+    }
+  }`;
+
+  const variables = {
+    definition: {
+      type: METAOBJECT_TYPE,
+      name: "Pickup config",
+      access: { storefront: "PUBLIC_READ" },
+      fieldDefinitions: [
+        {
+          key: "config",
+          name: "Config",
+          type: "json",
+        },
+      ],
+    },
+  };
+
+  const createRes = await admin.graphql(mutation, { variables });
+  const createJson = await createRes.json();
+  const errors = createJson.data?.metaobjectDefinitionCreate?.userErrors ?? [];
+  if (errors.length) {
+    const msg = errors.map((e: any) => e.message).join(", ");
+    throw new Error(msg);
+  }
 }
 
 async function getConfig(admin: any): Promise<PickupConfig> {
   const query = `#graphql
-  query {
-    shop {
-      metafield(namespace: "pickup", key: "config") {
-        value
-        type
-      }
+  query Config($handle: MetaobjectHandleInput!) {
+    metaobjectByHandle(handle: $handle) {
+      fields { key value }
     }
   }`;
 
-  const res = await admin.graphql(query);
+  const res = await admin.graphql(query, {
+    variables: { handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE } },
+  });
   const json = await res.json();
 
-  const raw = json.data?.shop?.metafield?.value;
+  const fields = json.data?.metaobjectByHandle?.fields ?? [];
+  const configField = fields.find((field: any) => field.key === "config");
+  const raw = configField?.value;
   if (!raw) return DEFAULT_CONFIG;
 
   if (!record) return DEFAULT_CONFIG;
@@ -161,12 +199,37 @@ async function getConfig(admin: any): Promise<PickupConfig> {
   }
 }
 
-async function saveConfig(shop: string, config: PickupConfig) {
-  await prisma.pickupConfig.upsert({
-    where: { shop },
-    update: { config: JSON.stringify(config) },
-    create: { shop, config: JSON.stringify(config) },
-  });
+async function saveConfig(admin: any, config: PickupConfig) {
+  await ensureMetaobjectDefinition(admin);
+
+  const mutation = `#graphql
+  mutation Upsert($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
+    metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
+      metaobject { id handle }
+      userErrors { field message }
+    }
+  }`;
+
+  const variables = {
+    handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE },
+    metaobject: {
+      fields: [
+        {
+          key: "config",
+          value: JSON.stringify(config),
+        },
+      ],
+    },
+  };
+
+  const res = await admin.graphql(mutation, { variables });
+  const json = await res.json();
+
+  const errors = json.data?.metaobjectUpsert?.userErrors ?? [];
+  if (errors.length) {
+    const msg = errors.map((e: any) => e.message).join(", ");
+    throw new Error(msg);
+  }
 }
 
 function parseCountryRows(form: FormData): CountryConfig[] {
@@ -264,8 +327,9 @@ function parseCountryRows(form: FormData): CountryConfig[] {
 }
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { session } = await authenticate.admin(request);
-  const config = await getConfig(session.shop);
+  const { admin } = await authenticate.admin(request);
+  await ensureMetaobjectDefinition(admin);
+  const config = await getConfig(admin);
 
   return Response.json({ config });
 }

@@ -315,8 +315,9 @@
 
   async function loadConfig() {
     const token = root.dataset.storefrontToken;
-    const namespace = root.dataset.configNamespace || "pickup";
-    const key = root.dataset.configKey || "config";
+    const metaobjectType = root.dataset.configMetaobjectType || "pickup_config";
+    const metaobjectHandle = root.dataset.configMetaobjectHandle || "default";
+    const metaobjectField = root.dataset.configMetaobjectField || "config";
     const apiVersion = root.dataset.storefrontApiVersion || "2024-10";
 
     if (!token) {
@@ -331,12 +332,12 @@
           "X-Shopify-Storefront-Access-Token": token,
         },
         body: JSON.stringify({
-          query: `query PickupConfig($namespace: String!, $key: String!) {
-            shop {
-              metafield(namespace: $namespace, key: $key) { value type }
+          query: `query PickupConfig($handle: MetaobjectHandleInput!) {
+            metaobjectByHandle(handle: $handle) {
+              fields { key value }
             }
           }`,
-          variables: { namespace, key },
+          variables: { handle: { type: metaobjectType, handle: metaobjectHandle } },
         }),
       });
 
@@ -345,7 +346,9 @@
       }
 
       const json = await res.json();
-      const raw = json?.data?.shop?.metafield?.value;
+      const fields = json?.data?.metaobjectByHandle?.fields || [];
+      const configField = fields.find((field) => field.key === metaobjectField);
+      const raw = configField?.value;
       if (!raw) return { config: FALLBACK_CONFIG, usedFallback: true };
 
       const parsed = JSON.parse(raw);

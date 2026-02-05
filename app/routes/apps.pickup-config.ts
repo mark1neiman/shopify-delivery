@@ -70,6 +70,9 @@ const DEFAULT_CONFIG: PickupConfig = {
   },
 };
 
+const METAOBJECT_TYPE = "pickup_config";
+const METAOBJECT_HANDLE = "default";
+
 function json(data: any, init?: ResponseInit) {
   return new Response(JSON.stringify(data), {
     status: init?.status ?? 200,
@@ -147,9 +150,20 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
 
-  const record = await prisma.pickupConfig.findUnique({
-    where: { shop: ctx.session.shop },
+  const query = `#graphql
+  query Config($handle: MetaobjectHandleInput!) {
+    metaobjectByHandle(handle: $handle) {
+      fields { key value }
+    }
+  }`;
+
+  const res = await ctx.admin.graphql(query, {
+    variables: { handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE } },
   });
+  const gql = await res.json();
+  const fields = gql.data?.metaobjectByHandle?.fields ?? [];
+  const configField = fields.find((field: any) => field.key === "config");
+  const raw = configField?.value;
 
   if (!record) return json({ config: DEFAULT_CONFIG });
 
@@ -157,6 +171,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const config = normalizeConfig(JSON.parse(record.config));
     return json({ config });
   } catch {
-    return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in config record" });
+    return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in metaobject" });
   }
 }
