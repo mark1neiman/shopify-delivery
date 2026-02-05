@@ -204,9 +204,8 @@ async function getConfig(admin: any): Promise<PickupConfig> {
   const raw = configField?.value;
   if (!raw) return DEFAULT_CONFIG;
 
-  if (!record) return DEFAULT_CONFIG;
   try {
-    return normalizeConfig(JSON.parse(record.config));
+    return normalizeConfig(JSON.parse(raw));
   } catch {
     return DEFAULT_CONFIG;
   }
@@ -348,7 +347,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { session } = await authenticate.admin(request);
+  const { admin } = await authenticate.admin(request);
   const form = await request.formData();
 
   const countries = parseCountryRows(form);
@@ -358,7 +357,7 @@ export async function action({ request }: ActionFunctionArgs) {
     providerMeta: DEFAULT_CONFIG.providerMeta,
   };
 
-  await saveConfig(session.shop, config);
+  await saveConfig(admin, config);
   return Response.json({ ok: true });
 }
 
