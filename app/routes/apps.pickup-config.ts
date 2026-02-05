@@ -1,27 +1,65 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 
-type CountryCode = "EE" | "LV" | "LT" | "FI";
-type ProviderKey = "smartposti";
+type CountryCode = string;
+type ProviderKey = "smartposti" | "flat_rate";
+
+type CountryConfig = {
+  code: CountryCode;
+  label: string;
+  flagUrl: string;
+  enabled: boolean;
+  providers: ProviderKey[];
+  pricesByProvider: Partial<Record<ProviderKey, string>>;
+};
 
 type PickupConfig = {
-  countries: CountryCode[];
-  providersByCountry: Record<CountryCode, ProviderKey[]>;
-  providerMeta: Record<ProviderKey, { title: string; logo: string }>;
+  countries: CountryConfig[];
+  providerMeta: Record<ProviderKey, { title: string; logo?: string }>;
 };
 
 const DEFAULT_CONFIG: PickupConfig = {
-  countries: ["EE", "LV", "LT", "FI"],
-  providersByCountry: {
-    EE: ["smartposti"],
-    LV: ["smartposti"],
-    LT: ["smartposti"],
-    FI: ["smartposti"],
-  },
+  countries: [
+    {
+      code: "EE",
+      label: "Estonia",
+      flagUrl: "https://flagcdn.com/w40/ee.png",
+      enabled: true,
+      providers: ["smartposti", "flat_rate"],
+      pricesByProvider: { smartposti: "3.99", flat_rate: "4.99" },
+    },
+    {
+      code: "LV",
+      label: "Latvia",
+      flagUrl: "https://flagcdn.com/w40/lv.png",
+      enabled: true,
+      providers: ["smartposti", "flat_rate"],
+      pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
+    },
+    {
+      code: "LT",
+      label: "Lithuania",
+      flagUrl: "https://flagcdn.com/w40/lt.png",
+      enabled: true,
+      providers: ["smartposti", "flat_rate"],
+      pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
+    },
+    {
+      code: "FI",
+      label: "Finland",
+      flagUrl: "https://flagcdn.com/w40/fi.png",
+      enabled: true,
+      providers: ["smartposti", "flat_rate"],
+      pricesByProvider: { smartposti: "6.99", flat_rate: "7.99" },
+    },
+  ],
   providerMeta: {
     smartposti: {
       title: "Smartposti parcel lockers",
       logo: "https://production.parcely.app/images/itella.png",
+    },
+    flat_rate: {
+      title: "Flat rate delivery",
     },
   },
 };
@@ -37,10 +75,62 @@ function json(data: any, init?: ResponseInit) {
   });
 }
 
+function normalizeConfig(raw: any): PickupConfig {
+  if (!raw) return DEFAULT_CONFIG;
+
+  if (Array.isArray(raw.countries) && raw.countries.length > 0) {
+    if (typeof raw.countries[0] === "string") {
+      const fallbackCountries = raw.countries.map((code: string) => {
+        const match = DEFAULT_CONFIG.countries.find(
+          (country) => country.code === code,
+        );
+        return (
+          match ?? {
+            code,
+            label: code,
+            flagUrl: "",
+            enabled: true,
+            providers: ["smartposti"],
+            pricesByProvider: {},
+          }
+        );
+      });
+      return {
+        countries: fallbackCountries,
+        providerMeta: raw.providerMeta ?? DEFAULT_CONFIG.providerMeta,
+      };
+    }
+
+    const normalizedCountries = raw.countries.map((country: any) => {
+      const code = String(country.code ?? "").trim().toUpperCase();
+      const match = DEFAULT_CONFIG.countries.find(
+        (defaultCountry) => defaultCountry.code === code,
+      );
+
+      return {
+        code,
+        label: String(country.label ?? match?.label ?? code),
+        flagUrl: String(country.flagUrl ?? match?.flagUrl ?? ""),
+        enabled: Boolean(country.enabled ?? true),
+        providers: Array.isArray(country.providers)
+          ? country.providers
+          : match?.providers ?? ["smartposti"],
+        pricesByProvider: country.pricesByProvider ?? match?.pricesByProvider ?? {},
+      } as CountryConfig;
+    });
+
+    return {
+      countries: normalizedCountries.filter((country) => country.code),
+      providerMeta: raw.providerMeta ?? DEFAULT_CONFIG.providerMeta,
+    };
+  }
+
+  return DEFAULT_CONFIG;
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const ctx = await authenticate.public.appProxy(request);
 
-  // ✅ Если нет сессии/токена — Admin API недоступен
   if (!ctx.admin) {
     return json({
       config: DEFAULT_CONFIG,
@@ -64,11 +154,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   try {
     const parsed = JSON.parse(raw);
-    const config: PickupConfig = {
-      countries: Array.isArray(parsed.countries) ? parsed.countries : DEFAULT_CONFIG.countries,
-      providersByCountry: parsed.providersByCountry ?? DEFAULT_CONFIG.providersByCountry,
-      providerMeta: parsed.providerMeta ?? DEFAULT_CONFIG.providerMeta,
-    };
+    const config = normalizeConfig(parsed);
     return json({ config });
   } catch {
     return json({ config: DEFAULT_CONFIG, warning: "Bad JSON in metafield" });
