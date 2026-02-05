@@ -11,6 +11,7 @@ type CountryConfig = {
   flagUrl: string;
   enabled: boolean;
   providers: ProviderKey[];
+  providerLabels?: Partial<Record<ProviderKey, string>>;
   pricesByProvider: Partial<Record<ProviderKey, string>>;
 };
 
@@ -27,6 +28,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/ee.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "3.99", flat_rate: "4.99" },
     },
     {
@@ -35,6 +37,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/lv.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
     },
     {
@@ -43,6 +46,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/lt.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
     },
     {
@@ -51,6 +55,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/fi.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "6.99", flat_rate: "7.99" },
     },
   ],
@@ -91,6 +96,7 @@ function normalizeConfig(raw: any): PickupConfig {
             flagUrl: "",
             enabled: true,
             providers: ["smartposti"],
+            providerLabels: {},
             pricesByProvider: {},
           }
         );
@@ -115,6 +121,7 @@ function normalizeConfig(raw: any): PickupConfig {
         providers: Array.isArray(country.providers)
           ? country.providers
           : match?.providers ?? ["smartposti"],
+        providerLabels: country.providerLabels ?? match?.providerLabels ?? {},
         pricesByProvider: country.pricesByProvider ?? match?.pricesByProvider ?? {},
       } as CountryConfig;
     });
@@ -217,6 +224,9 @@ function parseCountryRows(form: FormData): CountryConfig[] {
     const flatRatePrice = String(
       form.get(`country_${i}_price_flat_rate`) ?? "",
     ).trim();
+    const flatRateLabel = String(
+      form.get(`country_${i}_flat_rate_label`) ?? "",
+    ).trim();
 
     countries.push({
       code,
@@ -224,6 +234,7 @@ function parseCountryRows(form: FormData): CountryConfig[] {
       flagUrl,
       enabled,
       providers,
+      providerLabels: flatRateLabel ? { flat_rate: flatRateLabel } : {},
       pricesByProvider: {
         smartposti: smartpostiPrice || undefined,
         flat_rate: flatRatePrice || undefined,
@@ -253,6 +264,9 @@ function parseCountryRows(form: FormData): CountryConfig[] {
     const newFlatRatePrice = String(
       form.get("new_country_price_flat_rate") ?? "",
     ).trim();
+    const newFlatRateLabel = String(
+      form.get("new_country_flat_rate_label") ?? "",
+    ).trim();
 
     if (!countries.find((country) => country.code === newCode)) {
       countries.push({
@@ -261,6 +275,7 @@ function parseCountryRows(form: FormData): CountryConfig[] {
         flagUrl: newFlagUrl,
         enabled: newEnabled,
         providers: newProviders,
+        providerLabels: newFlatRateLabel ? { flat_rate: newFlatRateLabel } : {},
         pricesByProvider: {
           smartposti: newSmartpostiPrice || undefined,
           flat_rate: newFlatRatePrice || undefined,
@@ -326,7 +341,7 @@ export default function PickupSettingsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "110px 1.4fr 1.8fr 1.7fr 1fr 1fr 120px",
+              gridTemplateColumns: "110px 1.4fr 1.8fr 1.7fr 1.1fr 1fr 1fr 120px",
               gap: 0,
               background: "rgba(0,0,0,.03)",
               padding: "14px 18px",
@@ -341,6 +356,7 @@ export default function PickupSettingsPage() {
             <div>Country</div>
             <div>Flag URL</div>
             <div>Providers</div>
+            <div>Flat rate label</div>
             <div>Smartposti price</div>
             <div>Flat rate price</div>
             <div>Remove</div>
@@ -351,7 +367,7 @@ export default function PickupSettingsPage() {
               key={country.code}
               style={{
                 display: "grid",
-                gridTemplateColumns: "110px 1.4fr 1.8fr 1.7fr 1fr 1fr 120px",
+                gridTemplateColumns: "110px 1.4fr 1.8fr 1.7fr 1.1fr 1fr 1fr 120px",
                 gap: 14,
                 padding: "16px 18px",
                 borderTop: "1px solid rgba(0,0,0,.08)",
@@ -427,6 +443,18 @@ export default function PickupSettingsPage() {
 
               <input
                 type="text"
+                name={`country_${index}_flat_rate_label`}
+                defaultValue={country.providerLabels?.flat_rate ?? ""}
+                placeholder="Flat rate delivery"
+                style={{
+                  padding: "8px 10px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(0,0,0,.12)",
+                }}
+              />
+
+              <input
+                type="text"
                 name={`country_${index}_price_smartposti`}
                 defaultValue={country.pricesByProvider.smartposti ?? ""}
                 placeholder="e.g. 3.99"
@@ -461,7 +489,7 @@ export default function PickupSettingsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "120px 1fr 1.4fr 1.6fr 1fr 1fr",
+              gridTemplateColumns: "120px 1fr 1.4fr 1.6fr 1fr 1fr 1fr",
               gap: 12,
               marginTop: 12,
               alignItems: "center",
@@ -519,6 +547,16 @@ export default function PickupSettingsPage() {
                 <span>Flat rate</span>
               </label>
             </div>
+            <input
+              type="text"
+              name="new_country_flat_rate_label"
+              placeholder="Flat rate label"
+              style={{
+                padding: "8px 10px",
+                borderRadius: 10,
+                border: "1px solid rgba(0,0,0,.12)",
+              }}
+            />
             <input
               type="text"
               name="new_country_price_smartposti"

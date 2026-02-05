@@ -10,6 +10,7 @@ type CountryConfig = {
   flagUrl: string;
   enabled: boolean;
   providers: ProviderKey[];
+  providerLabels?: Partial<Record<ProviderKey, string>>;
   pricesByProvider: Partial<Record<ProviderKey, string>>;
 };
 
@@ -26,6 +27,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/ee.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "3.99", flat_rate: "4.99" },
     },
     {
@@ -34,6 +36,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/lv.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
     },
     {
@@ -42,6 +45,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/lt.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "4.99", flat_rate: "5.99" },
     },
     {
@@ -50,6 +54,7 @@ const DEFAULT_CONFIG: PickupConfig = {
       flagUrl: "https://flagcdn.com/w40/fi.png",
       enabled: true,
       providers: ["smartposti", "flat_rate"],
+      providerLabels: { flat_rate: "Flat rate delivery" },
       pricesByProvider: { smartposti: "6.99", flat_rate: "7.99" },
     },
   ],
@@ -91,6 +96,7 @@ function normalizeConfig(raw: any): PickupConfig {
             flagUrl: "",
             enabled: true,
             providers: ["smartposti"],
+            providerLabels: {},
             pricesByProvider: {},
           }
         );
@@ -115,6 +121,7 @@ function normalizeConfig(raw: any): PickupConfig {
         providers: Array.isArray(country.providers)
           ? country.providers
           : match?.providers ?? ["smartposti"],
+        providerLabels: country.providerLabels ?? match?.providerLabels ?? {},
         pricesByProvider: country.pricesByProvider ?? match?.pricesByProvider ?? {},
       } as CountryConfig;
     });
@@ -133,7 +140,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   if (!ctx.admin) {
     return json({
-      config: DEFAULT_CONFIG,
+      config: { countries: [], providerMeta: DEFAULT_CONFIG.providerMeta },
       warning:
         "Admin API is unavailable for this app proxy request (no offline session). Open the app in Admin and reinstall/reset scopes if needed.",
     });
