@@ -183,11 +183,6 @@
         <div style="display:flex;flex-direction:column;gap:2px;">
           <div style="font-weight:600">${displayTitle}</div>
           ${
-            key !== displayTitle
-              ? `<div style="opacity:.6;font-size:12px">${key}</div>`
-              : ""
-          }
-          ${
             price
               ? `<div style="font-size:12px;opacity:.7">Price: ${price}</div>`
               : ""
