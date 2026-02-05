@@ -649,7 +649,7 @@ export default function PickupSettingsPage() {
           </button>
 
           <span style={{ alignSelf: "center", opacity: 0.7 }}>
-            Changes apply to cart immediately via App Proxy.
+            Cart block loads settings via Storefront API (needs a Storefront access token).
           </span>
         </div>
       </Form>
