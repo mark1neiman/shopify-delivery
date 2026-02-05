@@ -1,0 +1,133 @@
+<div class="pickup-card" id="pickup-root" data-default-country="{{ localization.country.iso_code }}">
+  <div class="pickup-section">
+    <div class="pickup-title">Please choose a shipping method</div>
+    <label class="pickup-radio">
+      <input type="radio" checked />
+      <span class="pickup-radio-ui"></span>
+      <span>Delivery to locker or pick-up point</span>
+    </label>
+  </div>
+
+  <div class="pickup-section">
+    <div class="pickup-title">Country</div>
+    <button class="pickup-select" id="pickup-country-btn" type="button">
+      <span class="pickup-flag" id="pickup-country-flag"></span>
+      <span id="pickup-country-label">Loading…</span>
+      <span class="pickup-chevron">▾</span>
+    </button>
+    <div class="pickup-menu" id="pickup-country-menu" hidden></div>
+  </div>
+
+  <div class="pickup-section">
+    <div class="pickup-title">Please select a service provider</div>
+
+    <div id="pickup-providers" class="pickup-providers"></div>
+
+    <div style="height:10px"></div>
+
+    <input id="pickup-search" class="pickup-input" type="text" placeholder="Search by city / address / name" />
+
+    <div style="height:10px"></div>
+
+    <select id="pickup-point-select" class="pickup-native-select">
+      <option value="">Select pickup point…</option>
+    </select>
+
+    <div id="pickup-current" class="pickup-current"></div>
+  </div>
+</div>
+
+<style>
+  .pickup-card{
+    border:1px solid rgba(0,0,0,.12);
+    border-radius:18px;
+    padding:16px;
+    background:#fff;
+    max-width:520px;
+  }
+  .pickup-section{
+    padding:12px;
+    background:#f3f4f6;
+    border-radius:14px;
+    margin-top:12px;
+  }
+  .pickup-title{font-weight:600;margin-bottom:10px}
+  .pickup-radio{display:flex;gap:10px;align-items:center}
+  .pickup-radio input{accent-color:#111}
+  .pickup-select{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.14);
+    background:#fff;
+    justify-content:space-between;
+    cursor:pointer;
+  }
+  .pickup-flag{
+    width:22px;height:14px;border-radius:3px;
+    background:#ddd;display:inline-block;
+  }
+  .pickup-chevron{opacity:.7}
+  .pickup-menu{
+    margin-top:8px;
+    background:#fff;
+    border:1px solid rgba(0,0,0,.12);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .pickup-menu button{
+    width:100%;
+    padding:10px 12px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    background:#fff;
+    border:0;
+    text-align:left;
+    cursor:pointer;
+  }
+  .pickup-menu button:hover{background:#f3f4f6}
+  .pickup-providers{display:flex;flex-direction:column;gap:10px}
+  .pickup-provider{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.14);
+    background:#fff;
+    cursor:pointer;
+  }
+  .pickup-provider input{accent-color:#111}
+  .pickup-provider img{width:84px;height:auto}
+  .pickup-input{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.14);
+    background:#fff;
+  }
+  .pickup-native-select{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.14);
+    background:#fff;
+  }
+  .pickup-current{
+    margin-top:10px;
+    opacity:.8;
+    font-size:14px;
+  }
+</style>
+
+<script src="{{ 'itella-pickup.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Pickup selector",
+  "target": "section",
+  "settings": []
+}
+{% endschema %}
