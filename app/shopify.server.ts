@@ -1,4 +1,13 @@
 import "@shopify/shopify-app-react-router/adapters/node";
+import { config as loadEnv } from "dotenv";
+
+loadEnv({ path: process.env.ENV_FILE || "process.env" });
+
+const trimEnv = (value?: string) => value?.trim();
+process.env.SHOPIFY_API_KEY = trimEnv(process.env.SHOPIFY_API_KEY);
+process.env.SHOPIFY_API_SECRET = trimEnv(process.env.SHOPIFY_API_SECRET);
+process.env.SHOPIFY_APP_URL = trimEnv(process.env.SHOPIFY_APP_URL);
+process.env.SCOPES = trimEnv(process.env.SCOPES);
 import {
   ApiVersion,
   AppDistribution,

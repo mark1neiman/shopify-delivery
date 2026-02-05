@@ -14,6 +14,7 @@
   const pointList = document.getElementById("pickup-point-list");
   const pointLabel = document.getElementById("pickup-point-label");
   const current = document.getElementById("pickup-current");
+  const fallbackNotice = document.getElementById("pickup-fallback");
   const DEFAULT_COUNTRY = (root.dataset.defaultCountry || "EE").toUpperCase();
   const i18n = {
     labelCountry: root.dataset.labelCountry || "Country",
@@ -26,6 +27,9 @@
     textNoPoints: root.dataset.textNoPoints || "No pickup points found.",
     textSelected: root.dataset.textSelected || "Selected",
     textPriceLabel: root.dataset.textPriceLabel || "Price",
+    textFallback:
+      root.dataset.textFallback ||
+      "Using fallback delivery settings. Enable App Proxy to load saved config.",
     textSearchPlaceholder:
       root.dataset.textSearchPlaceholder || "Search by city / address / name",
   };
@@ -314,48 +318,19 @@
   }
 
   async function loadConfig() {
-    const token = root.dataset.storefrontToken;
-    const metaobjectType = root.dataset.configMetaobjectType || "pickup_config";
-    const metaobjectHandle = root.dataset.configMetaobjectHandle || "default";
-    const metaobjectField = root.dataset.configMetaobjectField || "config";
-    const apiVersion = root.dataset.storefrontApiVersion || "2024-10";
-
-    if (!token) {
-      return { config: FALLBACK_CONFIG, usedFallback: true };
-    }
-
     try {
-      const res = await fetch(`/api/${apiVersion}/graphql.json`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Shopify-Storefront-Access-Token": token,
-        },
-        body: JSON.stringify({
-          query: `query PickupConfig($handle: MetaobjectHandleInput!) {
-            metaobjectByHandle(handle: $handle) {
-              fields { key value }
-            }
-          }`,
-          variables: { handle: { type: metaobjectType, handle: metaobjectHandle } },
-        }),
-      });
-
-      if (!res.ok) {
-        return { config: FALLBACK_CONFIG, usedFallback: true };
+      const proxyRes = await fetch("/apps/pickup-config", { cache: "no-store" });
+      if (proxyRes.ok) {
+        const proxyJson = await proxyRes.json();
+        if (proxyJson?.config && !proxyJson?.warning) {
+          return { config: proxyJson.config, usedFallback: false };
+        }
       }
-
-      const json = await res.json();
-      const fields = json?.data?.metaobjectByHandle?.fields || [];
-      const configField = fields.find((field) => field.key === metaobjectField);
-      const raw = configField?.value;
-      if (!raw) return { config: FALLBACK_CONFIG, usedFallback: true };
-
-      const parsed = JSON.parse(raw);
-      return { config: parsed, usedFallback: false };
     } catch (e) {
-      return { config: FALLBACK_CONFIG, usedFallback: true };
+      // ignore proxy failure and fall through to fallback
     }
+
+    return { config: FALLBACK_CONFIG, usedFallback: true };
   }
 
   async function loadPoints() {
@@ -490,6 +465,10 @@
   const configResponse = await loadConfig();
   config = configResponse.config;
   const usedFallback = configResponse.usedFallback;
+  if (fallbackNotice) {
+    fallbackNotice.textContent = usedFallback ? i18n.textFallback : "";
+    fallbackNotice.hidden = !usedFallback;
+  }
 
   // Enabled countries from config
   const enabledCountries = (config.countries || []).filter((country) => country.enabled);

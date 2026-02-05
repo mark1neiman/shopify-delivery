@@ -2,7 +2,7 @@
 
 client_id = "429e20fdc94c0aca6bf240260d416aa2"
 name = "Delivery app"
-application_url = "https://example.com"
+application_url = "https://delivery.nanails.eu"
 embedded = true
 
 [build]
@@ -25,4 +25,4 @@ api_version = "2026-04"
 scopes = "write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = [ "https://delivery.nanails.eu/api/auth" ]
