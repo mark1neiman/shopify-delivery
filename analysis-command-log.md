@@ -1,0 +1,45 @@
+# Analysis command log
+
+Commands run during repository analysis:
+
+- ls
+- cat README.md
+- ls app
+- ls app/routes
+- ls prisma
+- ls extensions
+- ls extensions/delivery-extension
+- ls extensions/thank-you-ui
+- cat package.json
+- cat app/root.tsx
+- cat app/shopify.server.ts
+- cat app/shipping.server.ts
+- cat app/db.server.ts
+- cat app/routes/app.tsx
+- cat app/routes/app._index.tsx
+- cat app/routes/app.additional.tsx
+- cat app/routes/app.pickup-settings.tsx
+- cat app/routes/auth.$.tsx
+- cat app/routes/webhooks.app.uninstalled.tsx
+- cat app/routes/webhooks.app.scopes_update.tsx
+- cat app/routes/apps.pickup-config.ts
+- cat app/routes/apps.pickup-config.draft-order.ts
+- cat app/routes/apps.draft-order.ts
+- ls app/routes/_index
+- cat app/routes/_index/route.tsx
+- cat app/routes/_index/styles.module.css
+- cat app/routes.ts
+- cat app/entry.server.tsx
+- cat extensions/thank-you-ui/src/Checkout.jsx
+- cat extensions/delivery-extension/shopify.extension.toml
+- ls extensions/delivery-extension/blocks
+- cat extensions/delivery-extension/blocks/itella-pickup.liquid
+- ls extensions/delivery-extension/assets
+- head -n 200 extensions/delivery-extension/assets/itella-pickup.js
+- ls app/routes/auth.login
+- cat app/routes/auth.login/route.tsx
+- cat app/routes/auth.login/error.server.tsx
+- cat shopify.app.toml
+- cat prisma/schema.prisma
+- cat app/globals.d.ts
+- cat extensions/thank-you-ui/shopify.extension.toml

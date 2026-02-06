@@ -437,7 +437,7 @@ export default function PickupSettingsPage() {
           </button>
 
           <span style={{ alignSelf: "center", opacity: 0.7 }}>
-            Cart block loads settings via App Proxy (/apps/pickup-config).
+            Cart block loads settings via App Proxy (/apps/checkout/pickup-config).
           </span>
         </div>
       </Form>
