@@ -87,8 +87,8 @@ export async function getShippingZones(admin: GraphQLClient): Promise<ShippingZo
                     name
                     countries {
                       code {
-                        ... on DeliveryCountryCodeV2 {
-                          countryCode
+                        ... on CountryCode {
+                          code
                         }
                         ... on RestOfWorld {
                           __typename
@@ -152,6 +152,7 @@ export async function getShippingZones(admin: GraphQLClient): Promise<ShippingZo
         if (!zone?.id) continue;
         const countries = (zone.countries ?? []).map((country: any) => {
           const rawCode =
+            country?.code?.code ??
             country?.code?.countryCode ??
             (country?.code?.__typename === "RestOfWorld" ? "ROW" : "") ??
             "";
