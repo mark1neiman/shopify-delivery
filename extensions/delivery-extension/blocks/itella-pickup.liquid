@@ -84,6 +84,19 @@
       <input id="pickup-phone" class="pickup-input" type="text" placeholder="Phone" />
     </div>
   </div>
+
+  <div class="pickup-section pickup-wolt" id="pickup-wolt" hidden>
+    <div class="pickup-title">Wolt delivery time</div>
+    <div class="pickup-wolt-notice" id="pickup-wolt-notice" hidden></div>
+    <div class="pickup-field">
+      <label for="pickup-wolt-date">Delivery date</label>
+      <input id="pickup-wolt-date" class="pickup-input" type="date" />
+    </div>
+    <div class="pickup-field">
+      <label for="pickup-wolt-time">Delivery time</label>
+      <select id="pickup-wolt-time" class="pickup-input"></select>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -134,7 +147,7 @@
     border-radius:12px;
     border:1px solid rgba(0,0,0,.14);
     background:#fff;
-    justify-content:space-between;
+    justify-content:flex-start;
     cursor:pointer;
   }
   .pickup-flag{
@@ -143,7 +156,7 @@
     background-size:cover;
     background-position:center;
   }
-  .pickup-chevron{opacity:.7}
+  .pickup-chevron{opacity:.7;margin-left:auto}
   .pickup-menu{
     margin-top:8px;
     background:#fff;
@@ -161,6 +174,7 @@
     background:#fff;
     border:0;
     text-align:left;
+    justify-content:flex-start;
     cursor:pointer;
   }
   .pickup-menu button:hover{background:#f3f4f6}
@@ -177,8 +191,11 @@
     background:#fff;
     cursor:pointer;
   }
-  .pickup-provider input{accent-color:#111}
+  .pickup-provider input{accent-color:#111;margin:0}
   .pickup-provider img{width:84px;height:auto}
+  .pickup-provider.is-disabled{opacity:.45;cursor:not-allowed}
+  .pickup-provider.is-disabled input{cursor:not-allowed}
+  .pickup-provider-note{font-size:12px;color:#6b7280;margin-left:auto}
   .pickup-points{display:flex;flex-direction:column;gap:8px;position:relative}
   .pickup-points-title{font-weight:600;font-size:14px}
   .pickup-points-menu{
@@ -215,6 +232,13 @@
     margin-top:6px;
     opacity:.8;
     font-size:14px;
+  }
+  .pickup-wolt-notice{
+    font-size:12px;
+    color:#92400e;
+    background:rgba(251,191,36,.18);
+    border-radius:10px;
+    padding:8px 10px;
   }
   .pickup-summary{
     margin-top:12px;

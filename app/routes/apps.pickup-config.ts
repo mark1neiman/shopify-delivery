@@ -13,6 +13,7 @@ type ProviderMapping = Record<string, ProviderKey | null>;
 type ShippingConfig = {
   providerMeta: ProviderMeta;
   providerMapping: ProviderMapping;
+  countryFlags: Record<string, string>;
 };
 
 const DEFAULT_PROVIDER_META: ProviderMeta = {
@@ -63,6 +64,7 @@ async function getConfig(admin: any): Promise<ShippingConfig> {
     return {
       providerMeta: DEFAULT_PROVIDER_META,
       providerMapping: {},
+      countryFlags: {},
     };
   }
 
@@ -71,11 +73,13 @@ async function getConfig(admin: any): Promise<ShippingConfig> {
     return {
       providerMeta: parsed.providerMeta ?? DEFAULT_PROVIDER_META,
       providerMapping: parsed.providerMapping ?? {},
+      countryFlags: parsed.countryFlags ?? {},
     };
   } catch {
     return {
       providerMeta: DEFAULT_PROVIDER_META,
       providerMapping: {},
+      countryFlags: {},
     };
   }
 }
@@ -109,7 +113,7 @@ function mapZonesToConfig(zones: ShippingZone[], config: ShippingConfig) {
         countries.set(country.code, {
           code: country.code,
           label: country.name || country.code,
-          flagUrl: "",
+          flagUrl: config.countryFlags?.[country.code] ?? "",
           enabled: true,
           providers: [],
           providerLabels: {},

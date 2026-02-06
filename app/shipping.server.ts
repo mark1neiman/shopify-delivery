@@ -136,12 +136,12 @@ query DeliveryProfileZones($id: ID!, $zonesFirst: Int!, $methodsFirst: Int!) {
             methodDefinitions(first: $methodsFirst) {
               edges {
                 node {
-                  id
-                  name
-                  rateProvider {
-                    __typename
-                    ... on DeliveryRateDefinition {
-                      price { amount currencyCode }
+                  zone {
+                    id
+                    name
+                    countries {
+                      code
+                      name
                     }
                     ... on DeliveryParticipant {
                       fixedFee { amount currencyCode }
@@ -208,14 +208,13 @@ export async function getShippingZones(admin: GraphQLClient): Promise<ShippingZo
       for (const groupZone of groupZones) {
         const zone = groupZone.zone;
         if (!zone?.id) continue;
-
-        const zoneId = String(zone.id);
-        const zoneName = String(zone.name ?? "");
-
-        const countries: ShippingCountry[] = (zone.countries ?? []).map((country: any) => {
-          const isRow = Boolean(country?.code?.restOfWorld);
-          const rawCode = isRow ? "ROW" : String(country?.code?.countryCode ?? "");
-          const code = rawCode.toUpperCase();
+        const countries = (zone.countries ?? []).map((country: any) => {
+          const rawCode =
+            country?.code?.code ??
+            country?.code?.countryCode ??
+            country?.code ??
+            (country?.code?.__typename === "RestOfWorld" ? "ROW" : "") ??
+            "";
           return {
             code,
             name: String(country?.name ?? code),
