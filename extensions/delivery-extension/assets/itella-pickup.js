@@ -635,7 +635,10 @@
 
     async function loadConfig() {
       try {
-        const proxyRes = await fetch("/apps/checkout/pickup-config", { cache: "no-store" });
+        let proxyRes = await fetch("/apps/checkout/pickup-config", { cache: "no-store" });
+        if (!proxyRes.ok) {
+          proxyRes = await fetch("/apps/pickup-config", { cache: "no-store" });
+        }
         if (proxyRes.ok) {
           const proxyJson = await proxyRes.json();
           if (proxyJson?.config && !proxyJson?.warning) {
