@@ -28,6 +28,21 @@ type ShippingConfig = {
   providerMeta: ProviderMeta;
   providerMapping: ProviderMapping;
   countryFlags: Record<string, string>;
+  phoneCodesByCountry: Record<string, string>;
+};
+
+const DEFAULT_PHONE_CODES: Record<string, string> = {
+  EE: "+372",
+  LV: "+371",
+  LT: "+370",
+  FI: "+358",
+  SE: "+46",
+  NO: "+47",
+  DK: "+45",
+  PL: "+48",
+  DE: "+49",
+  FR: "+33",
+  GB: "+44",
 };
 
 const METAOBJECT_TYPE = "pickup_config";
@@ -77,6 +92,58 @@ async function ensureMetaobjectDefinition(admin: any) {
   }
 }
 
+function parseProviderMapping(form: FormData) {
+  const count = Number(form.get("rateCount") ?? 0);
+  const mapping: ProviderMapping = {};
+
+  for (let i = 0; i < count; i += 1) {
+    const id = String(form.get(`rate_${i}_id`) ?? "").trim();
+    if (!id) continue;
+
+    const selected = String(form.get(`rate_${i}_provider`) ?? "").trim();
+    mapping[id] =
+      selected === "smartposti" || selected === "flat_rate" || selected === "wolt"
+        ? (selected as ProviderKey)
+        : null;
+  }
+
+  return mapping;
+}
+
+function parseCountryFlags(form: FormData) {
+  const count = Number(form.get("countryCount") ?? 0);
+  const flags: Record<string, string> = {};
+
+  for (let i = 0; i < count; i += 1) {
+    const code = String(form.get(`country_${i}_code`) ?? "").trim();
+    if (!code) continue;
+
+    const flagUrl = String(form.get(`country_${i}_flag`) ?? "").trim();
+    if (flagUrl) flags[code.toUpperCase()] = flagUrl;
+  }
+
+  return flags;
+}
+
+function parsePhoneCodes(form: FormData) {
+  const count = Number(form.get("countryCount") ?? 0);
+  const codes: Record<string, string> = {};
+
+  for (let i = 0; i < count; i += 1) {
+    const code = String(form.get(`country_${i}_code`) ?? "").trim();
+    if (!code) continue;
+
+    const phoneCode = String(form.get(`country_${i}_phone_code`) ?? "").trim();
+    if (!phoneCode) continue;
+
+    // "+372" или "372" -> "+372"
+    const normalized = phoneCode.startsWith("+") ? phoneCode : `+${phoneCode}`;
+    codes[code.toUpperCase()] = normalized;
+  }
+
+  return codes;
+}
+
 async function getConfig(admin: any): Promise<ShippingConfig> {
   const query = `#graphql
   query Config($handle: MetaobjectHandleInput!) {
@@ -93,11 +160,13 @@ async function getConfig(admin: any): Promise<ShippingConfig> {
   const fields = json.data?.metaobjectByHandle?.fields ?? [];
   const configField = fields.find((field: any) => field.key === "config");
   const raw = configField?.value;
+
   if (!raw) {
     return {
       providerMeta: DEFAULT_PROVIDER_META,
       providerMapping: {},
       countryFlags: {},
+      phoneCodesByCountry: {},
     };
   }
 
@@ -107,12 +176,14 @@ async function getConfig(admin: any): Promise<ShippingConfig> {
       providerMeta: parsed.providerMeta ?? DEFAULT_PROVIDER_META,
       providerMapping: parsed.providerMapping ?? {},
       countryFlags: parsed.countryFlags ?? {},
+      phoneCodesByCountry: parsed.phoneCodesByCountry ?? {},
     };
   } catch {
     return {
       providerMeta: DEFAULT_PROVIDER_META,
       providerMapping: {},
       countryFlags: {},
+      phoneCodesByCountry: {},
     };
   }
 }
@@ -131,12 +202,7 @@ async function saveConfig(admin: any, config: ShippingConfig) {
   const variables = {
     handle: { type: METAOBJECT_TYPE, handle: METAOBJECT_HANDLE },
     metaobject: {
-      fields: [
-        {
-          key: "config",
-          value: JSON.stringify(config),
-        },
-      ],
+      fields: [{ key: "config", value: JSON.stringify(config) }],
     },
   };
 
@@ -150,42 +216,10 @@ async function saveConfig(admin: any, config: ShippingConfig) {
   }
 }
 
-function parseProviderMapping(form: FormData) {
-  const count = Number(form.get("rateCount") ?? 0);
-  const mapping: ProviderMapping = {};
-
-  for (let i = 0; i < count; i += 1) {
-    const id = String(form.get(`rate_${i}_id`) ?? "").trim();
-    if (!id) continue;
-    const selected = String(form.get(`rate_${i}_provider`) ?? "").trim();
-    mapping[id] =
-      selected === "smartposti" || selected === "flat_rate" || selected === "wolt"
-        ? selected
-        : null;
-  }
-
-  return mapping;
-}
-
-function parseCountryFlags(form: FormData) {
-  const count = Number(form.get("countryCount") ?? 0);
-  const flags: Record<string, string> = {};
-
-  for (let i = 0; i < count; i += 1) {
-    const code = String(form.get(`country_${i}_code`) ?? "").trim();
-    if (!code) continue;
-    const flagUrl = String(form.get(`country_${i}_flag`) ?? "").trim();
-    if (flagUrl) {
-      flags[code] = flagUrl;
-    }
-  }
-
-  return flags;
-}
-
 export async function loader({ request }: LoaderFunctionArgs) {
   const { admin } = await authenticate.admin(request);
   await ensureMetaobjectDefinition(admin);
+
   const config = await getConfig(admin);
   const zones = await getShippingZones(admin);
 
@@ -198,11 +232,13 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const providerMapping = parseProviderMapping(form);
   const countryFlags = parseCountryFlags(form);
+  const phoneCodesByCountry = parsePhoneCodes(form);
 
   const config: ShippingConfig = {
     providerMeta: DEFAULT_PROVIDER_META,
     providerMapping,
     countryFlags,
+    phoneCodesByCountry,
   };
 
   await saveConfig(admin, config);
@@ -216,18 +252,17 @@ export default function PickupSettingsPage() {
 
   const cfg = data.config;
   const zones = data.zones ?? [];
-  const rates = zones.flatMap((zone) =>
-    zone.rates.map((rate) => ({ ...rate, zone })),
-  );
+
+  const rates = zones.flatMap((zone) => zone.rates.map((rate) => ({ ...rate, zone })));
+
   const countries = zones
     .flatMap((zone) => zone.countries)
     .reduce((acc, country) => {
-      if (!acc.some((item) => item.code === country.code)) {
-        acc.push(country);
-      }
+      if (!acc.some((item) => item.code === country.code)) acc.push(country);
       return acc;
     }, [] as ShippingZone["countries"])
     .sort((a, b) => a.code.localeCompare(b.code));
+
   const cardStyle = {
     border: "1px solid rgba(0,0,0,.08)",
     borderRadius: 16,
@@ -251,51 +286,69 @@ export default function PickupSettingsPage() {
         <input type="hidden" name="rateCount" value={rates.length} />
         <input type="hidden" name="countryCount" value={countries.length} />
 
+        {/* Countries */}
         <div style={{ ...cardStyle, marginBottom: 24 }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>
-            Country flags
-          </div>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>Countries</div>
+
           <div style={{ display: "grid", gap: 12 }}>
-            {countries.map((country, index) => (
-              <div
-                key={country.code}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "80px 1fr",
-                  gap: 12,
-                  alignItems: "center",
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>
-                  {country.code}
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>
-                    {country.name}
+            {countries.map((country, index) => {
+              const code = country.code.toUpperCase();
+
+              const flagDefault = cfg.countryFlags?.[code] ?? "";
+              const phoneDefault =
+                cfg.phoneCodesByCountry?.[code] ?? DEFAULT_PHONE_CODES[code] ?? "";
+
+              return (
+                <div
+                  key={code}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "120px 1fr",
+                    gap: 12,
+                    alignItems: "start",
+                  }}
+                >
+                  <div style={{ fontWeight: 600 }}>
+                    {code}
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>{country.name}</div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 10 }}>
+                    <input type="hidden" name={`country_${index}_code`} value={code} />
+
+                    <input
+                      type="url"
+                      name={`country_${index}_flag`}
+                      placeholder="Flag URL (https://flagcdn.com/w40/ee.png)"
+                      defaultValue={flagDefault}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(0,0,0,.12)",
+                      }}
+                    />
+
+                    <input
+                      type="text"
+                      name={`country_${index}_phone_code`}
+                      placeholder="+372"
+                      defaultValue={phoneDefault}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        border: "1px solid rgba(0,0,0,.12)",
+                      }}
+                    />
                   </div>
                 </div>
-                <div>
-                  <input
-                    type="hidden"
-                    name={`country_${index}_code`}
-                    value={country.code}
-                  />
-                  <input
-                    type="url"
-                    name={`country_${index}_flag`}
-                    placeholder="https://flagcdn.com/w40/ee.png"
-                    defaultValue={cfg.countryFlags?.[country.code] ?? ""}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: "1px solid rgba(0,0,0,.12)",
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
+        {/* Rates mapping */}
         <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
           <div
             style={{
@@ -341,7 +394,7 @@ export default function PickupSettingsPage() {
               <div style={{ fontSize: 13, color: "#374151" }}>
                 <div style={{ fontWeight: 600 }}>{rate.zone.name}</div>
                 <div style={{ opacity: 0.7 }}>
-                  {rate.zone.countries.map((country) => country.code).join(", ")}
+                  {rate.zone.countries.map((c) => c.code).join(", ")}
                 </div>
               </div>
 
@@ -370,6 +423,7 @@ export default function PickupSettingsPage() {
         <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
           <button
             type="submit"
+            disabled={saving}
             style={{
               padding: "10px 14px",
               borderRadius: 12,
@@ -378,7 +432,6 @@ export default function PickupSettingsPage() {
               cursor: saving ? "not-allowed" : "pointer",
               fontWeight: 600,
             }}
-            disabled={saving}
           >
             {saving ? "Saving…" : "Save"}
           </button>

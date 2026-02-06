@@ -1,7 +1,8 @@
 {% assign last_address = customer.last_order.shipping_address | default: customer.default_address %}
+
 <div
   class="pickup-card"
-  id="pickup-root"
+  data-itella-pickup-root="1"
   data-default-country="{{ localization.country.iso_code }}"
   data-label-country="{{ 'pickup.labels.country' | t }}"
   data-label-provider="{{ 'pickup.labels.provider' | t }}"
@@ -22,8 +23,10 @@
   data-customer-city="{{ last_address.city | escape }}"
   data-customer-zip="{{ last_address.zip | escape }}"
   data-customer-phone="{{ last_address.phone | escape }}"
+  data-customer-phone-code=""
 >
   <div class="pickup-fallback" id="pickup-fallback" hidden></div>
+
   <div class="pickup-section">
     <div class="pickup-title">{{ 'pickup.labels.country' | t }}</div>
     <button class="pickup-select" id="pickup-country-btn" type="button">
@@ -36,7 +39,6 @@
 
   <div class="pickup-section">
     <div class="pickup-title">{{ 'pickup.labels.provider' | t }}</div>
-
     <div id="pickup-providers" class="pickup-providers"></div>
 
     <div class="pickup-points" id="pickup-points">
@@ -45,6 +47,7 @@
         <span id="pickup-point-label">{{ 'pickup.text.select_pickup' | t }}</span>
         <span class="pickup-chevron">▾</span>
       </button>
+
       <div class="pickup-menu pickup-points-menu" id="pickup-point-menu" hidden>
         <div class="pickup-menu-search">
           <input
@@ -59,24 +62,21 @@
     </div>
 
     <div id="pickup-current" class="pickup-current"></div>
-
   </div>
 
   <div class="pickup-section">
     <div class="pickup-title">Recipient details</div>
+
     <div class="pickup-field">
       <label for="pickup-name">Full name</label>
       <input id="pickup-name" class="pickup-input" type="text" placeholder="Name" />
     </div>
+
     <div class="pickup-field">
       <label for="pickup-address1">Address</label>
-      <input
-        id="pickup-address1"
-        class="pickup-input"
-        type="text"
-        placeholder="Street and house"
-      />
+      <input id="pickup-address1" class="pickup-input" type="text" placeholder="Street and house" />
     </div>
+
     <div class="pickup-field-row">
       <div class="pickup-field">
         <label for="pickup-city">City</label>
@@ -87,16 +87,35 @@
         <input id="pickup-zip" class="pickup-input" type="text" placeholder="Postal code" />
       </div>
     </div>
-    <div class="pickup-field">
-      <label for="pickup-phone">Phone</label>
-      <input id="pickup-phone" class="pickup-input" type="text" placeholder="Phone" />
-    </div>
-    {% unless customer %}
+
+    <!-- Phone code + phone -->
+    <div class="pickup-field-row">
       <div class="pickup-field">
-        <label for="pickup-email">Email</label>
-        <input id="pickup-email" class="pickup-input" type="email" placeholder="Email" />
+        <label for="pickup-phone-code">Phone code</label>
+        <select id="pickup-phone-code" class="pickup-input">
+          <option value="+372">+372 (EE)</option>
+          <option value="+371">+371 (LV)</option>
+          <option value="+370">+370 (LT)</option>
+          <option value="+358">+358 (FI)</option>
+        </select>
       </div>
-    {% endunless %}
+
+      <div class="pickup-field">
+        <label for="pickup-phone">Phone</label>
+        <input id="pickup-phone" class="pickup-input" type="text" placeholder="Phone" />
+      </div>
+    </div>
+
+    <!-- Email: показываем всегда -->
+    <div class="pickup-field">
+      <label for="pickup-email">Email</label>
+      <input id="pickup-email" class="pickup-input" type="email" placeholder="Email" />
+      {% if customer %}
+        <div style="font-size:12px;opacity:.65;margin-top:2px">
+          We prefilled your account email — you can change it if needed.
+        </div>
+      {% endif %}
+    </div>
   </div>
 
   <div class="pickup-section pickup-wolt" id="pickup-wolt" hidden>
@@ -113,14 +132,18 @@
   </div>
 
   <div class="pickup-section">
-  <button class="pickup-select" id="pickup-checkout-btn" type="button" style="justify-content:center !important;font-weight:700;">
-    Checkout
-  </button>
-  <div style="font-size:12px;opacity:.7">
-    You will be redirected to the invoice checkout.
+    <button
+      class="pickup-select"
+      data-itella-checkout-btn
+      type="button"
+      style="justify-content:center !important;font-weight:700;"
+    >
+      Checkout
+    </button>
+    <div style="font-size:12px;opacity:.7">
+      You will be redirected to the invoice checkout.
+    </div>
   </div>
-</div>
-
 </div>
 
 <style>
@@ -151,17 +174,6 @@
     gap:10px;
   }
   .pickup-title{font-weight:600;margin-bottom:2px}
-  .pickup-radio{display:flex;gap:10px;align-items:center}
-  .pickup-radio input{accent-color:#111}
-  .pickup-delivery-options{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    margin-left:26px;
-    font-size:14px;
-    color:#4b5563;
-  }
-  .pickup-delivery-options span{display:flex;justify-content:space-between}
   .pickup-select{
     width:100%;
     display:flex;
@@ -207,14 +219,6 @@
     justify-content:flex-start !important;
     cursor:pointer;
   }
-  .pickup-menu-item{
-    display:flex;
-    align-items:center;
-    gap:10px;
-  }
-  .pickup-country-code{min-width:32px;font-weight:600}
-  .pickup-country-name{opacity:.8}
-  .pickup-menu button:hover{background:#f3f4f6}
   .pickup-menu-search{
     padding:10px 12px;
     border-bottom:1px solid rgba(0,0,0,.08);
@@ -285,24 +289,6 @@
     background:rgba(251,191,36,.18);
     border-radius:10px;
     padding:8px 10px;
-  }
-  .pickup-summary{
-    margin-top:12px;
-    padding-top:10px;
-    border-top:1px dashed rgba(0,0,0,.15);
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    font-size:14px;
-  }
-  .pickup-summary-row{
-    display:flex;
-    justify-content:space-between;
-    gap:10px;
-    color:#111827;
-  }
-  .pickup-summary-total{
-    font-weight:600;
   }
   [hidden] { display: none !important; }
 </style>
