@@ -15,6 +15,11 @@
   const pointLabel = document.getElementById("pickup-point-label");
   const current = document.getElementById("pickup-current");
   const fallbackNotice = document.getElementById("pickup-fallback");
+  const nameInput = document.getElementById("pickup-name");
+  const addressInput = document.getElementById("pickup-address1");
+  const cityInput = document.getElementById("pickup-city");
+  const zipInput = document.getElementById("pickup-zip");
+  const phoneInput = document.getElementById("pickup-phone");
   const DEFAULT_COUNTRY = (root.dataset.defaultCountry || "EE").toUpperCase();
   const i18n = {
     labelCountry: root.dataset.labelCountry || "Country",
@@ -177,10 +182,22 @@ function attributesMatch(current, payload) {
 
   function parsePriceToCents(price) {
     if (!price) return 0;
-    const normalized = String(price).replace(",", ".").trim();
+    const normalized = String(price)
+      .replace(",", ".")
+      .replace(/[^\d.]/g, "")
+      .trim();
     const value = Number.parseFloat(normalized);
     if (Number.isNaN(value)) return 0;
     return Math.round(value * 100);
+  }
+
+  function parsePriceDetails(price) {
+    if (!price) return { amount: "", currency: "" };
+    const amount = String(price)
+      .replace(",", ".")
+      .match(/[\d.]+/)?.[0];
+    const currency = String(price).match(/[A-Z]{3}/)?.[0] || "";
+    return { amount: amount || "", currency };
   }
 
   function formatMoney(cents, currency) {
@@ -216,13 +233,109 @@ function attributesMatch(current, payload) {
   async function syncProviderAttributes(country, providerKey) {
     const meta = getProviderMeta(providerKey, country);
     const price = country?.pricesByProvider?.[providerKey] || "";
+    const priceDetails = parsePriceDetails(price);
     await writeCartAttributes({
       itella_pickup_provider: providerKey,
       itella_pickup_country: country?.code || state.country,
       itella_delivery_title: meta.title || providerKey,
       itella_delivery_price: price,
+      itella_delivery_currency: priceDetails.currency,
     });
     await updateCartTotals(price);
+    scheduleDraftOrder();
+  }
+
+  function getRecipientPayload() {
+    return {
+      itella_recipient_name: nameInput?.value?.trim() || "",
+      itella_recipient_address1: addressInput?.value?.trim() || "",
+      itella_recipient_city: cityInput?.value?.trim() || "",
+      itella_recipient_zip: zipInput?.value?.trim() || "",
+      itella_recipient_phone: phoneInput?.value?.trim() || "",
+    };
+  }
+
+  async function syncRecipientAttributes() {
+    if (!nameInput || !addressInput || !cityInput || !zipInput || !phoneInput) {
+      return;
+    }
+    await writeCartAttributes(getRecipientPayload());
+    scheduleDraftOrder();
+  }
+
+  let draftOrderTimer = null;
+
+  function scheduleDraftOrder() {
+    if (draftOrderTimer) {
+      clearTimeout(draftOrderTimer);
+    }
+    draftOrderTimer = setTimeout(() => {
+      createDraftOrder().catch(() => {
+        // ignore draft order errors for UI flow
+      });
+    }, 500);
+  }
+
+  async function createDraftOrder() {
+    const cart = await readCart();
+    if (!cart?.items?.length) return;
+
+    const attrs = await readCartAttributes();
+    const priceDetails = parsePriceDetails(attrs.itella_delivery_price || "");
+    const payload = {
+      lineItems: cart.items.map((item) => ({
+        variantId: item.variant_id,
+        quantity: item.quantity,
+      })),
+      shippingAddress: {
+        name: attrs.itella_recipient_name || "",
+        address1: attrs.itella_recipient_address1 || "",
+        city: attrs.itella_recipient_city || "",
+        zip: attrs.itella_recipient_zip || "",
+        countryCode: attrs.itella_pickup_country || state.country,
+        phone: attrs.itella_recipient_phone || "",
+      },
+      delivery: {
+        title: attrs.itella_delivery_title || "",
+        price: priceDetails.amount || attrs.itella_delivery_price || "",
+        currency: attrs.itella_delivery_currency || priceDetails.currency || "",
+        provider: attrs.itella_pickup_provider || "",
+        pickupId: attrs.itella_pickup_id || "",
+        pickupName: attrs.itella_pickup_name || "",
+        pickupAddress: attrs.itella_pickup_address || "",
+        country: attrs.itella_pickup_country || "",
+      },
+      attributes: {
+        itella_pickup_provider: attrs.itella_pickup_provider || "",
+        itella_pickup_country: attrs.itella_pickup_country || "",
+        itella_pickup_id: attrs.itella_pickup_id || "",
+        itella_pickup_name: attrs.itella_pickup_name || "",
+        itella_pickup_address: attrs.itella_pickup_address || "",
+        itella_delivery_title: attrs.itella_delivery_title || "",
+        itella_delivery_price: attrs.itella_delivery_price || "",
+        itella_delivery_currency: attrs.itella_delivery_currency || "",
+        itella_recipient_name: attrs.itella_recipient_name || "",
+        itella_recipient_address1: attrs.itella_recipient_address1 || "",
+        itella_recipient_city: attrs.itella_recipient_city || "",
+        itella_recipient_zip: attrs.itella_recipient_zip || "",
+        itella_recipient_phone: attrs.itella_recipient_phone || "",
+      },
+    };
+
+    const res = await fetch("/apps/draft-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data?.draftOrder?.id) {
+      await writeCartAttributes({
+        itella_draft_order_id: data.draftOrder.id,
+        itella_draft_order_invoice_url: data.draftOrder.invoiceUrl || "",
+      });
+    }
   }
 
   function renderCountryMenu(countries) {
@@ -419,6 +532,7 @@ function attributesMatch(current, payload) {
 
     setCurrentUI({ itella_pickup_provider: provider });
     search.value = "";
+    scheduleDraftOrder();
   }
 
   async function setPointsVisibility() {
@@ -458,6 +572,15 @@ function attributesMatch(current, payload) {
     renderPoints(state.filtered);
   });
 
+  if (nameInput && addressInput && cityInput && zipInput && phoneInput) {
+    [nameInput, addressInput, cityInput, zipInput, phoneInput].forEach(
+      (input) => {
+        input.addEventListener("change", syncRecipientAttributes);
+        input.addEventListener("blur", syncRecipientAttributes);
+      },
+    );
+  }
+
   async function selectPoint(id, name, address, label) {
     if (!id) {
       await clearPickupSelection();
@@ -477,6 +600,7 @@ function attributesMatch(current, payload) {
     await writeCartAttributes(payload);
     pointLabel.textContent = name || label || i18n.textSelected;
     setCurrentUI(payload);
+    scheduleDraftOrder();
   }
 
   // Boot
@@ -501,6 +625,11 @@ function attributesMatch(current, payload) {
   // Restore from cart if user already selected something
   const attrs = await readCartAttributes();
   await updateCartTotals(attrs.itella_delivery_price || "");
+  if (nameInput) nameInput.value = attrs.itella_recipient_name || "";
+  if (addressInput) addressInput.value = attrs.itella_recipient_address1 || "";
+  if (cityInput) cityInput.value = attrs.itella_recipient_city || "";
+  if (zipInput) zipInput.value = attrs.itella_recipient_zip || "";
+  if (phoneInput) phoneInput.value = attrs.itella_recipient_phone || "";
   const restoredCountry = (attrs.itella_pickup_country || DEFAULT_COUNTRY).toUpperCase();
 
   const startCountry = finalCountries.find((country) => country.code === restoredCountry)
@@ -520,4 +649,5 @@ function attributesMatch(current, payload) {
       await loadPoints();
     }
   }
+  scheduleDraftOrder();
 })();
