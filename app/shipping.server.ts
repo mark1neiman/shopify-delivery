@@ -86,7 +86,14 @@ export async function getShippingZones(admin: GraphQLClient): Promise<ShippingZo
                     id
                     name
                     countries {
-                      code
+                      code {
+                        ... on DeliveryCountryCode {
+                          countryCode
+                        }
+                        ... on RestOfWorld {
+                          __typename
+                        }
+                      }
                       name
                     }
                   }
@@ -143,10 +150,16 @@ export async function getShippingZones(admin: GraphQLClient): Promise<ShippingZo
       for (const groupZone of groupZones) {
         const zone = groupZone.zone;
         if (!zone?.id) continue;
-        const countries = (zone.countries ?? []).map((country: any) => ({
-          code: String(country.code ?? "").toUpperCase(),
-          name: String(country.name ?? country.code ?? ""),
-        }));
+        const countries = (zone.countries ?? []).map((country: any) => {
+          const rawCode =
+            country?.code?.countryCode ??
+            (country?.code?.__typename === "RestOfWorld" ? "ROW" : "") ??
+            "";
+          return {
+            code: String(rawCode).toUpperCase(),
+            name: String(country.name ?? rawCode ?? ""),
+          };
+        });
 
         const rates = getEdges<any>(groupZone.methodDefinitions).map(
           (method) => {
