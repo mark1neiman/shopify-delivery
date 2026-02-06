@@ -448,70 +448,32 @@
       if (!cart?.items?.length) return null;
 
       const attrs = await readCartAttributes();
-      const priceDetails = parsePriceDetails(attrs.itella_delivery_price || "");
-
-      const phoneCombined = combinePhone(
-        attrs.itella_recipient_phone_code || "",
-        attrs.itella_recipient_phone || "",
-      );
-
       const payload = {
-        draftOrderId: (attrs.itella_draft_order_id || "").trim(),
-        email: (attrs.itella_recipient_email || "").trim(),
-        lineItems: cart.items.map((item) => ({
-          variantId: item.variant_id,
+        mode: "checkout",
+        customerId: null,
+        items: cart.items.map((item) => ({
+          variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
           quantity: item.quantity,
         })),
-        shippingAddress: {
-          name: attrs.itella_recipient_name || "",
-          address1: attrs.itella_recipient_address1 || "",
-          city: attrs.itella_recipient_city || "",
-          zip: attrs.itella_recipient_zip || "",
-          countryCode: attrs.itella_pickup_country || state.country,
-          phone: phoneCombined || attrs.itella_recipient_phone || "",
+        shipping: {
+          method:
+            attrs.itella_pickup_provider === "wolt"
+              ? "wolt"
+              : attrs.itella_pickup_provider === "smartposti"
+                ? "smartposti"
+                : "pickup",
+          pickupPointId: attrs.itella_pickup_id || null,
         },
-        delivery: {
-          title: attrs.itella_delivery_title || "",
-          price: priceDetails.amount || attrs.itella_delivery_price || "",
-          currency: attrs.itella_delivery_currency || priceDetails.currency || "",
-          provider: attrs.itella_pickup_provider || "",
-          pickupId: attrs.itella_pickup_id || "",
-          pickupName: attrs.itella_pickup_name || "",
-          pickupAddress: attrs.itella_pickup_address || "",
-          country: attrs.itella_pickup_country || "",
-        },
-        attributes: {
-          itella_pickup_provider: attrs.itella_pickup_provider || "",
-          itella_pickup_country: attrs.itella_pickup_country || "",
-          itella_pickup_id: attrs.itella_pickup_id || "",
-          itella_pickup_name: attrs.itella_pickup_name || "",
-          itella_pickup_address: attrs.itella_pickup_address || "",
-          itella_delivery_title: attrs.itella_delivery_title || "",
-          itella_delivery_price: attrs.itella_delivery_price || "",
-          itella_delivery_currency: attrs.itella_delivery_currency || "",
-          itella_recipient_name: attrs.itella_recipient_name || "",
-          itella_recipient_address1: attrs.itella_recipient_address1 || "",
-          itella_recipient_city: attrs.itella_recipient_city || "",
-          itella_recipient_zip: attrs.itella_recipient_zip || "",
-          itella_recipient_phone_code: attrs.itella_recipient_phone_code || "",
-          itella_recipient_phone: attrs.itella_recipient_phone || "",
-          itella_recipient_email: attrs.itella_recipient_email || "",
-          itella_wolt_date: attrs.itella_wolt_date || "",
-          itella_wolt_time: attrs.itella_wolt_time || "",
-        },
+        promoCode: attrs.itella_promo_code || null,
+        freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
       };
 
       // Masked debug log (safe for prod). If you want full, replace with console.log(payload)
-      console.log("[itella] draft-order payload (masked):", {
+      console.log("[itella] checkout payload (masked):", {
         ...payload,
-        email: maskEmail(payload.email),
-        shippingAddress: {
-          ...payload.shippingAddress,
-          phone: maskPhone(payload.shippingAddress.phone),
-        },
       });
 
-      const res = await fetch("/apps/pickup-config/draft-order", {
+      const res = await fetch("/apps/checkout/prepare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -522,20 +484,20 @@
         try {
           errText = await res.text();
         } catch {}
-        console.error("[itella] draft-order failed", res.status, errText);
+        console.error("[itella] checkout prepare failed", res.status, errText);
         return null;
       }
 
       const data = await res.json();
 
-      if (data?.draftOrder?.id) {
+      if (data?.draftOrderId) {
         await writeCartAttributes({
-          itella_draft_order_id: data.draftOrder.id,
-          itella_draft_order_invoice_url: data.draftOrder.invoiceUrl || "",
+          itella_draft_order_id: data.draftOrderId,
+          itella_draft_order_invoice_url: data.invoiceUrl || "",
         });
       }
 
-      return data?.draftOrder || null;
+      return data || null;
     }
 
     function renderCountryMenu(countries) {
@@ -673,7 +635,7 @@
 
     async function loadConfig() {
       try {
-        const proxyRes = await fetch("/apps/pickup-config", { cache: "no-store" });
+        const proxyRes = await fetch("/apps/checkout/pickup-config", { cache: "no-store" });
         if (proxyRes.ok) {
           const proxyJson = await proxyRes.json();
           if (proxyJson?.config && !proxyJson?.warning) {
