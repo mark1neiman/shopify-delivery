@@ -23,6 +23,9 @@ type Pages = {
   "/apps/pickup-config": {
     params: {};
   };
+  "/apps/draft-order": {
+    params: {};
+  };
   "/auth/login": {
     params: {};
   };
@@ -45,7 +48,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/app/scopes_update" | "/webhooks/app/uninstalled" | "/apps/pickup-config" | "/auth/login" | "/auth/*" | "/app" | "/app/pickup-settings" | "/app/additional";
+    page: "/" | "/webhooks/app/scopes_update" | "/webhooks/app/uninstalled" | "/apps/pickup-config" | "/apps/draft-order" | "/auth/login" | "/auth/*" | "/app" | "/app/pickup-settings" | "/app/additional";
   };
   "routes/webhooks.app.scopes_update.tsx": {
     id: "routes/webhooks.app.scopes_update";
@@ -58,6 +61,10 @@ type RouteFiles = {
   "routes/apps.pickup-config.ts": {
     id: "routes/apps.pickup-config";
     page: "/apps/pickup-config";
+  };
+  "routes/apps.draft-order.ts": {
+    id: "routes/apps.draft-order";
+    page: "/apps/draft-order";
   };
   "routes/auth.login/route.tsx": {
     id: "routes/auth.login";
@@ -94,6 +101,7 @@ type RouteModules = {
   "routes/webhooks.app.scopes_update": typeof import("./app/routes/webhooks.app.scopes_update.tsx");
   "routes/webhooks.app.uninstalled": typeof import("./app/routes/webhooks.app.uninstalled.tsx");
   "routes/apps.pickup-config": typeof import("./app/routes/apps.pickup-config.ts");
+  "routes/apps.draft-order": typeof import("./app/routes/apps.draft-order.ts");
   "routes/auth.login": typeof import("./app/routes/auth.login/route.tsx");
   "routes/_index": typeof import("./app/routes/_index/route.tsx");
   "routes/auth.$": typeof import("./app/routes/auth.$.tsx");
