@@ -87,7 +87,7 @@ export async function getShippingZones(admin: GraphQLClient): Promise<ShippingZo
                     name
                     countries {
                       code {
-                        ... on DeliveryCountryCode {
+                        ... on DeliveryCountryCodeV2 {
                           countryCode
                         }
                         ... on RestOfWorld {
