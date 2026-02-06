@@ -159,10 +159,18 @@
     return date;
   }
 
+  function getCityValue() {
+    const city = normalize(cityInput?.value);
+    if (city) return city;
+    if (cartAttributes?.itella_recipient_city) {
+      return normalize(cartAttributes.itella_recipient_city);
+    }
+    return "";
+  }
+
   function isTallinn() {
-    if (!cityInput) return false;
-    const city = normalize(cityInput.value);
-    return state.country === "EE" && city.includes("tallinn");
+    const city = getCityValue();
+    return state.country === "EE" && (city.includes("tallinn") || city.includes("таллин"));
   }
 
   async function fetchJSON(url) {
@@ -280,6 +288,7 @@ function attributesMatch(current, payload) {
       "[data-itella-cart-total], .cart-subtotal__price, .totals__subtotal-value",
     );
     totalTargets.forEach((node) => {
+      if (node.closest("button, a")) return;
       let target = node;
       if (node.children.length > 0) {
         const nested = node.querySelector(
@@ -402,7 +411,7 @@ function attributesMatch(current, payload) {
       },
     };
 
-    const res = await fetch("/apps/draft-order", {
+    const res = await fetch("/apps/pickup-config/draft-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -426,10 +435,11 @@ function attributesMatch(current, payload) {
 
       const btn = document.createElement("button");
       btn.type = "button";
+      btn.className = "pickup-menu-item";
       btn.innerHTML = `
         <span class="pickup-flag" style="background-image:url('${country.flagUrl || ""}')"></span>
-        <span style="min-width:30px">${code}</span>
-        <span style="opacity:.8">${country.label || code}</span>
+        <span class="pickup-country-code">${code}</span>
+        <span class="pickup-country-name">${country.label || code}</span>
       `;
 
       btn.addEventListener("click", async () => {
@@ -453,7 +463,7 @@ function attributesMatch(current, payload) {
       const meta = getProviderMeta(key, country);
       const displayTitle = meta.title || key;
       const price = pricesByProvider?.[key];
-      const woltDisabled = key === "wolt" && !isTallinn();
+      const woltDisabled = false;
 
       const label = document.createElement("label");
       label.className = "pickup-provider";
@@ -461,11 +471,9 @@ function attributesMatch(current, payload) {
         label.classList.add("is-disabled");
       }
       label.innerHTML = `
-        <input type="radio" name="pickup_provider" ${state.provider === key ? "checked" : ""} ${
-          woltDisabled ? "disabled" : ""
-        } />
+        <input type="radio" name="pickup_provider" ${state.provider === key ? "checked" : ""} />
         ${meta.logo ? `<img src="${meta.logo}" alt="${key}" />` : ""}
-          <div style="display:flex;flex-direction:column;gap:2px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
           <div style="font-weight:600">${displayTitle}</div>
           ${
             price
@@ -473,15 +481,10 @@ function attributesMatch(current, payload) {
               : ""
           }
         </div>
-        ${
-          key === "wolt"
-            ? `<div class="pickup-provider-note">Tallinn only</div>`
-            : ""
-        }
+        ${key === "wolt" ? `<div class="pickup-provider-note">Tallinn only</div>` : ""}
       `;
 
       label.addEventListener("click", async () => {
-        if (woltDisabled) return;
         state.provider = key;
         const country = getCountryConfig(state.country);
         await syncProviderAttributes(country, key);
@@ -691,20 +694,36 @@ function attributesMatch(current, payload) {
 
   async function updateWoltVisibility() {
     if (!woltWrap || !woltDateInput || !woltTimeSelect) return;
-    const woltAvailable = state.provider === "wolt" && isTallinn();
-
-    if (!woltAvailable) {
+    const isWoltProvider = state.provider === "wolt";
+    if (!isWoltProvider) {
       woltWrap.hidden = true;
       if (woltNotice) {
         woltNotice.hidden = true;
-      }
-      if (state.provider !== "wolt") {
-        return;
       }
       return;
     }
 
     woltWrap.hidden = false;
+    const tallinnAllowed = isTallinn();
+    if (!tallinnAllowed) {
+      if (woltNotice) {
+        woltNotice.textContent = "Wolt delivery is available only in Tallinn.";
+        woltNotice.hidden = false;
+      }
+      woltDateInput.disabled = true;
+      woltTimeSelect.disabled = true;
+      await writeCartAttributes({
+        itella_wolt_date: "",
+        itella_wolt_time: "",
+      });
+      return;
+    }
+
+    if (woltNotice) {
+      woltNotice.hidden = true;
+    }
+    woltDateInput.disabled = false;
+    woltTimeSelect.disabled = false;
     const today = new Date();
     const nextValid = getNextValidDate(today);
     woltDateInput.min = formatDateInput(today);
@@ -719,15 +738,7 @@ function attributesMatch(current, payload) {
   async function updateWoltAvailability() {
     const country = getCountryConfig(state.country);
     if (!country) return;
-    if (state.provider === "wolt" && !isTallinn()) {
-      const nextProvider = (country.providers || []).find((key) => key !== "wolt");
-      state.provider = nextProvider || "smartposti";
-      renderProviders(country.providers, country.pricesByProvider, country);
-      await syncProviderAttributes(country, state.provider);
-      await setPointsVisibility();
-    } else {
-      renderProviders(country.providers, country.pricesByProvider, country);
-    }
+    renderProviders(country.providers, country.pricesByProvider, country);
     await updateWoltVisibility();
   }
 
