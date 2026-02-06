@@ -27,6 +27,7 @@ const DEFAULT_PROVIDER_META: ProviderMeta = {
 type ShippingConfig = {
   providerMeta: ProviderMeta;
   providerMapping: ProviderMapping;
+  countryFlags: Record<string, string>;
 };
 
 const METAOBJECT_TYPE = "pickup_config";
@@ -96,6 +97,7 @@ async function getConfig(admin: any): Promise<ShippingConfig> {
     return {
       providerMeta: DEFAULT_PROVIDER_META,
       providerMapping: {},
+      countryFlags: {},
     };
   }
 
@@ -104,11 +106,13 @@ async function getConfig(admin: any): Promise<ShippingConfig> {
     return {
       providerMeta: parsed.providerMeta ?? DEFAULT_PROVIDER_META,
       providerMapping: parsed.providerMapping ?? {},
+      countryFlags: parsed.countryFlags ?? {},
     };
   } catch {
     return {
       providerMeta: DEFAULT_PROVIDER_META,
       providerMapping: {},
+      countryFlags: {},
     };
   }
 }
@@ -163,6 +167,22 @@ function parseProviderMapping(form: FormData) {
   return mapping;
 }
 
+function parseCountryFlags(form: FormData) {
+  const count = Number(form.get("countryCount") ?? 0);
+  const flags: Record<string, string> = {};
+
+  for (let i = 0; i < count; i += 1) {
+    const code = String(form.get(`country_${i}_code`) ?? "").trim();
+    if (!code) continue;
+    const flagUrl = String(form.get(`country_${i}_flag`) ?? "").trim();
+    if (flagUrl) {
+      flags[code] = flagUrl;
+    }
+  }
+
+  return flags;
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const { admin } = await authenticate.admin(request);
   await ensureMetaobjectDefinition(admin);
@@ -177,10 +197,12 @@ export async function action({ request }: ActionFunctionArgs) {
   const form = await request.formData();
 
   const providerMapping = parseProviderMapping(form);
+  const countryFlags = parseCountryFlags(form);
 
   const config: ShippingConfig = {
     providerMeta: DEFAULT_PROVIDER_META,
     providerMapping,
+    countryFlags,
   };
 
   await saveConfig(admin, config);
@@ -197,6 +219,15 @@ export default function PickupSettingsPage() {
   const rates = zones.flatMap((zone) =>
     zone.rates.map((rate) => ({ ...rate, zone })),
   );
+  const countries = zones
+    .flatMap((zone) => zone.countries)
+    .reduce((acc, country) => {
+      if (!acc.some((item) => item.code === country.code)) {
+        acc.push(country);
+      }
+      return acc;
+    }, [] as ShippingZone["countries"])
+    .sort((a, b) => a.code.localeCompare(b.code));
   const cardStyle = {
     border: "1px solid rgba(0,0,0,.08)",
     borderRadius: 16,
@@ -218,6 +249,52 @@ export default function PickupSettingsPage() {
 
       <Form method="post">
         <input type="hidden" name="rateCount" value={rates.length} />
+        <input type="hidden" name="countryCount" value={countries.length} />
+
+        <div style={{ ...cardStyle, marginBottom: 24 }}>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>
+            Country flags
+          </div>
+          <div style={{ display: "grid", gap: 12 }}>
+            {countries.map((country, index) => (
+              <div
+                key={country.code}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "80px 1fr",
+                  gap: 12,
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ fontWeight: 600 }}>
+                  {country.code}
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    {country.name}
+                  </div>
+                </div>
+                <div>
+                  <input
+                    type="hidden"
+                    name={`country_${index}_code`}
+                    value={country.code}
+                  />
+                  <input
+                    type="url"
+                    name={`country_${index}_flag`}
+                    placeholder="https://flagcdn.com/w40/ee.png"
+                    defaultValue={cfg.countryFlags?.[country.code] ?? ""}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(0,0,0,.12)",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div style={{ ...cardStyle, padding: 0, overflow: "hidden" }}>
           <div

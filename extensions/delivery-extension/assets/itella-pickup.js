@@ -20,6 +20,10 @@
   const cityInput = document.getElementById("pickup-city");
   const zipInput = document.getElementById("pickup-zip");
   const phoneInput = document.getElementById("pickup-phone");
+  const woltWrap = document.getElementById("pickup-wolt");
+  const woltNotice = document.getElementById("pickup-wolt-notice");
+  const woltDateInput = document.getElementById("pickup-wolt-date");
+  const woltTimeSelect = document.getElementById("pickup-wolt-time");
   const DEFAULT_COUNTRY = (root.dataset.defaultCountry || "EE").toUpperCase();
   const i18n = {
     labelCountry: root.dataset.labelCountry || "Country",
@@ -107,8 +111,58 @@
     filtered: [],
   };
 
+  const WOLT_TIME_SLOTS = [
+    { label: "9:00 - 10:30", start: 9 * 60 },
+    { label: "10:30 - 12:00", start: 10 * 60 + 30 },
+    { label: "12:00 - 13:30", start: 12 * 60 },
+    { label: "13:30 - 15:00", start: 13 * 60 + 30 },
+    { label: "15:00 - 16:30", start: 15 * 60 },
+    { label: "16:30 - 18:00", start: 16 * 60 + 30 },
+  ];
+
   function normalize(s) {
     return (s || "").toString().toLowerCase().trim();
+  }
+
+  function isSameDay(dateA, dateB) {
+    return (
+      dateA.getFullYear() === dateB.getFullYear() &&
+      dateA.getMonth() === dateB.getMonth() &&
+      dateA.getDate() === dateB.getDate()
+    );
+  }
+
+  function isWeekend(date) {
+    const day = date.getDay();
+    return day === 0 || day === 6;
+  }
+
+  function formatDateInput(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function parseDateInput(value) {
+    if (!value) return null;
+    const [yyyy, mm, dd] = value.split("-").map(Number);
+    if (!yyyy || !mm || !dd) return null;
+    return new Date(yyyy, mm - 1, dd);
+  }
+
+  function getNextValidDate(startDate) {
+    const date = new Date(startDate);
+    while (isWeekend(date)) {
+      date.setDate(date.getDate() + 1);
+    }
+    return date;
+  }
+
+  function isTallinn() {
+    if (!cityInput) return false;
+    const city = normalize(cityInput.value);
+    return state.country === "EE" && city.includes("tallinn");
   }
 
   async function fetchJSON(url) {
@@ -226,7 +280,15 @@ function attributesMatch(current, payload) {
       "[data-itella-cart-total], .cart-subtotal__price, .totals__subtotal-value",
     );
     totalTargets.forEach((node) => {
-      node.textContent = formatMoney(totalWithDelivery, currency);
+      let target = node;
+      if (node.children.length > 0) {
+        const nested = node.querySelector(
+          "[data-itella-cart-total], .money, .price, .totals__subtotal-value",
+        );
+        if (!nested) return;
+        target = nested;
+      }
+      target.textContent = formatMoney(totalWithDelivery, currency);
     });
   }
 
@@ -242,6 +304,12 @@ function attributesMatch(current, payload) {
       itella_delivery_currency: priceDetails.currency,
     });
     await updateCartTotals(price);
+    if (providerKey !== "wolt") {
+      await writeCartAttributes({
+        itella_wolt_date: "",
+        itella_wolt_time: "",
+      });
+    }
     scheduleDraftOrder();
   }
 
@@ -260,6 +328,16 @@ function attributesMatch(current, payload) {
       return;
     }
     await writeCartAttributes(getRecipientPayload());
+    await updateWoltAvailability();
+    scheduleDraftOrder();
+  }
+
+  async function syncWoltAttributes() {
+    if (!woltDateInput || !woltTimeSelect) return;
+    await writeCartAttributes({
+      itella_wolt_date: woltDateInput.value || "",
+      itella_wolt_time: woltTimeSelect.value || "",
+    });
     scheduleDraftOrder();
   }
 
@@ -319,6 +397,8 @@ function attributesMatch(current, payload) {
         itella_recipient_city: attrs.itella_recipient_city || "",
         itella_recipient_zip: attrs.itella_recipient_zip || "",
         itella_recipient_phone: attrs.itella_recipient_phone || "",
+        itella_wolt_date: attrs.itella_wolt_date || "",
+        itella_wolt_time: attrs.itella_wolt_time || "",
       },
     };
 
@@ -373,11 +453,17 @@ function attributesMatch(current, payload) {
       const meta = getProviderMeta(key, country);
       const displayTitle = meta.title || key;
       const price = pricesByProvider?.[key];
+      const woltDisabled = key === "wolt" && !isTallinn();
 
       const label = document.createElement("label");
       label.className = "pickup-provider";
+      if (woltDisabled) {
+        label.classList.add("is-disabled");
+      }
       label.innerHTML = `
-        <input type="radio" name="pickup_provider" ${state.provider === key ? "checked" : ""} />
+        <input type="radio" name="pickup_provider" ${state.provider === key ? "checked" : ""} ${
+          woltDisabled ? "disabled" : ""
+        } />
         ${meta.logo ? `<img src="${meta.logo}" alt="${key}" />` : ""}
           <div style="display:flex;flex-direction:column;gap:2px;">
           <div style="font-weight:600">${displayTitle}</div>
@@ -387,12 +473,19 @@ function attributesMatch(current, payload) {
               : ""
           }
         </div>
+        ${
+          key === "wolt"
+            ? `<div class="pickup-provider-note">Tallinn only</div>`
+            : ""
+        }
       `;
 
       label.addEventListener("click", async () => {
+        if (woltDisabled) return;
         state.provider = key;
         const country = getCountryConfig(state.country);
         await syncProviderAttributes(country, key);
+        await updateWoltVisibility();
 
         await setPointsVisibility();
         if (key !== "smartposti") {
@@ -514,6 +607,7 @@ function attributesMatch(current, payload) {
 
     renderProviders(allowedProviders, country.pricesByProvider, country);
     await syncProviderAttributes(country, state.provider);
+    await updateWoltVisibility();
     await setPointsVisibility();
 
     // Clear pickup selection on country change
@@ -539,6 +633,102 @@ function attributesMatch(current, payload) {
     if (!pointsWrap) return;
     const isPickup = state.provider === "smartposti";
     pointsWrap.style.display = isPickup ? "flex" : "none";
+  }
+
+  function updateWoltOptions(dateValue) {
+    if (!woltTimeSelect || !woltNotice) return;
+    woltTimeSelect.innerHTML = "";
+
+    let selectedDate = parseDateInput(dateValue);
+    if (!selectedDate) {
+      woltNotice.textContent = "Select a delivery date.";
+      woltNotice.hidden = false;
+      woltTimeSelect.disabled = true;
+      return;
+    }
+
+    if (isWeekend(selectedDate)) {
+      const nextValid = getNextValidDate(selectedDate);
+      if (woltDateInput) {
+        woltDateInput.value = formatDateInput(nextValid);
+      }
+      selectedDate = nextValid;
+      woltNotice.textContent =
+        "Weekend delivery is not available. Moved to the next weekday.";
+      woltNotice.hidden = false;
+    } else {
+      woltNotice.hidden = true;
+    }
+
+    const now = new Date();
+    const minLeadMinutes = 60;
+    const minMinutes =
+      isSameDay(selectedDate, now) ? now.getHours() * 60 + now.getMinutes() + minLeadMinutes : 0;
+
+    const available = WOLT_TIME_SLOTS.filter((slot) => slot.start >= minMinutes);
+
+    if (!available.length) {
+      woltNotice.textContent =
+        "No delivery slots available for this date. Please choose another day.";
+      woltNotice.hidden = false;
+      woltTimeSelect.disabled = true;
+      return;
+    }
+
+    woltTimeSelect.disabled = false;
+
+    available.forEach((slot) => {
+      const option = document.createElement("option");
+      option.value = slot.label;
+      option.textContent = slot.label;
+      woltTimeSelect.appendChild(option);
+    });
+
+    if (!available.some((slot) => slot.label === woltTimeSelect.value)) {
+      woltTimeSelect.value = available[0].label;
+    }
+  }
+
+  async function updateWoltVisibility() {
+    if (!woltWrap || !woltDateInput || !woltTimeSelect) return;
+    const woltAvailable = state.provider === "wolt" && isTallinn();
+
+    if (!woltAvailable) {
+      woltWrap.hidden = true;
+      if (woltNotice) {
+        woltNotice.hidden = true;
+      }
+      if (state.provider !== "wolt") {
+        return;
+      }
+      return;
+    }
+
+    woltWrap.hidden = false;
+    const today = new Date();
+    const nextValid = getNextValidDate(today);
+    woltDateInput.min = formatDateInput(today);
+    woltDateInput.max = formatDateInput(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14));
+    if (!woltDateInput.value) {
+      woltDateInput.value = formatDateInput(nextValid);
+    }
+    updateWoltOptions(woltDateInput.value);
+    await syncWoltAttributes();
+  }
+
+  async function updateWoltAvailability() {
+    const country = getCountryConfig(state.country);
+    if (!country) return;
+    if (state.provider === "wolt" && !isTallinn()) {
+      const nextProvider = (country.providers || []).find((key) => key !== "wolt");
+      state.provider = nextProvider || "smartposti";
+      renderProviders(country.providers, country.pricesByProvider, country);
+      await syncProviderAttributes(country, state.provider);
+      await setPointsVisibility();
+    } else {
+      renderProviders(country.providers, country.pricesByProvider, country);
+    }
+    await updateWoltVisibility();
   }
 
   // UI events
@@ -579,6 +769,25 @@ function attributesMatch(current, payload) {
         input.addEventListener("blur", syncRecipientAttributes);
       },
     );
+  }
+
+  if (cityInput) {
+    cityInput.addEventListener("input", () => {
+      updateWoltAvailability();
+    });
+  }
+
+  if (woltDateInput) {
+    woltDateInput.addEventListener("change", () => {
+      updateWoltOptions(woltDateInput.value);
+      syncWoltAttributes();
+    });
+  }
+
+  if (woltTimeSelect) {
+    woltTimeSelect.addEventListener("change", () => {
+      syncWoltAttributes();
+    });
   }
 
   async function selectPoint(id, name, address, label) {
@@ -630,6 +839,14 @@ function attributesMatch(current, payload) {
   if (cityInput) cityInput.value = attrs.itella_recipient_city || "";
   if (zipInput) zipInput.value = attrs.itella_recipient_zip || "";
   if (phoneInput) phoneInput.value = attrs.itella_recipient_phone || "";
+  if (woltDateInput) woltDateInput.value = attrs.itella_wolt_date || "";
+  if (woltTimeSelect && attrs.itella_wolt_time) {
+    const option = document.createElement("option");
+    option.value = attrs.itella_wolt_time;
+    option.textContent = attrs.itella_wolt_time;
+    woltTimeSelect.appendChild(option);
+    woltTimeSelect.value = attrs.itella_wolt_time;
+  }
   const restoredCountry = (attrs.itella_pickup_country || DEFAULT_COUNTRY).toUpperCase();
 
   const startCountry = finalCountries.find((country) => country.code === restoredCountry)
