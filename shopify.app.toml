@@ -20,11 +20,13 @@ api_version = "2026-04"
   uri = "/webhooks/app/uninstalled"
 
 [access_scopes]
-scopes = "write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_shipping"
+scopes = "write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions,read_shipping,write_draft_orders,read_draft_orders,customer_read_draft_orders"
 
 
 [auth]
 redirect_urls = [ "https://delivery.nanails.eu/api/auth" ]
+
+
 
 [app_proxy]
 url = "https://delivery.nanails.eu/apps/pickup-config"

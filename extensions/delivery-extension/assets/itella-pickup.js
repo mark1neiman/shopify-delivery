@@ -1,6 +1,7 @@
 (async function () {
   const root = document.getElementById("pickup-root");
   if (!root) return;
+  const checkoutBtn = document.getElementById("pickup-checkout-btn");
 
   const countryBtn = document.getElementById("pickup-country-btn");
   const countryMenu = document.getElementById("pickup-country-menu");
@@ -221,6 +222,30 @@ function attributesMatch(current, payload) {
       (country) => country.code === code,
     );
   }
+  
+if (checkoutBtn) {
+  checkoutBtn.addEventListener("click", async () => {
+    const attrs = await readCartAttributes();
+    const url = (attrs.itella_draft_order_invoice_url || "").trim();
+
+    if (url) {
+      window.location.href = url;
+      return;
+    }
+
+    // fallback: if no draft yet, try to create/update once and then redirect
+    await createDraftOrder();
+    const attrs2 = await readCartAttributes();
+    const url2 = (attrs2.itella_draft_order_invoice_url || "").trim();
+    if (url2) {
+      window.location.href = url2;
+      return;
+    }
+
+    // last resort: normal checkout
+    window.location.href = "/checkout";
+  });
+}
 
   function setCountryUI(country) {
     countryLabel.textContent = country?.label || country?.code || "Unknown";
@@ -370,6 +395,7 @@ function attributesMatch(current, payload) {
     const attrs = await readCartAttributes();
     const priceDetails = parsePriceDetails(attrs.itella_delivery_price || "");
     const payload = {
+       draftOrderId: attrs.itella_draft_order_id || "",
       lineItems: cart.items.map((item) => ({
         variantId: item.variant_id,
         quantity: item.quantity,

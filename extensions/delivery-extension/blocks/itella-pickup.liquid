@@ -97,6 +97,16 @@
       <select id="pickup-wolt-time" class="pickup-input"></select>
     </div>
   </div>
+
+  <div class="pickup-section">
+  <button class="pickup-select" id="pickup-checkout-btn" type="button" style="justify-content:center !important;font-weight:700;">
+    Checkout
+  </button>
+  <div style="font-size:12px;opacity:.7">
+    You will be redirected to the invoice checkout.
+  </div>
+</div>
+
 </div>
 
 <style>
@@ -296,3 +306,5 @@
   ]
 }
 {% endschema %}
+/* IMPORTANT: ensure HTML hidden attribute always wins */
+[hidden] { display: none !important; }
