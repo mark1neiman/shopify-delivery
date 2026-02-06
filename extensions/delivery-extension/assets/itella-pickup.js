@@ -21,6 +21,7 @@
   const cityInput = document.getElementById("pickup-city");
   const zipInput = document.getElementById("pickup-zip");
   const phoneInput = document.getElementById("pickup-phone");
+  const emailInput = document.getElementById("pickup-email");
   const woltWrap = document.getElementById("pickup-wolt");
   const woltNotice = document.getElementById("pickup-wolt-notice");
   const woltDateInput = document.getElementById("pickup-wolt-date");
@@ -110,6 +111,16 @@
     provider: "smartposti",
     points: [],
     filtered: [],
+  };
+
+  const customerDefaults = {
+    loggedIn: root.dataset.customerLoggedIn === "true",
+    email: (root.dataset.customerEmail || "").trim(),
+    name: (root.dataset.customerName || "").trim(),
+    address1: (root.dataset.customerAddress1 || "").trim(),
+    city: (root.dataset.customerCity || "").trim(),
+    zip: (root.dataset.customerZip || "").trim(),
+    phone: (root.dataset.customerPhone || "").trim(),
   };
 
   const WOLT_TIME_SLOTS = [
@@ -225,24 +236,24 @@ function attributesMatch(current, payload) {
   
 if (checkoutBtn) {
   checkoutBtn.addEventListener("click", async () => {
+    if (!(await validateCheckout())) {
+      return;
+    }
+
+    const draftOrder = await createDraftOrder();
+    const invoiceUrl = (draftOrder?.invoiceUrl || "").trim();
+    if (invoiceUrl) {
+      window.location.href = invoiceUrl;
+      return;
+    }
+
     const attrs = await readCartAttributes();
     const url = (attrs.itella_draft_order_invoice_url || "").trim();
-
     if (url) {
       window.location.href = url;
       return;
     }
 
-    // fallback: if no draft yet, try to create/update once and then redirect
-    await createDraftOrder();
-    const attrs2 = await readCartAttributes();
-    const url2 = (attrs2.itella_draft_order_invoice_url || "").trim();
-    if (url2) {
-      window.location.href = url2;
-      return;
-    }
-
-    // last resort: normal checkout
     window.location.href = "/checkout";
   });
 }
@@ -344,7 +355,6 @@ if (checkoutBtn) {
         itella_wolt_time: "",
       });
     }
-    scheduleDraftOrder();
   }
 
   function getRecipientPayload() {
@@ -354,6 +364,8 @@ if (checkoutBtn) {
       itella_recipient_city: cityInput?.value?.trim() || "",
       itella_recipient_zip: zipInput?.value?.trim() || "",
       itella_recipient_phone: phoneInput?.value?.trim() || "",
+      itella_recipient_email:
+        emailInput?.value?.trim() || customerDefaults.email || "",
     };
   }
 
@@ -363,7 +375,6 @@ if (checkoutBtn) {
     }
     await writeCartAttributes(getRecipientPayload());
     await updateWoltAvailability();
-    scheduleDraftOrder();
   }
 
   async function syncWoltAttributes() {
@@ -372,30 +383,17 @@ if (checkoutBtn) {
       itella_wolt_date: woltDateInput.value || "",
       itella_wolt_time: woltTimeSelect.value || "",
     });
-    scheduleDraftOrder();
-  }
-
-  let draftOrderTimer = null;
-
-  function scheduleDraftOrder() {
-    if (draftOrderTimer) {
-      clearTimeout(draftOrderTimer);
-    }
-    draftOrderTimer = setTimeout(() => {
-      createDraftOrder().catch(() => {
-        // ignore draft order errors for UI flow
-      });
-    }, 500);
   }
 
   async function createDraftOrder() {
     const cart = await readCart();
-    if (!cart?.items?.length) return;
+    if (!cart?.items?.length) return null;
 
     const attrs = await readCartAttributes();
     const priceDetails = parsePriceDetails(attrs.itella_delivery_price || "");
     const payload = {
-       draftOrderId: attrs.itella_draft_order_id || "",
+      draftOrderId: attrs.itella_draft_order_id || "",
+      email: attrs.itella_recipient_email || "",
       lineItems: cart.items.map((item) => ({
         variantId: item.variant_id,
         quantity: item.quantity,
@@ -432,6 +430,7 @@ if (checkoutBtn) {
         itella_recipient_city: attrs.itella_recipient_city || "",
         itella_recipient_zip: attrs.itella_recipient_zip || "",
         itella_recipient_phone: attrs.itella_recipient_phone || "",
+        itella_recipient_email: attrs.itella_recipient_email || "",
         itella_wolt_date: attrs.itella_wolt_date || "",
         itella_wolt_time: attrs.itella_wolt_time || "",
       },
@@ -443,7 +442,7 @@ if (checkoutBtn) {
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) return;
+    if (!res.ok) return null;
     const data = await res.json();
     if (data?.draftOrder?.id) {
       await writeCartAttributes({
@@ -451,6 +450,7 @@ if (checkoutBtn) {
         itella_draft_order_invoice_url: data.draftOrder.invoiceUrl || "",
       });
     }
+    return data?.draftOrder || null;
   }
 
   function renderCountryMenu(countries) {
@@ -655,7 +655,6 @@ if (checkoutBtn) {
 
     setCurrentUI({ itella_pickup_provider: provider });
     search.value = "";
-    scheduleDraftOrder();
   }
 
   async function setPointsVisibility() {
@@ -723,6 +722,7 @@ if (checkoutBtn) {
     const isWoltProvider = state.provider === "wolt";
     if (!isWoltProvider) {
       woltWrap.hidden = true;
+      woltWrap.style.display = "none";
       if (woltNotice) {
         woltNotice.hidden = true;
       }
@@ -730,6 +730,7 @@ if (checkoutBtn) {
     }
 
     woltWrap.hidden = false;
+    woltWrap.style.display = "flex";
     const tallinnAllowed = isTallinn();
     if (!tallinnAllowed) {
       if (woltNotice) {
@@ -800,12 +801,12 @@ if (checkoutBtn) {
   });
 
   if (nameInput && addressInput && cityInput && zipInput && phoneInput) {
-    [nameInput, addressInput, cityInput, zipInput, phoneInput].forEach(
-      (input) => {
+    [nameInput, addressInput, cityInput, zipInput, phoneInput, emailInput]
+      .filter(Boolean)
+      .forEach((input) => {
         input.addEventListener("change", syncRecipientAttributes);
         input.addEventListener("blur", syncRecipientAttributes);
-      },
-    );
+      });
   }
 
   if (cityInput) {
@@ -846,7 +847,6 @@ if (checkoutBtn) {
     await writeCartAttributes(payload);
     pointLabel.textContent = name || label || i18n.textSelected;
     setCurrentUI(payload);
-    scheduleDraftOrder();
   }
 
   // Boot
@@ -871,11 +871,24 @@ if (checkoutBtn) {
   // Restore from cart if user already selected something
   const attrs = await readCartAttributes();
   await updateCartTotals(attrs.itella_delivery_price || "");
-  if (nameInput) nameInput.value = attrs.itella_recipient_name || "";
-  if (addressInput) addressInput.value = attrs.itella_recipient_address1 || "";
-  if (cityInput) cityInput.value = attrs.itella_recipient_city || "";
-  if (zipInput) zipInput.value = attrs.itella_recipient_zip || "";
-  if (phoneInput) phoneInput.value = attrs.itella_recipient_phone || "";
+  if (nameInput) {
+    nameInput.value = attrs.itella_recipient_name || customerDefaults.name || "";
+  }
+  if (addressInput) {
+    addressInput.value = attrs.itella_recipient_address1 || customerDefaults.address1 || "";
+  }
+  if (cityInput) {
+    cityInput.value = attrs.itella_recipient_city || customerDefaults.city || "";
+  }
+  if (zipInput) {
+    zipInput.value = attrs.itella_recipient_zip || customerDefaults.zip || "";
+  }
+  if (phoneInput) {
+    phoneInput.value = attrs.itella_recipient_phone || customerDefaults.phone || "";
+  }
+  if (emailInput) {
+    emailInput.value = attrs.itella_recipient_email || customerDefaults.email || "";
+  }
   if (woltDateInput) woltDateInput.value = attrs.itella_wolt_date || "";
   if (woltTimeSelect && attrs.itella_wolt_time) {
     const option = document.createElement("option");
@@ -884,6 +897,11 @@ if (checkoutBtn) {
     woltTimeSelect.appendChild(option);
     woltTimeSelect.value = attrs.itella_wolt_time;
   }
+  const recipientDefaults = getRecipientPayload();
+  if (Object.values(recipientDefaults).some((value) => value)) {
+    await writeCartAttributes(recipientDefaults);
+  }
+
   const restoredCountry = (attrs.itella_pickup_country || DEFAULT_COUNTRY).toUpperCase();
 
   const startCountry = finalCountries.find((country) => country.code === restoredCountry)
@@ -901,7 +919,41 @@ if (checkoutBtn) {
       await syncProviderAttributes(country, restoredProvider);
       await setPointsVisibility();
       await loadPoints();
+      await updateWoltVisibility();
     }
   }
-  scheduleDraftOrder();
+
+  async function validateCheckout() {
+    await syncRecipientAttributes();
+    await syncWoltAttributes();
+    const latestAttrs = await readCartAttributes();
+
+    const missing = [];
+    if (!latestAttrs.itella_recipient_name) missing.push("Full name");
+    if (!latestAttrs.itella_recipient_address1) missing.push("Address");
+    if (!latestAttrs.itella_recipient_city) missing.push("City");
+    if (!latestAttrs.itella_recipient_zip) missing.push("Postal code");
+    if (!latestAttrs.itella_recipient_phone) missing.push("Phone");
+    if (!customerDefaults.loggedIn && !latestAttrs.itella_recipient_email) {
+      missing.push("Email");
+    }
+
+    if (state.provider === "smartposti" && !latestAttrs.itella_pickup_id) {
+      missing.push("Pickup point");
+    }
+
+    if (state.provider === "wolt") {
+      if (!isTallinn()) {
+        missing.push("Wolt delivery is available only in Tallinn");
+      }
+      if (!latestAttrs.itella_wolt_date) missing.push("Wolt delivery date");
+      if (!latestAttrs.itella_wolt_time) missing.push("Wolt delivery time");
+    }
+
+    if (missing.length) {
+      window.alert(`Please заполните: ${missing.join(", ")}`);
+      return false;
+    }
+    return true;
+  }
 })();
