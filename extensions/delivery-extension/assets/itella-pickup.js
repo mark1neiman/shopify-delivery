@@ -426,10 +426,11 @@ function attributesMatch(current, payload) {
 
       const btn = document.createElement("button");
       btn.type = "button";
+      btn.className = "pickup-menu-item";
       btn.innerHTML = `
         <span class="pickup-flag" style="background-image:url('${country.flagUrl || ""}')"></span>
-        <span style="min-width:30px">${code}</span>
-        <span style="opacity:.8">${country.label || code}</span>
+        <span class="pickup-country-code">${code}</span>
+        <span class="pickup-country-name">${country.label || code}</span>
       `;
 
       btn.addEventListener("click", async () => {
