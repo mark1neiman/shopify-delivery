@@ -1,0 +1,30 @@
+{
+  "ratings": {
+    "stars": {
+      "label": "Ratings"
+    },
+    "home": {
+      "recommendationText": "Recommended Product!"
+    }
+  },
+  "pickup": {
+    "labels": {
+      "country": "Country",
+      "provider": "Please select a service provider",
+      "pickup_point": "Pickup point",
+      "delivery_price": "Delivery price",
+      "total_with_delivery": "Subtotal with delivery"
+    },
+    "text": {
+      "loading": "Loading…",
+      "select_pickup": "Select pickup point…",
+      "pickup_not_required": "Pickup point not required",
+      "no_providers": "No providers enabled for this country.",
+      "no_points": "No pickup points found.",
+      "selected": "Selected",
+      "price_label": "Price",
+      "fallback_notice": "Using fallback delivery settings. Enable App Proxy to load saved config.",
+      "search_placeholder": "Search by city / address / name"
+    }
+  }
+}

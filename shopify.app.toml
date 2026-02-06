@@ -1,0 +1,32 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "429e20fdc94c0aca6bf240260d416aa2"
+name = "Delivery app"
+application_url = "https://delivery.nanails.eu"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2026-04"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/scopes_update" ]
+  uri = "/webhooks/app/scopes_update"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products,read_metaobjects,write_metaobjects,read_metaobject_definitions,write_metaobject_definitions"
+
+[auth]
+redirect_urls = [ "https://delivery.nanails.eu/api/auth" ]
+
+[app_proxy]
+url = "https://delivery.nanails.eu/apps/pickup-config"
+subpath = "pickup-config"
+prefix = "apps"
