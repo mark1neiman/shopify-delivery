@@ -159,10 +159,18 @@
     return date;
   }
 
+  function getCityValue() {
+    const city = normalize(cityInput?.value);
+    if (city) return city;
+    if (cartAttributes?.itella_recipient_city) {
+      return normalize(cartAttributes.itella_recipient_city);
+    }
+    return "";
+  }
+
   function isTallinn() {
-    if (!cityInput) return false;
-    const city = normalize(cityInput.value);
-    return state.country === "EE" && city.includes("tallinn");
+    const city = getCityValue();
+    return state.country === "EE" && (city.includes("tallinn") || city.includes("таллин"));
   }
 
   async function fetchJSON(url) {
@@ -280,6 +288,7 @@ function attributesMatch(current, payload) {
       "[data-itella-cart-total], .cart-subtotal__price, .totals__subtotal-value",
     );
     totalTargets.forEach((node) => {
+      if (node.closest("button, a")) return;
       let target = node;
       if (node.children.length > 0) {
         const nested = node.querySelector(
