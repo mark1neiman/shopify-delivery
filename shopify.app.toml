@@ -29,6 +29,6 @@ redirect_urls = [ "https://delivery.nanails.eu/api/auth" ]
 
 
 [app_proxy]
-url = "https://delivery.nanails.eu/apps/pickup-config"
-subpath = "pickup-config"
+url = "https://delivery.nanails.eu/apps/checkout"
+subpath = "checkout"
 prefix = "apps"
