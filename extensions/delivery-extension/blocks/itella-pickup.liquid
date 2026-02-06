@@ -1,3 +1,4 @@
+{% assign last_address = customer.last_order.shipping_address | default: customer.default_address %}
 <div
   class="pickup-card"
   id="pickup-root"
@@ -14,6 +15,13 @@
   data-text-price-label="{{ 'pickup.text.price_label' | t }}"
   data-text-search-placeholder="{{ 'pickup.text.search_placeholder' | t }}"
   data-text-fallback="{{ 'pickup.text.fallback_notice' | t }}"
+  data-customer-logged-in="{% if customer %}true{% else %}false{% endif %}"
+  data-customer-email="{{ customer.email | escape }}"
+  data-customer-name="{{ last_address.name | escape }}"
+  data-customer-address1="{{ last_address.address1 | escape }}"
+  data-customer-city="{{ last_address.city | escape }}"
+  data-customer-zip="{{ last_address.zip | escape }}"
+  data-customer-phone="{{ last_address.phone | escape }}"
 >
   <div class="pickup-fallback" id="pickup-fallback" hidden></div>
   <div class="pickup-section">
@@ -83,6 +91,12 @@
       <label for="pickup-phone">Phone</label>
       <input id="pickup-phone" class="pickup-input" type="text" placeholder="Phone" />
     </div>
+    {% unless customer %}
+      <div class="pickup-field">
+        <label for="pickup-email">Email</label>
+        <input id="pickup-email" class="pickup-input" type="email" placeholder="Email" />
+      </div>
+    {% endunless %}
   </div>
 
   <div class="pickup-section pickup-wolt" id="pickup-wolt" hidden>
@@ -290,6 +304,7 @@
   .pickup-summary-total{
     font-weight:600;
   }
+  [hidden] { display: none !important; }
 </style>
 
 <script src="{{ 'itella-pickup.js' | asset_url }}" defer></script>
@@ -306,5 +321,3 @@
   ]
 }
 {% endschema %}
-/* IMPORTANT: ensure HTML hidden attribute always wins */
-[hidden] { display: none !important; }

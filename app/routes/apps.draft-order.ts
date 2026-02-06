@@ -15,6 +15,7 @@ function json(data: any, init?: ResponseInit) {
 
 type DraftOrderPayload = {
   draftOrderId?: string; // <-- NEW
+  email?: string;
   lineItems?: { variantId: string | number; quantity: number }[];
   shippingAddress?: {
     name?: string;
@@ -138,6 +139,10 @@ export async function action({ request }: ActionFunctionArgs) {
   const shippingPrice = parseDecimalPrice(delivery?.price);
 
   const input: any = { lineItems: lineItemsInput };
+
+  if (payload.email) {
+    input.email = payload.email;
+  }
 
   if (Object.keys(shippingAddressInput).length) {
     input.shippingAddress = shippingAddressInput;
