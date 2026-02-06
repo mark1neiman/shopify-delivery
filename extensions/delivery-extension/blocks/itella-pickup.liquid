@@ -53,6 +53,37 @@
     <div id="pickup-current" class="pickup-current"></div>
 
   </div>
+
+  <div class="pickup-section">
+    <div class="pickup-title">Recipient details</div>
+    <div class="pickup-field">
+      <label for="pickup-name">Full name</label>
+      <input id="pickup-name" class="pickup-input" type="text" placeholder="Name" />
+    </div>
+    <div class="pickup-field">
+      <label for="pickup-address1">Address</label>
+      <input
+        id="pickup-address1"
+        class="pickup-input"
+        type="text"
+        placeholder="Street and house"
+      />
+    </div>
+    <div class="pickup-field-row">
+      <div class="pickup-field">
+        <label for="pickup-city">City</label>
+        <input id="pickup-city" class="pickup-input" type="text" placeholder="City" />
+      </div>
+      <div class="pickup-field">
+        <label for="pickup-zip">Postal code</label>
+        <input id="pickup-zip" class="pickup-input" type="text" placeholder="Postal code" />
+      </div>
+    </div>
+    <div class="pickup-field">
+      <label for="pickup-phone">Phone</label>
+      <input id="pickup-phone" class="pickup-input" type="text" placeholder="Phone" />
+    </div>
+  </div>
 </div>
 
 <style>
@@ -168,6 +199,17 @@
     border-radius:12px;
     border:1px solid rgba(0,0,0,.14);
     background:#fff;
+  }
+  .pickup-field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    font-size:13px;
+  }
+  .pickup-field-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
   }
   .pickup-current{
     margin-top:6px;
