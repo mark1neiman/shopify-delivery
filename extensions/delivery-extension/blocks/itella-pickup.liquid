@@ -29,6 +29,15 @@
 
   <div class="pickup-section">
     <div class="pickup-title">{{ 'pickup.labels.country' | t }}</div>
+        <!-- Promo code -->
+    <div class="pickup-field">
+      <label for="pickup-promo">Promo code</label>
+      <input id="pickup-promo" class="pickup-input" type="text" placeholder="Enter promo code" />
+      <div style="font-size:12px;opacity:.65;margin-top:2px">
+        If your code is valid, discount will be applied in checkout.
+      </div>
+    </div>
+
     <button class="pickup-select" id="pickup-country-btn" type="button">
       <span class="pickup-flag" id="pickup-country-flag"></span>
       <span id="pickup-country-label">{{ 'pickup.text.loading' | t }}</span>

@@ -12,7 +12,12 @@
     if (window.Shopify && typeof window.Shopify.formatMoney === "function") {
       return window.Shopify.formatMoney(Math.round(value * 100));
     }
-    return value.toFixed(2);
+    return Number(value || 0).toFixed(2);
+  }
+
+  async function readCart() {
+    const res = await fetch("/cart.js", { cache: "no-store" });
+    return await res.json();
   }
 
   function readItemsFromDrawer() {
@@ -24,21 +29,9 @@
       const qtyInput = node.querySelector("input[name='updates[]'], input.quantity__input");
       const quantity = Number.parseInt(quantityAttr || qtyInput?.value || "0", 10);
       if (!variantId || !quantity) return;
-      items.push({
-        variantId: toGid(variantId),
-        quantity,
-        node,
-      });
+      items.push({ variantId: toGid(variantId), quantity, node });
     });
     return items;
-  }
-
-  function readPromoCode() {
-    const input = document.querySelector(
-      "input[name='discount'], input[name='promo'], input[name='promo_code']",
-    );
-    const value = input?.value?.trim();
-    return value || null;
   }
 
   function renderBadges(container, line) {
@@ -46,21 +39,15 @@
     container.innerHTML = "";
     const badges = [];
 
-    if (line.isFree || (line.freeUnits && line.freeUnits > 0)) {
-      badges.push("FREE");
-    }
+    // Member discount
+    if (line.memberUnitPrice < line.baseUnitPrice) badges.push("-15% member");
 
-    if (line.memberUnitPrice < line.baseUnitPrice) {
-      badges.push("-15% member");
-    }
+    // Campaigns
+    if (line.isFree || (line.freeUnits && line.freeUnits > 0)) badges.push("FREE");
+    if (line.appliedCampaignLabels?.length) badges.push(...line.appliedCampaignLabels);
 
-    if (line.appliedCampaignLabels?.length) {
-      badges.push(...line.appliedCampaignLabels);
-    }
-
-    if (line.appliedPromoCode) {
-      badges.push(`Promo: ${line.appliedPromoCode}`);
-    }
+    // Promo
+    if (line.appliedPromoCode) badges.push(`Promo: ${line.appliedPromoCode}`);
 
     badges.forEach((label) => {
       const badge = document.createElement("span");
@@ -105,16 +92,16 @@
     const items = readItemsFromDrawer();
     if (!items.length) return;
 
+    const cart = await readCart();
+    const attrs = cart.attributes || {};
+
     const payload = {
       mode: "preview",
-      customerId: null,
-      items: items.map((item) => ({
-        variantId: item.variantId,
-        quantity: item.quantity,
-      })),
+      customerId: null, // на storefront это сложно/ненадежно. -15% лучше применять только если ты уверен.
+      items: items.map((item) => ({ variantId: item.variantId, quantity: item.quantity })),
       shipping: null,
-      promoCode: readPromoCode(),
-      freeChoiceVariantId: null,
+      promoCode: (attrs.itella_promo_code || null),
+      freeChoiceVariantId: (attrs.itella_free_choice_variant_id || null),
     };
 
     const res = await fetch(PREVIEW_ENDPOINT, {
@@ -129,19 +116,19 @@
     if (!pricing) return;
 
     const lineMap = new Map();
-    pricing.lines.forEach((line) => {
-      lineMap.set(line.variantId, line);
-    });
+    pricing.lines.forEach((line) => lineMap.set(line.variantId, line));
 
     items.forEach((item) => {
       const line = lineMap.get(item.variantId);
       if (!line) return;
+
       let badgeContainer = item.node.querySelector("[data-discount-badges]");
       if (!badgeContainer) {
         badgeContainer = document.createElement("div");
         badgeContainer.setAttribute("data-discount-badges", "1");
         item.node.appendChild(badgeContainer);
       }
+
       renderBadges(badgeContainer, line);
 
       if (line.isFree || (line.freeUnits && line.freeUnits > 0)) {
@@ -156,9 +143,7 @@
 
   function watchCartDrawer() {
     const drawer = document.getElementById("CartDrawer") || document.body;
-    const observer = new MutationObserver(() => {
-      refreshPricing();
-    });
+    const observer = new MutationObserver(() => refreshPricing());
     observer.observe(drawer, { childList: true, subtree: true });
   }
 

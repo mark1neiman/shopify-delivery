@@ -2,12 +2,7 @@ import { adminGraphql } from "../shipping.server";
 import type { PricedLine, PricingBreakdown, AppliedCampaign } from "./pricing-engine.server";
 import type { ShippingLine, ShippingSelection } from "./shipping-service.server";
 
-export type DraftOrderResult = {
-  draftOrderId: string | null;
-  invoiceUrl: string | null;
-};
-
-export type DraftOrderInput = {
+type CreateDraftOrderInput = {
   lines: PricedLine[];
   currencyCode: string;
   shippingLine: ShippingLine | null;
@@ -17,80 +12,92 @@ export type DraftOrderInput = {
   promoCode: string | null;
 };
 
-export async function createDraftOrder(admin: any, input: DraftOrderInput): Promise<DraftOrderResult> {
+function toMoney(amount: number, currencyCode: string) {
+  return {
+    amount: String(Math.max(0, Number.isFinite(amount) ? amount : 0)),
+    currencyCode,
+  };
+}
+
+export async function createDraftOrder(admin: any, input: CreateDraftOrderInput) {
   const mutation = `#graphql
     mutation DraftOrderCreate($input: DraftOrderInput!) {
       draftOrderCreate(input: $input) {
-        draftOrder { id invoiceUrl }
-        userErrors { field message }
+        draftOrder {
+          id
+          invoiceUrl
+        }
+        userErrors {
+          field
+          message
+        }
       }
     }
   `;
 
-  const lineItems = input.lines.map((line) => ({
-    variantId: line.variantId,
-    quantity: line.quantity,
-    originalUnitPrice: {
-      amount: String(line.finalUnitPrice),
-      currencyCode: input.currencyCode,
-    },
-  }));
-
   const metafields = [
     {
-      namespace: "pricing",
-      key: "breakdown",
+      namespace: "itella",
+      key: "pricing_breakdown",
       type: "json",
       value: JSON.stringify(input.breakdown),
     },
     {
-      namespace: "pricing",
-      key: "appliedCampaigns",
+      namespace: "itella",
+      key: "pricing_applied_campaigns",
       type: "json",
       value: JSON.stringify(input.appliedCampaigns),
     },
     {
-      namespace: "shipping",
-      key: "selection",
+      namespace: "itella",
+      key: "shipping_selection",
       type: "json",
-      value: JSON.stringify(input.shippingSelection ?? {}),
+      value: JSON.stringify(input.shippingSelection),
+    },
+    {
+      namespace: "itella",
+      key: "promo_code",
+      type: "single_line_text_field",
+      value: input.promoCode || "",
     },
   ];
 
-  if (input.promoCode) {
-    metafields.push({
-      namespace: "promo",
-      key: "code",
-      type: "single_line_text_field",
-      value: input.promoCode,
-    });
-  }
+  // IMPORTANT:
+  // Для variant line items Shopify поддерживает DraftOrderLineItemInput.priceOverride (MoneyInput),
+  // чтобы задать цену вместо каталожной. :contentReference[oaicite:2]{index=2}
+  const lineItems = input.lines.map((l) => ({
+    variantId: l.variantId,
+    quantity: l.quantity,
+    priceOverride: toMoney(l.finalUnitPrice, input.currencyCode),
+  }));
 
-  const variables: any = {
-    input: {
-      lineItems,
-      metafields,
-    },
+  // Shipping: в DraftOrderInput есть shippingLine (title + price).
+  const draftInput: any = {
+    lineItems,
+    metafields,
   };
 
   if (input.shippingLine) {
-    variables.input.shippingLine = {
+    draftInput.shippingLine = {
       title: input.shippingLine.title,
-      price: input.shippingLine.price,
+      price: toMoney(input.shippingLine.price, input.currencyCode),
     };
   }
 
-  const res = await adminGraphql(admin, mutation, { variables });
+  const res = await adminGraphql(admin, mutation, { variables: { input: draftInput } });
   const json = await res.json();
-  const node = json.data?.draftOrderCreate;
-  const errors = node?.userErrors ?? [];
+
+  const errors = json.data?.draftOrderCreate?.userErrors ?? [];
   if (errors.length) {
-    const msg = errors.map((err: any) => err.message).join(", ");
-    throw new Error(msg);
+    const msg = errors.map((e: any) => `${e.field?.join(".") || "?"}: ${e.message}`).join(" | ");
+    throw new Error(`draftOrderCreate failed: ${msg}`);
   }
 
+  const draft = json.data?.draftOrderCreate?.draftOrder;
+  if (!draft?.id) throw new Error("draftOrderCreate failed: missing draftOrder.id");
+
   return {
-    draftOrderId: node?.draftOrder?.id ?? null,
-    invoiceUrl: node?.draftOrder?.invoiceUrl ?? null,
+    draftOrderId: String(draft.id),
+    invoiceUrl: String(draft.invoiceUrl || ""),
   };
 }

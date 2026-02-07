@@ -14,10 +14,16 @@ type Pages = {
   "/": {
     params: {};
   };
+  "/apps/checkout/pickup-config": {
+    params: {};
+  };
   "/webhooks/app/scopes_update": {
     params: {};
   };
   "/webhooks/app/uninstalled": {
+    params: {};
+  };
+  "/apps/checkout/prepare": {
     params: {};
   };
   "/apps/pickup-config": {
@@ -43,15 +49,33 @@ type Pages = {
   "/app/pickup-settings": {
     params: {};
   };
+  "/app/api/variants": {
+    params: {};
+  };
+  "/app/promo-codes": {
+    params: {};
+  };
   "/app/additional": {
     params: {};
+  };
+  "/app/campaigns": {
+    params: {};
+  };
+  "/app/campaigns/:id": {
+    params: {
+      "id": string;
+    };
   };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/webhooks/app/scopes_update" | "/webhooks/app/uninstalled" | "/apps/pickup-config" | "/apps/pickup-config/draft-order" | "/apps/draft-order" | "/auth/login" | "/auth/*" | "/app" | "/app/pickup-settings" | "/app/additional";
+    page: "/" | "/apps/checkout/pickup-config" | "/webhooks/app/scopes_update" | "/webhooks/app/uninstalled" | "/apps/checkout/prepare" | "/apps/pickup-config" | "/apps/pickup-config/draft-order" | "/apps/draft-order" | "/auth/login" | "/auth/*" | "/app" | "/app/pickup-settings" | "/app/api/variants" | "/app/promo-codes" | "/app/additional" | "/app/campaigns" | "/app/campaigns/:id";
+  };
+  "routes/apps.checkout.pickup-config.ts": {
+    id: "routes/apps.checkout.pickup-config";
+    page: "/apps/checkout/pickup-config";
   };
   "routes/webhooks.app.scopes_update.tsx": {
     id: "routes/webhooks.app.scopes_update";
@@ -60,6 +84,10 @@ type RouteFiles = {
   "routes/webhooks.app.uninstalled.tsx": {
     id: "routes/webhooks.app.uninstalled";
     page: "/webhooks/app/uninstalled";
+  };
+  "routes/apps.checkout.prepare.ts": {
+    id: "routes/apps.checkout.prepare";
+    page: "/apps/checkout/prepare";
   };
   "routes/apps.pickup-config.ts": {
     id: "routes/apps.pickup-config";
@@ -87,15 +115,31 @@ type RouteFiles = {
   };
   "routes/app.tsx": {
     id: "routes/app";
-    page: "/app" | "/app/pickup-settings" | "/app/additional";
+    page: "/app" | "/app/pickup-settings" | "/app/api/variants" | "/app/promo-codes" | "/app/additional" | "/app/campaigns" | "/app/campaigns/:id";
   };
   "routes/app.pickup-settings.tsx": {
     id: "routes/app.pickup-settings";
     page: "/app/pickup-settings";
   };
+  "routes/app.api.variants.tsx": {
+    id: "routes/app.api.variants";
+    page: "/app/api/variants";
+  };
+  "routes/app.promo-codes.tsx": {
+    id: "routes/app.promo-codes";
+    page: "/app/promo-codes";
+  };
   "routes/app.additional.tsx": {
     id: "routes/app.additional";
     page: "/app/additional";
+  };
+  "routes/app.campaigns.tsx": {
+    id: "routes/app.campaigns";
+    page: "/app/campaigns" | "/app/campaigns/:id";
+  };
+  "routes/app.campaigns.$id.tsx": {
+    id: "routes/app.campaigns.$id";
+    page: "/app/campaigns/:id";
   };
   "routes/app._index.tsx": {
     id: "routes/app._index";
@@ -105,8 +149,10 @@ type RouteFiles = {
 
 type RouteModules = {
   "root": typeof import("./app/root.tsx");
+  "routes/apps.checkout.pickup-config": typeof import("./app/routes/apps.checkout.pickup-config.ts");
   "routes/webhooks.app.scopes_update": typeof import("./app/routes/webhooks.app.scopes_update.tsx");
   "routes/webhooks.app.uninstalled": typeof import("./app/routes/webhooks.app.uninstalled.tsx");
+  "routes/apps.checkout.prepare": typeof import("./app/routes/apps.checkout.prepare.ts");
   "routes/apps.pickup-config": typeof import("./app/routes/apps.pickup-config.ts");
   "routes/apps.pickup-config.draft-order": typeof import("./app/routes/apps.pickup-config.draft-order.ts");
   "routes/apps.draft-order": typeof import("./app/routes/apps.draft-order.ts");
@@ -115,6 +161,10 @@ type RouteModules = {
   "routes/auth.$": typeof import("./app/routes/auth.$.tsx");
   "routes/app": typeof import("./app/routes/app.tsx");
   "routes/app.pickup-settings": typeof import("./app/routes/app.pickup-settings.tsx");
+  "routes/app.api.variants": typeof import("./app/routes/app.api.variants.tsx");
+  "routes/app.promo-codes": typeof import("./app/routes/app.promo-codes.tsx");
   "routes/app.additional": typeof import("./app/routes/app.additional.tsx");
+  "routes/app.campaigns": typeof import("./app/routes/app.campaigns.tsx");
+  "routes/app.campaigns.$id": typeof import("./app/routes/app.campaigns.$id.tsx");
   "routes/app._index": typeof import("./app/routes/app._index.tsx");
 };

@@ -1,14 +1,19 @@
 import { adminGraphql } from "../shipping.server";
-import { CAMPAIGNS, type Campaign } from "./campaigns.server";
+import { getCampaigns, type Campaign } from "./campaigns.server";
+
+import { listCampaigns } from "./campaigns-metaobjects.server";
 
 export type PricedLine = {
   variantId: string;
   quantity: number;
+
   baseUnitPrice: number;
   memberUnitPrice: number;
   finalUnitPrice: number;
+
   isFree?: boolean;
   freeUnits?: number;
+
   appliedCampaignIds: string[];
   appliedCampaignLabels: string[];
   appliedPromoCode?: string;
@@ -59,8 +64,10 @@ function sum(values: number[]) {
 }
 
 function toGid(rawId: string) {
-  if (rawId.startsWith("gid://")) return rawId;
-  return `gid://shopify/ProductVariant/${rawId}`;
+  const id = String(rawId || "").trim();
+  if (!id) return "";
+  if (id.startsWith("gid://")) return id;
+  return `gid://shopify/ProductVariant/${id}`;
 }
 
 type LineState = {
@@ -68,8 +75,10 @@ type LineState = {
   quantity: number;
   baseUnitPrice: number;
   memberUnitPrice: number;
-  discountTotal: number;
+
+  discountTotal: number; // total discounts applied on this line (campaign + promo)
   freeUnits: number;
+
   appliedCampaignIds: Set<string>;
   appliedCampaignLabels: Set<string>;
   appliedPromoCode?: string;
@@ -77,10 +86,7 @@ type LineState = {
 
 type PriceMap = Map<string, { amount: number; currencyCode: string }>;
 
-async function fetchVariantPrices(
-  admin: any,
-  variantIds: string[],
-): Promise<PriceMap> {
+async function fetchVariantPrices(admin: any, variantIds: string[]): Promise<PriceMap> {
   if (!variantIds.length) return new Map();
 
   const query = `#graphql
@@ -99,9 +105,10 @@ async function fetchVariantPrices(
 
   const res = await adminGraphql(admin, query, { variables: { ids: variantIds } });
   const json = await res.json();
-  const nodes = json.data?.nodes ?? [];
 
+  const nodes = json.data?.nodes ?? [];
   const map: PriceMap = new Map();
+
   for (const node of nodes) {
     if (!node?.id) continue;
     const amount = Number.parseFloat(String(node.price?.amount ?? 0));
@@ -114,12 +121,7 @@ async function fetchVariantPrices(
   return map;
 }
 
-function ensureLine(
-  lines: Map<string, LineState>,
-  variantId: string,
-  priceMap: PriceMap,
-  quantity: number,
-) {
+function ensureLine(lines: Map<string, LineState>, variantId: string, priceMap: PriceMap, quantity: number) {
   const normalized = toGid(variantId);
   const existing = lines.get(normalized);
   if (existing) {
@@ -159,16 +161,19 @@ function totalLineValue(line: LineState) {
   return line.memberUnitPrice * line.quantity - line.discountTotal;
 }
 
-function applyFreeUnits(
-  lines: LineState[],
-  freeCount: number,
-  campaign: Campaign,
-) {
+/**
+ * cheap-first freebies:
+ * - мы собираем пул "единиц" с ценой memberUnitPrice
+ * - сортируем по цене
+ * - первые N делаем бесплатными (через discountTotal += unitPrice и freeUnits++)
+ */
+function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaign) {
   if (freeCount <= 0) return;
 
   const unitPool: { line: LineState; unitPrice: number }[] = [];
   for (const line of lines) {
-    for (let i = 0; i < line.quantity - line.freeUnits; i += 1) {
+    const paidUnits = Math.max(0, line.quantity - line.freeUnits);
+    for (let i = 0; i < paidUnits; i += 1) {
       unitPool.push({ line, unitPrice: line.memberUnitPrice });
     }
   }
@@ -184,22 +189,21 @@ function applyFreeUnits(
   }
 }
 
-function distributeDiscount(
-  lines: LineState[],
-  discountAmount: number,
-  campaign?: Campaign,
-) {
+function distributeDiscount(lines: LineState[], discountAmount: number, campaign?: Campaign) {
   if (discountAmount <= 0) return;
   const subtotal = sum(lines.map((line) => totalLineValue(line)));
   if (subtotal <= 0) return;
 
   let remaining = Math.min(discountAmount, subtotal);
+
   lines.forEach((line, index) => {
     const weight = totalLineValue(line) / subtotal;
     const raw = roundMoney(discountAmount * weight);
     const discount = index === lines.length - 1 ? remaining : raw;
+
     line.discountTotal += discount;
     remaining -= discount;
+
     if (campaign) {
       line.appliedCampaignIds.add(campaign.id);
       line.appliedCampaignLabels.add(campaign.label);
@@ -219,14 +223,9 @@ async function validatePromoCode(admin: any, code: string) {
             customerGets {
               value {
                 __typename
-                ... on DiscountPercentage {
-                  percentage
-                }
+                ... on DiscountPercentage { percentage }
                 ... on DiscountAmount {
-                  amount {
-                    amount
-                    currencyCode
-                  }
+                  amount { amount currencyCode }
                 }
               }
             }
@@ -243,8 +242,8 @@ async function validatePromoCode(admin: any, code: string) {
   try {
     const res = await adminGraphql(admin, query, { variables: { code } });
     const json = await res.json();
-    const node = json.data?.codeDiscountNodeByCode;
-    const discount = node?.codeDiscount;
+
+    const discount = json.data?.codeDiscountNodeByCode?.codeDiscount;
     if (!discount) return null;
 
     const value = discount.customerGets?.value;
@@ -281,6 +280,7 @@ function buildLines(lines: LineState[]): PricedLine[] {
   return lines.map((line) => {
     const subtotal = line.memberUnitPrice * line.quantity - line.discountTotal;
     const finalUnitPrice = line.quantity ? roundMoney(subtotal / line.quantity) : 0;
+
     return {
       variantId: line.variantId,
       quantity: line.quantity,
@@ -296,29 +296,28 @@ function buildLines(lines: LineState[]): PricedLine[] {
   });
 }
 
-export async function pricingEngine(
-  admin: any,
-  input: PricingInput,
-): Promise<PricingResult> {
+export async function pricingEngine(admin: any, input: PricingInput): Promise<PricingResult> {
   const normalizedItems = input.items.map((item) => ({
     variantId: toGid(item.variantId),
     quantity: item.quantity,
   }));
 
-  const campaignVariantIds = CAMPAIGNS.flatMap((campaign) => {
-    if (campaign.type === "BuyXGetZFree") return [campaign.freeVariantId];
-    if (campaign.type === "BuyXGetZChoice") return campaign.choiceVariantIds;
-    if (campaign.type === "CartThresholdFreeChoice") return campaign.choiceVariantIds;
-    return [];
-  }).filter(Boolean);
-  const extraVariantIds = [
-    input.freeChoiceVariantId ?? \"\",
-    ...campaignVariantIds,
-  ].filter(Boolean);
+  // Чтобы подгрузить цены потенциальных "подарочных" вариантов (free/choice):
+  const campaignsFromAdmin = await getCampaigns(admin);
 
-  const variantIds = Array.from(
-    new Set([...normalizedItems.map((item) => item.variantId), ...extraVariantIds]),
-  );
+  const campaignVariantIds = campaignsFromAdmin
+    .flatMap((campaign) => {
+      if (campaign.type === "BuyXGetZFree") return [campaign.freeVariantId];
+      if (campaign.type === "BuyXGetZChoice") return campaign.choiceVariantIds;
+      if (campaign.type === "CartThresholdFreeChoice") return campaign.choiceVariantIds;
+      return [];
+    })
+    .filter(Boolean);
+
+
+  const extraVariantIds = [input.freeChoiceVariantId ?? "", ...campaignVariantIds].filter(Boolean);
+
+  const variantIds = Array.from(new Set([...normalizedItems.map((i) => i.variantId), ...extraVariantIds]));
   const priceMap = await fetchVariantPrices(admin, variantIds);
   const currencyCode = priceMap.values().next().value?.currencyCode ?? "USD";
 
@@ -327,75 +326,89 @@ export async function pricingEngine(
     ensureLine(linesMap, item.variantId, priceMap, item.quantity);
   }
 
+  // 1) member -15%
   applyMemberDiscount(linesMap, Boolean(input.customerId));
 
-  const appliedCampaigns: AppliedCampaign[] = [];
+  // 2) campaigns (priority + stackable)
+  const appliedCampaigns: { id: string; type: Campaign["type"]; label: string }[] = [];
   let needsFreeChoice = false;
   let choiceContext: PricingResult["choiceContext"];
 
-  const campaigns = [...CAMPAIGNS].sort((a, b) => a.priority - b.priority);
+  const campaigns = [...campaignsFromAdmin].sort((a, b) => a.priority - b.priority);
+
+
+
   let hasNonStackable = false;
 
   for (const campaign of campaigns) {
     if (hasNonStackable && !campaign.stackable) continue;
 
     const lines = Array.from(linesMap.values());
-    const memberSubtotal = sum(lines.map((line) => line.memberUnitPrice * line.quantity));
+    const memberSubtotal = sum(lines.map((l) => l.memberUnitPrice * l.quantity));
 
     if (campaign.type === "BuyXGetOneFree") {
       const eligible = eligibleUnits(lines, campaign.eligibleVariantIds);
-      const totalEligibleQty = sum(eligible.map((line) => line.quantity));
+      const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity + 1) continue;
+
       const freeCount = Math.floor(totalEligibleQty / (campaign.buyQuantity + 1));
       if (freeCount <= 0) continue;
+
       applyFreeUnits(eligible, freeCount, campaign);
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
     if (campaign.type === "BuyXGetZFree") {
       if (!campaign.freeVariantId) continue;
+
       const eligible = eligibleUnits(lines, campaign.triggerVariantIds);
-      const totalEligibleQty = sum(eligible.map((line) => line.quantity));
+      const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity) continue;
+
       const freeLine = ensureLine(linesMap, campaign.freeVariantId, priceMap, 1);
       freeLine.discountTotal += freeLine.memberUnitPrice;
       freeLine.freeUnits += 1;
       freeLine.appliedCampaignIds.add(campaign.id);
       freeLine.appliedCampaignLabels.add(campaign.label);
+
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
     if (campaign.type === "BuyXGetZChoice") {
       if (!campaign.choiceVariantIds.length) continue;
+
       const eligible = eligibleUnits(lines, campaign.triggerVariantIds);
-      const totalEligibleQty = sum(eligible.map((line) => line.quantity));
+      const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity) continue;
+
       if (!input.freeChoiceVariantId) {
         needsFreeChoice = true;
-        choiceContext = {
-          campaignId: campaign.id,
-          label: campaign.label,
-          choices: campaign.choiceVariantIds,
-        };
+        choiceContext = { campaignId: campaign.id, label: campaign.label, choices: campaign.choiceVariantIds };
         break;
       }
-      if (!campaign.choiceVariantIds.includes(input.freeChoiceVariantId)) continue;
-      const freeLine = ensureLine(linesMap, input.freeChoiceVariantId, priceMap, 1);
+
+      const chosen = toGid(input.freeChoiceVariantId);
+      if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
+
+      const freeLine = ensureLine(linesMap, chosen, priceMap, 1);
       freeLine.discountTotal += freeLine.memberUnitPrice;
       freeLine.freeUnits += 1;
       freeLine.appliedCampaignIds.add(campaign.id);
       freeLine.appliedCampaignLabels.add(campaign.label);
+
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
     if (campaign.type === "CartThresholdDiscount") {
       if (memberSubtotal < campaign.thresholdAmount) continue;
+
       let discountAmount = 0;
       if (campaign.discount.type === "percentage") {
         discountAmount = roundMoney(memberSubtotal * (campaign.discount.value / 100));
       } else {
         discountAmount = campaign.discount.value;
       }
+
       distributeDiscount(lines, discountAmount, campaign);
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
@@ -403,21 +416,22 @@ export async function pricingEngine(
     if (campaign.type === "CartThresholdFreeChoice") {
       if (memberSubtotal < campaign.thresholdAmount) continue;
       if (!campaign.choiceVariantIds.length) continue;
+
       if (!input.freeChoiceVariantId) {
         needsFreeChoice = true;
-        choiceContext = {
-          campaignId: campaign.id,
-          label: campaign.label,
-          choices: campaign.choiceVariantIds,
-        };
+        choiceContext = { campaignId: campaign.id, label: campaign.label, choices: campaign.choiceVariantIds };
         break;
       }
-      if (!campaign.choiceVariantIds.includes(input.freeChoiceVariantId)) continue;
-      const freeLine = ensureLine(linesMap, input.freeChoiceVariantId, priceMap, 1);
+
+      const chosen = toGid(input.freeChoiceVariantId);
+      if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
+
+      const freeLine = ensureLine(linesMap, chosen, priceMap, 1);
       freeLine.discountTotal += freeLine.memberUnitPrice;
       freeLine.freeUnits += 1;
       freeLine.appliedCampaignIds.add(campaign.id);
       freeLine.appliedCampaignLabels.add(campaign.label);
+
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
@@ -426,21 +440,27 @@ export async function pricingEngine(
 
   const lines = Array.from(linesMap.values());
 
-  const baseSubtotal = roundMoney(sum(lines.map((line) => line.baseUnitPrice * line.quantity)));
-  const memberSubtotal = roundMoney(sum(lines.map((line) => line.memberUnitPrice * line.quantity)));
+  // breakdown
+  const baseSubtotal = roundMoney(sum(lines.map((l) => l.baseUnitPrice * l.quantity)));
+  const memberSubtotal = roundMoney(sum(lines.map((l) => l.memberUnitPrice * l.quantity)));
   const memberDiscount = roundMoney(baseSubtotal - memberSubtotal);
-  const campaignDiscount = roundMoney(sum(lines.map((line) => line.discountTotal)));
+  const campaignDiscount = roundMoney(sum(lines.map((l) => l.discountTotal)));
 
+  // 3) promo code (после кампаний)
   let promoDiscount = 0;
+
   if (!needsFreeChoice && input.promoCode) {
     const promo = await validatePromoCode(admin, input.promoCode);
     if (promo && (promo.stackable || appliedCampaigns.length === 0)) {
       const subtotalAfterCampaigns = memberSubtotal - campaignDiscount;
+
       if (promo.type === "percentage") {
         promoDiscount = roundMoney(subtotalAfterCampaigns * (promo.value / 100));
       } else {
         promoDiscount = roundMoney(promo.value);
       }
+
+      // promo скидку распределяем пропорционально, но НЕ добавляем campaign labels (это промо)
       distributeDiscount(lines, promoDiscount);
       for (const line of lines) {
         line.appliedPromoCode = promo.code;
@@ -449,18 +469,11 @@ export async function pricingEngine(
   }
 
   const finalSubtotal = roundMoney(memberSubtotal - campaignDiscount - promoDiscount);
-
   const pricedLines = buildLines(lines);
 
   return {
     lines: pricedLines,
-    breakdown: {
-      baseSubtotal,
-      memberDiscount,
-      campaignDiscount,
-      promoDiscount,
-      finalSubtotal,
-    },
+    breakdown: { baseSubtotal, memberDiscount, campaignDiscount, promoDiscount, finalSubtotal },
     appliedCampaigns,
     needsFreeChoice,
     choiceContext,

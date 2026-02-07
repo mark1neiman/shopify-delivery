@@ -1,5 +1,13 @@
+// shopify-delivery/extensions/delivery-extension/assets/itella-pickup.js
+// Cleaned + fixed:
+// - removed ReferenceError (attrs outside boot)
+// - promo is synced ONLY via syncPromoAttributes (no duplicates)
+// - promo is NOT part of recipient payload / recipient listeners
+// - removed double restore of promo in boot
+// - kept draft invalidation logic consistent
+
 (async function () {
-  console.log("[ITELLA PICKUP] VERSION 2026-02-06 12:40");
+  console.log("[ITELLA PICKUP] VERSION 2026-02-07 v3 (clean promo + stable init)");
 
   // Support multiple instances of the block (cart page + cart drawer, etc.)
   const roots = document.querySelectorAll('[data-itella-pickup-root="1"]');
@@ -32,9 +40,12 @@
     const addressInput = root.querySelector("#pickup-address1");
     const cityInput = root.querySelector("#pickup-city");
     const zipInput = root.querySelector("#pickup-zip");
-    const phoneCodeInput = root.querySelector("#pickup-phone-code"); // NEW
+    const phoneCodeInput = root.querySelector("#pickup-phone-code");
     const phoneInput = root.querySelector("#pickup-phone");
     const emailInput = root.querySelector("#pickup-email");
+
+    // PROMO (optional, add <input id="pickup-promo"> in your liquid block)
+    const promoInput = root.querySelector("#pickup-promo");
 
     const woltWrap = root.querySelector("#pickup-wolt");
     const woltNotice = root.querySelector("#pickup-wolt-notice");
@@ -47,6 +58,7 @@
       labelCountry: root.dataset.labelCountry || "Country",
       labelProvider: root.dataset.labelProvider || "Please select a service provider",
       labelPickupPoint: root.dataset.labelPickupPoint || "Pickup point",
+      labelPromo: root.dataset.labelPromo || "Promo code",
       textLoading: root.dataset.textLoading || "Loading…",
       textSelectPickup: root.dataset.textSelectPickup || "Select pickup point…",
       textPickupNotRequired: root.dataset.textPickupNotRequired || "Pickup point not required",
@@ -60,7 +72,12 @@
       textSearchPlaceholder: root.dataset.textSearchPlaceholder || "Search by city / address / name",
     };
 
-    // URLs you provided
+    // App proxy endpoints (storefront)
+    const CONFIG_ENDPOINT_PRIMARY = "/apps/checkout/pickup-config";
+    const CONFIG_ENDPOINT_FALLBACK = "/apps/pickup-config";
+    const PREPARE_ENDPOINT = "/apps/checkout/prepare";
+
+    // Parcely / SmartPosti locations endpoints
     const LOCATIONS_BY_COUNTRY = {
       FI: "https://production.parcely.app/locations_4_11.json",
       EE: "https://production.parcely.app/locations_1_1.json",
@@ -113,9 +130,8 @@
           title: "Smartposti parcel lockers",
           logo: "https://production.parcely.app/images/itella.png",
         },
-        flat_rate: {
-          title: "Flat rate delivery",
-        },
+        flat_rate: { title: "Flat rate delivery" },
+        wolt: { title: "Wolt delivery" },
       },
     };
 
@@ -164,21 +180,6 @@
       if (!c && !p) return "";
       if (c && p) return `${c} ${p}`.trim();
       return (c || p).trim();
-    }
-
-    function maskEmail(email) {
-      const e = (email || "").trim();
-      if (!e.includes("@")) return e ? "***" : "";
-      const [u, d] = e.split("@");
-      const u2 = u.length <= 2 ? u[0] + "*" : u.slice(0, 2) + "***";
-      return `${u2}@${d}`;
-    }
-
-    function maskPhone(phone) {
-      const p = (phone || "").replace(/\s+/g, " ").trim();
-      if (!p) return "";
-      if (p.length <= 4) return "***";
-      return p.slice(0, 4) + "***";
     }
 
     function isSameDay(dateA, dateB) {
@@ -247,17 +248,20 @@
     async function writeCartAttributes(payload) {
       const current = cartAttributes ?? (await readCartAttributes());
       if (attributesMatch(current, payload)) return;
+
       const nextAttributes = { ...current, ...payload };
+
       await fetch("/cart/update.js", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ attributes: nextAttributes }),
       });
+
       cartAttributes = nextAttributes;
     }
 
     function getCountryConfig(code) {
-      return (config.countries || []).find((country) => country.code === code);
+      return (config?.countries || []).find((country) => country.code === code);
     }
 
     function setCountryUI(country) {
@@ -276,7 +280,7 @@
       if (country?.providerLabels?.[providerKey]) {
         return { title: country.providerLabels[providerKey] };
       }
-      return (config.providerMeta && config.providerMeta[providerKey]) || { title: providerKey };
+      return (config?.providerMeta && config.providerMeta[providerKey]) || { title: providerKey };
     }
 
     function parsePriceToCents(price) {
@@ -371,6 +375,12 @@
       };
     }
 
+    function getPromoPayload() {
+      return {
+        itella_promo_code: (promoInput?.value || "").trim(),
+      };
+    }
+
     function getCityValue() {
       const city = normalize(cityInput?.value);
       if (city) return city;
@@ -384,7 +394,7 @@
     }
 
     function shouldInvalidateDraft(prevAttrs, nextAttrs) {
-      // if any of these change, cached invoiceUrl might become outdated
+      // If any of these change, cached invoiceUrl might become outdated
       const keys = [
         "itella_pickup_provider",
         "itella_pickup_country",
@@ -399,6 +409,7 @@
         "itella_recipient_phone_code",
         "itella_recipient_phone",
         "itella_recipient_email",
+        "itella_promo_code",
         "itella_wolt_date",
         "itella_wolt_time",
       ];
@@ -413,21 +424,31 @@
 
       await writeCartAttributes(payload);
 
-      // invalidate cached invoice URL if key recipient fields changed
       const next = cartAttributes ?? (await readCartAttributes());
       if (shouldInvalidateDraft(prev, next)) {
-        await writeCartAttributes({
-          itella_draft_order_invoice_url: "",
-        });
+        await writeCartAttributes({ itella_draft_order_invoice_url: "" });
       }
 
       await updateWoltAvailability();
+    }
+
+    async function syncPromoAttributes() {
+      if (!promoInput) return;
+
+      const prev = cartAttributes ?? (await readCartAttributes());
+      await writeCartAttributes(getPromoPayload());
+
+      const next = cartAttributes ?? (await readCartAttributes());
+      if (shouldInvalidateDraft(prev, next)) {
+        await writeCartAttributes({ itella_draft_order_invoice_url: "" });
+      }
     }
 
     async function syncWoltAttributes() {
       if (!woltDateInput || !woltTimeSelect) return;
 
       const prev = cartAttributes ?? (await readCartAttributes());
+
       await writeCartAttributes({
         itella_wolt_date: woltDateInput.value || "",
         itella_wolt_time: woltTimeSelect.value || "",
@@ -435,9 +456,7 @@
 
       const next = cartAttributes ?? (await readCartAttributes());
       if (shouldInvalidateDraft(prev, next)) {
-        await writeCartAttributes({
-          itella_draft_order_invoice_url: "",
-        });
+        await writeCartAttributes({ itella_draft_order_invoice_url: "" });
       }
     }
 
@@ -448,9 +467,10 @@
       if (!cart?.items?.length) return null;
 
       const attrs = await readCartAttributes();
+
       const payload = {
         mode: "checkout",
-        customerId: null,
+        customerId: null, // if later you expose customerId in DOM, put it here
         items: cart.items.map((item) => ({
           variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
           quantity: item.quantity,
@@ -464,16 +484,13 @@
                 : "pickup",
           pickupPointId: attrs.itella_pickup_id || null,
         },
-        promoCode: attrs.itella_promo_code || null,
+        promoCode: (attrs.itella_promo_code || "").trim() || null,
         freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
       };
 
-      // Masked debug log (safe for prod). If you want full, replace with console.log(payload)
-      console.log("[itella] checkout payload (masked):", {
-        ...payload,
-      });
+      console.log("[itella] checkout payload:", payload);
 
-      const res = await fetch("/apps/checkout/prepare", {
+      const res = await fetch(PREPARE_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -538,11 +555,9 @@
         const meta = getProviderMeta(key, country);
         const displayTitle = meta.title || key;
         const price = pricesByProvider?.[key];
-        const woltDisabled = false;
 
         const label = document.createElement("label");
         label.className = "pickup-provider";
-        if (woltDisabled) label.classList.add("is-disabled");
 
         label.innerHTML = `
           <input type="radio" name="pickup_provider_${state.country}" ${
@@ -566,6 +581,7 @@
 
           const prev = cartAttributes ?? (await readCartAttributes());
           await syncProviderAttributes(c, key);
+
           const next = cartAttributes ?? (await readCartAttributes());
           if (shouldInvalidateDraft(prev, next)) {
             await writeCartAttributes({ itella_draft_order_invoice_url: "" });
@@ -635,9 +651,9 @@
 
     async function loadConfig() {
       try {
-        let proxyRes = await fetch("/apps/checkout/pickup-config", { cache: "no-store" });
+        let proxyRes = await fetch(CONFIG_ENDPOINT_PRIMARY, { cache: "no-store" });
         if (!proxyRes.ok) {
-          proxyRes = await fetch("/apps/pickup-config", { cache: "no-store" });
+          proxyRes = await fetch(CONFIG_ENDPOINT_FALLBACK, { cache: "no-store" });
         }
         if (proxyRes.ok) {
           const proxyJson = await proxyRes.json();
@@ -703,6 +719,7 @@
 
       const prev = cartAttributes ?? (await readCartAttributes());
       await syncProviderAttributes(country, state.provider);
+
       const next = cartAttributes ?? (await readCartAttributes());
       if (shouldInvalidateDraft(prev, next)) {
         await writeCartAttributes({ itella_draft_order_invoice_url: "" });
@@ -813,8 +830,8 @@
           woltNotice.textContent = "Wolt delivery is available only in Tallinn.";
           woltNotice.hidden = false;
         }
-        woltDateInput.disabled = true;
-        woltTimeSelect.disabled = true;
+        if (woltDateInput) woltDateInput.disabled = true;
+        if (woltTimeSelect) woltTimeSelect.disabled = true;
 
         await writeCartAttributes({
           itella_wolt_date: "",
@@ -825,22 +842,25 @@
       }
 
       if (woltNotice) woltNotice.hidden = true;
-      woltDateInput.disabled = false;
-      woltTimeSelect.disabled = false;
+      if (woltDateInput) woltDateInput.disabled = false;
+      if (woltTimeSelect) woltTimeSelect.disabled = false;
 
       const today = new Date();
       const nextValid = getNextValidDate(today);
 
-      woltDateInput.min = formatDateInput(today);
-      woltDateInput.max = formatDateInput(
-        new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14),
-      );
+      if (woltDateInput) {
+        woltDateInput.min = formatDateInput(today);
+        woltDateInput.max = formatDateInput(
+          new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14),
+        );
 
-      if (!woltDateInput.value) {
-        woltDateInput.value = formatDateInput(nextValid);
+        if (!woltDateInput.value) {
+          woltDateInput.value = formatDateInput(nextValid);
+        }
+
+        updateWoltOptions(woltDateInput.value);
       }
 
-      updateWoltOptions(woltDateInput.value);
       await syncWoltAttributes();
     }
 
@@ -918,7 +938,7 @@
       });
     }
 
-    // Recipient fields
+    // Recipient fields (promo excluded on purpose)
     const recipientInputs = [
       nameInput,
       addressInput,
@@ -933,6 +953,12 @@
       input.addEventListener("change", syncRecipientAttributes);
       input.addEventListener("blur", syncRecipientAttributes);
     });
+
+    // Promo field (separate sync)
+    if (promoInput) {
+      promoInput.addEventListener("change", syncPromoAttributes);
+      promoInput.addEventListener("blur", syncPromoAttributes);
+    }
 
     if (cityInput) {
       cityInput.addEventListener("input", () => {
@@ -962,7 +988,9 @@
 
     async function validateCheckout() {
       await syncRecipientAttributes();
+      await syncPromoAttributes();
       await syncWoltAttributes();
+
       const latestAttrs = await readCartAttributes();
 
       const missing = [];
@@ -994,7 +1022,7 @@
       }
 
       if (missing.length) {
-        window.alert(`Please заполните: ${missing.join(", ")}`);
+        window.alert(`Please fill: ${missing.join(", ")}`);
         return false;
       }
       return true;
@@ -1047,6 +1075,13 @@
       config = configResponse.config;
       const usedFallback = configResponse.usedFallback;
 
+      console.log(
+        "[itella] config countries:",
+        (config?.countries || []).map((c) => c.code),
+        "usedFallback=",
+        usedFallback,
+      );
+
       if (fallbackNotice) {
         fallbackNotice.textContent = usedFallback ? i18n.textFallback : "";
         fallbackNotice.hidden = !usedFallback;
@@ -1063,15 +1098,20 @@
       await updateCartTotals(attrs.itella_delivery_price || "");
 
       if (nameInput) nameInput.value = attrs.itella_recipient_name || customerDefaults.name || "";
-      if (addressInput) addressInput.value = attrs.itella_recipient_address1 || customerDefaults.address1 || "";
+      if (addressInput) {
+        addressInput.value = attrs.itella_recipient_address1 || customerDefaults.address1 || "";
+      }
       if (cityInput) cityInput.value = attrs.itella_recipient_city || customerDefaults.city || "";
       if (zipInput) zipInput.value = attrs.itella_recipient_zip || customerDefaults.zip || "";
 
       if (phoneCodeInput) {
-        phoneCodeInput.value = (attrs.itella_recipient_phone_code || "").trim() || phoneCodeInput.value || "";
+        phoneCodeInput.value =
+          (attrs.itella_recipient_phone_code || "").trim() || phoneCodeInput.value || "";
       }
       if (phoneInput) phoneInput.value = attrs.itella_recipient_phone || customerDefaults.phone || "";
       if (emailInput) emailInput.value = attrs.itella_recipient_email || customerDefaults.email || "";
+
+      if (promoInput) promoInput.value = (attrs.itella_promo_code || "").trim();
 
       if (woltDateInput) woltDateInput.value = attrs.itella_wolt_date || "";
       if (woltTimeSelect && attrs.itella_wolt_time) {
@@ -1086,6 +1126,9 @@
       const recipientDefaults = getRecipientPayload();
       if (Object.values(recipientDefaults).some((value) => value)) {
         await writeCartAttributes(recipientDefaults);
+      }
+      if (promoInput && promoInput.value) {
+        await writeCartAttributes(getPromoPayload());
       }
 
       const restoredCountry = (attrs.itella_pickup_country || DEFAULT_COUNTRY).toUpperCase();

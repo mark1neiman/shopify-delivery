@@ -1,13 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
-import {
-  pricingEngine,
-  type PricingInput,
-} from "../services/pricing-engine.server";
-import {
-  calculateShippingLine,
-  type ShippingSelection,
-} from "../services/shipping-service.server";
+import { pricingEngine, type PricingInput } from "../services/pricing-engine.server";
+import { calculateShippingLine, type ShippingSelection } from "../services/shipping-service.server";
 import { createDraftOrder } from "../services/draft-order-service.server";
 
 function json(data: any, init?: ResponseInit) {
@@ -35,13 +29,11 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: "Method not allowed" }, { status: 405 });
   }
 
+  // App Proxy (публичный запрос со storefront)
   const ctx = await authenticate.public.appProxy(request);
   if (!ctx.session) {
     return json(
-      {
-        error:
-          "App proxy session is unavailable. Open the app in Admin once to refresh the session.",
-      },
+      { error: "App proxy session is unavailable. Open the app in Admin once to refresh the session." },
       { status: 401 },
     );
   }
@@ -66,20 +58,17 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const pricing = await pricingEngine(ctx.admin, pricingInput);
 
+  // выбор подарка обязателен — не создаём draft
   if (pricing.needsFreeChoice) {
-    return json(
-      {
-        pricing,
-        needsFreeChoice: true,
-      },
-      { status: 200 },
-    );
+    return json({ pricing, needsFreeChoice: true }, { status: 200 });
   }
 
+  // preview — просто вернуть расчет
   if (payload.mode === "preview") {
     return json({ pricing, needsFreeChoice: false });
   }
 
+  // checkout — создаём draftOrder
   const shippingLine = calculateShippingLine(payload.shipping);
 
   const draftOrder = await createDraftOrder(ctx.admin, {
