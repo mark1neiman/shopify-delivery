@@ -3,6 +3,27 @@
 Commands run during repository analysis:
 
 - ls
+- find .. -name AGENTS.md -print
+- rg -n "campaign|discount" README.md app extensions prisma
+- sed -n '1,220p' README.md
+- sed -n '1,220p' app/routes/app.campaigns.tsx
+- sed -n '220,520p' app/routes/app.campaigns.tsx
+- sed -n '520,920p' app/routes/app.campaigns.tsx
+- sed -n '1,240p' app/services/pricing-engine.server.ts
+- sed -n '240,520p' app/services/pricing-engine.server.ts
+- sed -n '1,220p' extensions/delivery-extension/assets/cart.js
+- rg -n "checkout/prepare|prepare" app/routes app/services
+- sed -n '1,200p' app/services/promo-codes.server.ts
+- sed -n '1,240p' app/services/campaigns-metaobjects.server.ts
+- sed -n '240,520p' app/services/campaigns-metaobjects.server.ts
+- sed -n '1,200p' app/routes/app.campaigns.$id.tsx
+- rg -n "variants\\?q|/app/api/variants|variants" app/routes/app.api* app/routes -g"*.ts*"
+- sed -n '1,200p' app/routes/app.api.variants.tsx
+- sed -n '1,260p' app/services/campaigns.server.ts
+- sed -n '260,520p' app/services/campaigns.server.ts
+- apply_patch <<'PATCH'
+- rg -n "variant IDs|variant ID|variant GID|Variant" app/routes -g"*.tsx"
+- apply_patch <<'PATCH'
 - cat README.md
 - ls app
 - ls app/routes

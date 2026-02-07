@@ -113,22 +113,134 @@ function toGidVariant(raw: string): string {
   return `gid://shopify/ProductVariant/${s.replace(/[^\d]/g, "")}`;
 }
 
-function parseVariantIdsFromText(value: string): string[] {
-  const lines = String(value || "")
-    .split(/[\n,]+/g)
-    .map((x) => x.trim())
-    .filter(Boolean);
-
-  const normalized = lines
-    .map(toGidVariant)
-    .filter((x) => x && x.startsWith("gid://shopify/ProductVariant/"));
-
-  // unique
-  return Array.from(new Set(normalized));
-}
-
 function variantIdsToText(ids: string[]): string {
   return (ids || []).join("\n");
+}
+
+type VariantOption = {
+  id: string;
+  title: string;
+  sku?: string;
+};
+
+type VariantPickerProps = {
+  label: string;
+  selectedIds: string[];
+  onChange: (next: string[]) => void;
+  single?: boolean;
+  helpText?: string;
+};
+
+function VariantPicker({ label, selectedIds, onChange, single = false, helpText }: VariantPickerProps) {
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState<VariantOption[]>([]);
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  async function runSearch(nextQuery: string) {
+    const q = nextQuery.trim();
+    if (!q) {
+      setResults([]);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/app/api/variants?q=${encodeURIComponent(q)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setResults(
+        items.map((item: any) => ({
+          id: String(item.id),
+          title: String(item.title || item.id),
+          sku: item.sku ? String(item.sku) : undefined,
+        })),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function addVariant(id: string) {
+    if (single) {
+      onChange([id]);
+      return;
+    }
+    if (selectedIds.includes(id)) return;
+    onChange([...selectedIds, id]);
+  }
+
+  function removeVariant(id: string) {
+    onChange(selectedIds.filter((variantId) => variantId !== id));
+  }
+
+  return (
+    <BlockStack gap="200">
+      <TextField
+        label={label}
+        value={query}
+        onChange={(value: string) => {
+          setQuery(value);
+          runSearch(value);
+        }}
+        autoComplete="off"
+        helpText={helpText}
+        placeholder="Start typing to search products"
+      />
+
+      {isLoading ? (
+        <Text as="p" tone="subdued">
+          Searching...
+        </Text>
+      ) : null}
+
+      {results.length > 0 ? (
+        <Card padding="200" background="bg-surface-secondary">
+          <BlockStack gap="200">
+            <Text as="h3" variant="headingSm">
+              Results
+            </Text>
+            <BlockStack gap="150">
+              {results.map((item) => (
+                <InlineStack key={item.id} align="space-between" blockAlign="center" gap="200">
+                  <BlockStack gap="100">
+                    <Text as="span" variant="bodySm">
+                      {item.title}
+                    </Text>
+                    <Text as="span" tone="subdued" variant="bodySm">
+                      {item.sku ? `${item.sku} • ${item.id}` : item.id}
+                    </Text>
+                  </BlockStack>
+                  <Button size="slim" onClick={() => addVariant(item.id)}>
+                    Add
+                  </Button>
+                </InlineStack>
+              ))}
+            </BlockStack>
+          </BlockStack>
+        </Card>
+      ) : null}
+
+      <BlockStack gap="150">
+        {selectedIds.length === 0 ? (
+          <Text as="p" tone="subdued">
+            No variants selected yet.
+          </Text>
+        ) : (
+          selectedIds.map((id) => (
+            <InlineStack key={id} align="space-between" blockAlign="center" gap="200">
+              <Text as="span" variant="bodySm">
+                {id}
+              </Text>
+              <Button size="slim" tone="critical" onClick={() => removeVariant(id)}>
+                Remove
+              </Button>
+            </InlineStack>
+          ))
+        )}
+      </BlockStack>
+    </BlockStack>
+  );
 }
 
 function toNumber(value: unknown, fallback = 0): number {
@@ -442,13 +554,15 @@ export default function CampaignsPage() {
           />
           <TextField
             label="Eligible variant IDs (one per line) — cheapest units become free"
-            multiline={4}
             value={variantIdsToText(c.eligibleVariantIds)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, eligibleVariantIds: parseVariantIdsFromText(value) })
-            }
-            helpText="Можно вставлять числа (variant_id) или gid://shopify/ProductVariant/..."
-            autoComplete="off"
+            onChange={() => undefined}
+            helpText="Use search below to pick variants."
+            disabled
+          />
+          <VariantPicker
+            label="Search eligible variants"
+            selectedIds={c.eligibleVariantIds}
+            onChange={(next) => updateCampaign(idx, { ...c, eligibleVariantIds: next })}
           />
         </BlockStack>
       );
@@ -468,19 +582,26 @@ export default function CampaignsPage() {
           />
           <TextField
             label="Trigger variant IDs (one per line)"
-            multiline={4}
             value={variantIdsToText(c.triggerVariantIds)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, triggerVariantIds: parseVariantIdsFromText(value) })
-            }
-            autoComplete="off"
+            onChange={() => undefined}
+            disabled
+          />
+          <VariantPicker
+            label="Search trigger variants"
+            selectedIds={c.triggerVariantIds}
+            onChange={(next) => updateCampaign(idx, { ...c, triggerVariantIds: next })}
           />
           <TextField
             label="Free variant ID (Z)"
             value={c.freeVariantId || ""}
-            onChange={(value: string) => updateCampaign(idx, { ...c, freeVariantId: toGidVariant(value) })}
-            helpText="Один variant ID или GID"
-            autoComplete="off"
+            onChange={() => undefined}
+            disabled
+          />
+          <VariantPicker
+            label="Search free variant"
+            selectedIds={c.freeVariantId ? [c.freeVariantId] : []}
+            onChange={(next) => updateCampaign(idx, { ...c, freeVariantId: next[0] || "" })}
+            single
           />
         </BlockStack>
       );
@@ -500,21 +621,25 @@ export default function CampaignsPage() {
           />
           <TextField
             label="Trigger variant IDs (one per line)"
-            multiline={4}
             value={variantIdsToText(c.triggerVariantIds)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, triggerVariantIds: parseVariantIdsFromText(value) })
-            }
-            autoComplete="off"
+            onChange={() => undefined}
+            disabled
+          />
+          <VariantPicker
+            label="Search trigger variants"
+            selectedIds={c.triggerVariantIds}
+            onChange={(next) => updateCampaign(idx, { ...c, triggerVariantIds: next })}
           />
           <TextField
             label="Choice variant IDs (gifts) — one per line"
-            multiline={4}
             value={variantIdsToText(c.choiceVariantIds)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, choiceVariantIds: parseVariantIdsFromText(value) })
-            }
-            autoComplete="off"
+            onChange={() => undefined}
+            disabled
+          />
+          <VariantPicker
+            label="Search gift variants"
+            selectedIds={c.choiceVariantIds}
+            onChange={(next) => updateCampaign(idx, { ...c, choiceVariantIds: next })}
           />
         </BlockStack>
       );
@@ -570,12 +695,14 @@ export default function CampaignsPage() {
         />
         <TextField
           label="Choice variant IDs (gifts) — one per line"
-          multiline={4}
           value={variantIdsToText(c.choiceVariantIds)}
-          onChange={(value: string) =>
-            updateCampaign(idx, { ...c, choiceVariantIds: parseVariantIdsFromText(value) })
-          }
-          autoComplete="off"
+          onChange={() => undefined}
+          disabled
+        />
+        <VariantPicker
+          label="Search gift variants"
+          selectedIds={c.choiceVariantIds}
+          onChange={(next) => updateCampaign(idx, { ...c, choiceVariantIds: next })}
         />
       </BlockStack>
     );
