@@ -77,6 +77,14 @@ function maskPhone(phone: string) {
   return `${p.slice(0, 4)}***`;
 }
 
+function maskAttributeValue(key: string, value: string) {
+  const k = key.toLowerCase();
+  if (k.includes("email")) return maskEmail(value);
+  if (k.includes("phone")) return maskPhone(value);
+  if (value.length > 120) return `${value.slice(0, 117)}...`;
+  return value;
+}
+
 function toGid(variantId: string | number) {
   const raw = String(variantId).trim();
   if (raw.startsWith("gid://")) return raw;
@@ -298,6 +306,29 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const rawDraftOrderId = safeTrim(payload.draftOrderId);
   const draftOrderId = isDraftOrderGid(rawDraftOrderId) ? rawDraftOrderId : "";
+
+  try {
+    console.log("[prepare] draft order input (masked)", {
+      hasDraftOrderId: !!draftOrderId,
+      email: maskEmail(safeTrim(input.email)),
+      shippingAddress: input.shippingAddress
+        ? {
+            ...input.shippingAddress,
+            phone: maskPhone(safeTrim(input.shippingAddress.phone)),
+          }
+        : null,
+      shippingLine: input.shippingLine || null,
+      customAttributes: (input.customAttributes || []).map((attr: any) => ({
+        key: attr.key,
+        value: maskAttributeValue(String(attr.key), String(attr.value ?? "")),
+      })),
+      lineItems: (input.lineItems || []).map((item: any) => ({
+        variantId: item.variantId,
+        quantity: item.quantity,
+        priceOverride: item.priceOverride || null,
+      })),
+    });
+  } catch {}
 
   const draftOrderFields = `
     id
