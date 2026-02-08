@@ -29,6 +29,7 @@ Commands run during repository analysis:
 - nl -ba extensions/delivery-extension/assets/cart.js | sed -n '200,340p'
 - nl -ba extensions/delivery-extension/assets/cart.js | sed -n '430,520p'
 - rg -n "ShippingLine|ShippingSelection" app
+- apply_patch <<'PATCH'
 - rg -n "variant IDs|variant ID|variant GID|Variant" app/routes -g"*.tsx"
 - apply_patch <<'PATCH'
 - cat README.md

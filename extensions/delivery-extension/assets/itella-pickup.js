@@ -577,6 +577,21 @@
 
       const attrs = await readCartAttributes();
 
+      const attributesFromInputs = {
+        ...getRecipientPayload(),
+        ...getPromoPayload(),
+        itella_wolt_date: woltDateInput?.value || attrs.itella_wolt_date || "",
+        itella_wolt_time: woltTimeSelect?.value || attrs.itella_wolt_time || "",
+        itella_delivery_title: (attrs.itella_delivery_title || "").trim(),
+        itella_delivery_price: (attrs.itella_delivery_price || "").trim(),
+        itella_delivery_currency: (attrs.itella_delivery_currency || "").trim(),
+        itella_pickup_provider: attrs.itella_pickup_provider || "",
+        itella_pickup_id: attrs.itella_pickup_id || "",
+        itella_pickup_name: attrs.itella_pickup_name || "",
+        itella_pickup_address: attrs.itella_pickup_address || "",
+        itella_pickup_country: attrs.itella_pickup_country || "",
+      };
+
       const deliveryTitle = (attrs.itella_delivery_title || "").trim();
       const deliveryPrice = (attrs.itella_delivery_price || "").trim();
       const deliveryCurrency = (attrs.itella_delivery_currency || "").trim();
@@ -619,7 +634,10 @@
           pickupAddress: attrs.itella_pickup_address || null,
           country: attrs.itella_pickup_country || null,
         },
-        attributes: pickItellaAttributes(attrs),
+        attributes: {
+          ...pickItellaAttributes(attrs),
+          ...attributesFromInputs,
+        },
         promoCode: (attrs.itella_promo_code || "").trim() || null,
         freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
       };
