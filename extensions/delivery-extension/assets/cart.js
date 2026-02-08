@@ -444,21 +444,27 @@
         return;
       }
 
+      const payloadItems = cart.items
+        .filter((it) => !(it?.properties && String(it.properties._mk_gift) === "1"))
+        .map((it) => ({
+          variantId: toGid(it.variant_id),
+          quantity: Number(it.quantity || 0),
+        }))
+        .filter((x) => x.variantId && x.quantity > 0);
+
+      if (!payloadItems.length) {
+        console.info("[cart.js] no non-gift items, skipping prepare preview");
+        return;
+      }
+
       const payload = {
         mode: "preview",
         customerId: null,
-        items: cart.items
-          .map((it) => ({
-            variantId: toGid(it.variant_id),
-            quantity: Number(it.quantity || 0),
-          }))
-          .filter((x) => x.variantId && x.quantity > 0),
+        items: payloadItems,
         shipping: null,
         promoCode: attrs.itella_promo_code || null,
         freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
       };
-
-      if (!payload.items.length) return;
 
       // DEBUG
       console.log("[cart.js] preview payload -> /apps/checkout/prepare", payload);
