@@ -85,6 +85,22 @@ function maskAttributeValue(key: string, value: string) {
   return value;
 }
 
+function maskObjectValues(obj: Record<string, any>) {
+  const masked: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value === null || value === undefined) {
+      masked[key] = value;
+      continue;
+    }
+    if (typeof value === "string") {
+      masked[key] = maskAttributeValue(key, value);
+      continue;
+    }
+    masked[key] = value;
+  }
+  return masked;
+}
+
 function toGid(variantId: string | number) {
   const raw = String(variantId).trim();
   if (raw.startsWith("gid://")) return raw;
@@ -305,7 +321,47 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   const rawDraftOrderId = safeTrim(payload.draftOrderId);
-  const draftOrderId = isDraftOrderGid(rawDraftOrderId) ? rawDraftOrderId : "";
+  const rawDraftOrderAttrId = safeTrim(payload.attributes?.itella_draft_order_id);
+  const draftOrderId = isDraftOrderGid(rawDraftOrderId)
+    ? rawDraftOrderId
+    : isDraftOrderGid(rawDraftOrderAttrId)
+      ? rawDraftOrderAttrId
+      : "";
+
+  try {
+    console.log("[prepare] draft order input (masked)", {
+      hasDraftOrderId: !!draftOrderId,
+      mode,
+      rawDraftOrderId: draftOrderId ? "***" : safeTrim(payload.draftOrderId),
+      rawDraftOrderAttrId: draftOrderId ? "***" : safeTrim(payload.attributes?.itella_draft_order_id),
+      email: maskEmail(safeTrim(input.email)),
+      shippingAddress: input.shippingAddress ? maskObjectValues(input.shippingAddress) : null,
+      shippingLine: input.shippingLine || null,
+      deliveryPayload: payload.delivery ? maskObjectValues(payload.delivery as any) : null,
+      attributesPayload: payload.attributes ? maskObjectValues(payload.attributes as any) : null,
+      customAttributes: (input.customAttributes || []).map((attr: any) =>
+        maskObjectValues({
+          key: attr.key,
+          value: String(attr.value ?? ""),
+        }),
+      ),
+      lineItems: (input.lineItems || []).map((item: any) =>
+        maskObjectValues({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          priceOverride: item.priceOverride || null,
+        }),
+      ),
+      pricingSummary: pricing
+        ? {
+            currencyCode: pricing.currencyCode,
+            linesCount: pricing.lines?.length || 0,
+            breakdown: pricing.breakdown || null,
+            appliedCampaignsCount: pricing.appliedCampaigns?.length || 0,
+          }
+        : null,
+    });
+  } catch {}
 
   try {
     console.log("[prepare] draft order input (masked)", {
@@ -405,8 +461,12 @@ export async function action({ request }: ActionFunctionArgs) {
     return json({ error: msg, userErrors: errors }, { status: 400 });
   }
 
+  const draftOrder = node?.draftOrder ?? null;
+
   return json({
     pricing,
-    draftOrder: node?.draftOrder ?? null,
+    draftOrder,
+    draftOrderId: draftOrder?.id ?? null,
+    invoiceUrl: draftOrder?.invoiceUrl ?? null,
   });
 }
