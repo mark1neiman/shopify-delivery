@@ -28,6 +28,7 @@ Commands run during repository analysis:
 - nl -ba extensions/delivery-extension/assets/itella-pickup.js | sed -n '540,700p'
 - nl -ba extensions/delivery-extension/assets/cart.js | sed -n '200,340p'
 - nl -ba extensions/delivery-extension/assets/cart.js | sed -n '430,520p'
+- rg -n "ShippingLine|ShippingSelection" app
 - rg -n "variant IDs|variant ID|variant GID|Variant" app/routes -g"*.tsx"
 - apply_patch <<'PATCH'
 - cat README.md
