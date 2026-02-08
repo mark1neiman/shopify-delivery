@@ -299,10 +299,47 @@ export async function action({ request }: ActionFunctionArgs) {
   const rawDraftOrderId = safeTrim(payload.draftOrderId);
   const draftOrderId = isDraftOrderGid(rawDraftOrderId) ? rawDraftOrderId : "";
 
+  const draftOrderFields = `
+    id
+    invoiceUrl
+    email
+    customAttributes { key value }
+    shippingAddress {
+      firstName
+      lastName
+      address1
+      address2
+      city
+      province
+      zip
+      countryCode
+      phone
+      company
+    }
+    shippingLine {
+      title
+      price { amount currencyCode }
+    }
+    lineItems(first: 50) {
+      nodes {
+        variant { id title }
+        quantity
+        appliedDiscount {
+          amount
+          description
+          title
+          valueType
+        }
+        originalTotalSet { presentmentMoney { amount currencyCode } }
+        discountedTotalSet { presentmentMoney { amount currencyCode } }
+      }
+    }
+  `;
+
   const createMutation = `#graphql
     mutation DraftOrderCreate($input: DraftOrderInput!) {
       draftOrderCreate(input: $input) {
-        draftOrder { id invoiceUrl }
+        draftOrder { ${draftOrderFields} }
         userErrors { field message }
       }
     }
@@ -311,7 +348,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const updateMutation = `#graphql
     mutation DraftOrderUpdate($id: ID!, $input: DraftOrderInput!) {
       draftOrderUpdate(id: $id, input: $input) {
-        draftOrder { id invoiceUrl }
+        draftOrder { ${draftOrderFields} }
         userErrors { field message }
       }
     }
