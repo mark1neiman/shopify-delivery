@@ -6,6 +6,8 @@
 // - Robust against non-JSON (e.g., HTML error pages)
 
 (function () {
+  if (window.__mk_cart_preview_loaded) return;
+  window.__mk_cart_preview_loaded = true;
   const PREVIEW_ENDPOINT = "/apps/checkout/prepare";
 
   function toGid(variantId) {
