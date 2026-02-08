@@ -155,17 +155,22 @@
       "[data-cart-item-regular-price]",
       "[data-cart-item-final-price]",
       "[data-cart-item-price]",
+      ".cart-item__total span",
+      ".cart-item__prices .price",
+      ".cart-item__prices .price__regular",
+      ".cart-item__prices .price__sale",
+      ".cart-item__prices .price-item",
       "[class*='price__regular']",
+      "[class*='price__sale']",
       "[class*='price-item']",
       "[class*='cart-item__price']",
       "[class*='CartItem__Price']",
-      "[class*='price']",
     ];
     const nodes = [];
     selectors.forEach((sel) => {
       lineNode.querySelectorAll(sel).forEach((el) => nodes.push(el));
     });
-    return nodes;
+    return nodes.filter((node) => !node.closest(".unit-price") && !node.classList.contains("unit-price"));
   }
 
   function updateLinePriceDisplay(lineNode, isFree) {
@@ -174,13 +179,13 @@
     if (!nodes.length) return;
 
     nodes.forEach((node) => {
-      const original = node.getAttribute("data-mk-original-price");
+      const original = node.getAttribute("data-mk-original-html");
       if (isFree) {
-        if (!original) node.setAttribute("data-mk-original-price", node.textContent || "");
+        if (!original) node.setAttribute("data-mk-original-html", node.innerHTML || "");
         node.textContent = "FREE";
       } else if (original !== null) {
-        node.textContent = original;
-        node.removeAttribute("data-mk-original-price");
+        node.innerHTML = original;
+        node.removeAttribute("data-mk-original-html");
       }
     });
   }
