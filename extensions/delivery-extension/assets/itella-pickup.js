@@ -596,13 +596,23 @@
       const deliveryPrice = (attrs.itella_delivery_price || "").trim();
       const deliveryCurrency = (attrs.itella_delivery_currency || "").trim();
 
+      const payloadItems = cart.items
+        .filter((item) => !(item?.properties && String(item.properties._mk_gift) === "1"))
+        .map((item) => ({
+          variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
+          quantity: item.quantity,
+        }))
+        .filter((item) => item.variantId && Number(item.quantity || 0) > 0);
+
+      if (!payloadItems.length) {
+        console.warn("[itella] no non-gift items for checkout payload");
+        return null;
+      }
+
       const payload = {
         mode: "checkout",
         customerId: null, // if later you expose customerId in DOM, put it here
-        items: cart.items.map((item) => ({
-          variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
-          quantity: item.quantity,
-        })),
+        items: payloadItems,
         shipping: {
           method:
             attrs.itella_pickup_provider === "wolt"
