@@ -104,6 +104,13 @@ function parseDecimalPrice(price?: string) {
   return Number.isFinite(n) ? n : null;
 }
 
+function toMoney(amount: number, currencyCode: string) {
+  return {
+    amount: String(Math.max(0, Number.isFinite(amount) ? amount : 0)),
+    currencyCode,
+  };
+}
+
 export async function loader() {
   return json({ error: "Method not allowed" }, { status: 405 });
 }
@@ -192,8 +199,26 @@ export async function action({ request }: ActionFunctionArgs) {
 
   // 2) Checkout mode (optional): create/update DraftOrder using pricing.lines
   // so freebies etc are included.
+  const currencyCode = String(pricing?.currencyCode || "EUR");
   const lineItemsInput = (pricing?.lines ?? [])
-    .map((l: any) => ({ variantId: toGid(l.variantId), quantity: Number(l.quantity || 0) }))
+    .map((l: any) => {
+      const quantity = Number(l.quantity || 0);
+      const finalUnitPrice = Number(l.finalUnitPrice ?? NaN);
+      const isGiftLine = Boolean(l.isGiftLine);
+      const priceOverrideAmount = Number.isFinite(finalUnitPrice)
+        ? finalUnitPrice
+        : isGiftLine
+          ? 0
+          : null;
+
+      return {
+        variantId: toGid(l.variantId),
+        quantity,
+        ...(priceOverrideAmount === null
+          ? {}
+          : { priceOverride: toMoney(priceOverrideAmount, currencyCode) }),
+      };
+    })
     .filter((x: any) => x.variantId && Number.isFinite(x.quantity) && x.quantity > 0);
 
   if (!lineItemsInput.length) {
@@ -205,6 +230,27 @@ export async function action({ request }: ActionFunctionArgs) {
     for (const [key, value] of Object.entries(payload.attributes)) {
       if (value === null || value === undefined) continue;
       const v = String(value).trim();
+      if (!v) continue;
+      customAttributes.push({ key, value: v });
+    }
+  }
+
+  if (payload.delivery) {
+    const deliveryAttributes: Record<string, string | null | undefined> = {
+      itella_delivery_title: payload.delivery.title,
+      itella_delivery_price: payload.delivery.price,
+      itella_delivery_currency: payload.delivery.currency,
+      itella_pickup_provider: payload.delivery.provider,
+      itella_pickup_id: payload.delivery.pickupId,
+      itella_pickup_name: payload.delivery.pickupName,
+      itella_pickup_address: payload.delivery.pickupAddress,
+      itella_pickup_country: payload.delivery.country,
+    };
+
+    const existingKeys = new Set(customAttributes.map((item) => item.key));
+    for (const [key, value] of Object.entries(deliveryAttributes)) {
+      if (existingKeys.has(key)) continue;
+      const v = String(value ?? "").trim();
       if (!v) continue;
       customAttributes.push({ key, value: v });
     }
@@ -253,10 +299,47 @@ export async function action({ request }: ActionFunctionArgs) {
   const rawDraftOrderId = safeTrim(payload.draftOrderId);
   const draftOrderId = isDraftOrderGid(rawDraftOrderId) ? rawDraftOrderId : "";
 
+  const draftOrderFields = `
+    id
+    invoiceUrl
+    email
+    customAttributes { key value }
+    shippingAddress {
+      firstName
+      lastName
+      address1
+      address2
+      city
+      province
+      zip
+      countryCode
+      phone
+      company
+    }
+    shippingLine {
+      title
+      price { amount currencyCode }
+    }
+    lineItems(first: 50) {
+      nodes {
+        variant { id title }
+        quantity
+        appliedDiscount {
+          amount
+          description
+          title
+          valueType
+        }
+        originalTotalSet { presentmentMoney { amount currencyCode } }
+        discountedTotalSet { presentmentMoney { amount currencyCode } }
+      }
+    }
+  `;
+
   const createMutation = `#graphql
     mutation DraftOrderCreate($input: DraftOrderInput!) {
       draftOrderCreate(input: $input) {
-        draftOrder { id invoiceUrl }
+        draftOrder { ${draftOrderFields} }
         userErrors { field message }
       }
     }
@@ -265,7 +348,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const updateMutation = `#graphql
     mutation DraftOrderUpdate($id: ID!, $input: DraftOrderInput!) {
       draftOrderUpdate(id: $id, input: $input) {
-        draftOrder { id invoiceUrl }
+        draftOrder { ${draftOrderFields} }
         userErrors { field message }
       }
     }
