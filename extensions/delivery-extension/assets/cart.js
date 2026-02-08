@@ -155,6 +155,10 @@
       "[data-cart-item-regular-price]",
       "[data-cart-item-final-price]",
       "[data-cart-item-price]",
+      "[class*='price__regular']",
+      "[class*='price-item']",
+      "[class*='cart-item__price']",
+      "[class*='CartItem__Price']",
       "[class*='price']",
     ];
     const nodes = [];
