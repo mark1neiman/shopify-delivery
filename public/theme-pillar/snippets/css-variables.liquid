@@ -1,0 +1,397 @@
+{%- liquid
+  assign body_font_weight = settings.type_body_font.weight
+  assign body_font_bolder_weight = settings.body_font_weight_bolder | default: '500'
+  assign heading_font_weight = settings.type_header_font.weight
+  assign subheading_font_weight = settings.subheading_font_weight
+  assign buttons_font_weight = settings.buttons_font_weight
+  assign pcard_title_font_weight = settings.pcard_title_font_weight
+  assign pcard_price_font_weight = settings.pcard_price_font_weight
+  assign pcard_badge_font_weight = settings.pcard_badge_font_weight
+  assign navigation_font_weight = settings.navigation_font_weight
+
+  assign body_font_italic = settings.type_body_font | font_modify: 'style', 'italic'
+  assign body_font_bolder = settings.type_body_font | font_modify: 'weight', body_font_bolder_weight
+  assign body_font_bolder_italic = body_font_bolder | font_modify: 'style', 'italic'
+  assign body_font_bold = settings.type_body_font | font_modify: 'weight', 'bold'
+  assign body_font_bold_italic = body_font_bold | font_modify: 'style', 'italic'
+
+  assign heading_font_italic = settings.type_header_font | font_modify: 'style', 'italic'
+  assign body_line_height_scale = settings.body_font_size | minus: 16 | times: 0.025
+  assign body_line_height = 1.625 | plus: body_line_height_scale
+
+  assign pcard_title_scale = settings.pcard_title_scale | divided_by: 100.0
+  assign pcard_title_size = pcard_title_scale | times: settings.body_font_size
+  assign pcard_title_line_height_scale = pcard_title_size | minus: 16 | times: 0.025
+  assign pcard_title_line_height = 1.625 | plus: pcard_title_line_height_scale
+
+  assign heading_font_mobile_ratio = settings.heading_mobile_scale | divided_by: 100.00
+
+  assign buttons_radius = 0
+  assign buttons_height = settings.buttons_height | default: 48
+  assign inputs_radius = 0
+  assign textareas_radius = 0
+
+  case settings.buttons_corner_radius
+    when 'slightly'
+      assign buttons_radius = 5
+    when 'soft-pill'
+      assign buttons_radius = 10
+    when 'round'
+      assign buttons_radius = 100
+  endcase
+
+  case settings.inputs_corner_radius
+    when 'slightly'
+      assign inputs_radius = 5
+      assign textareas_radius = 5
+    when 'soft-pill'
+      assign inputs_radius = 10
+      assign textareas_radius = 10
+    when 'round'
+      assign inputs_radius = 100
+      assign textareas_radius = 10
+  endcase
+
+  assign blocks_radius = 0
+  assign medium_blocks_radius = 0
+  assign small_blocks_radius = 0
+
+  case settings.blocks_corner_radius
+    when 'slightly'
+      assign blocks_radius = 10
+      assign medium_blocks_radius = 6
+      assign small_blocks_radius = 5
+    when 'round'
+      assign blocks_radius = 20
+      assign medium_blocks_radius = 10
+      assign small_blocks_radius = 6
+  endcase
+
+  assign pcard_radius = 0
+  assign pcard_inner_radius = 0
+
+  case settings.pcard_corner_radius
+    when 'slightly'
+      assign pcard_radius = 10
+      assign pcard_inner_radius = 6
+    when 'round'
+      assign pcard_radius = 20
+      assign pcard_inner_radius = 10
+  endcase
+
+  assign badges_radius = 0
+  case settings.badges_corner_radius
+    when 'slightly'
+      assign badges_radius = 5
+    when 'round'
+      assign badges_radius = 40
+  endcase
+%}
+{% style %}
+  {{ settings.type_body_font | font_face: font_display: 'swap' }}
+  {{ body_font_italic | font_face: font_display: 'swap' }}
+  {{ body_font_bolder | font_face: font_display: 'swap' }}
+  {{ body_font_bolder_italic | font_face: font_display: 'swap' }}
+  {{ body_font_bold | font_face: font_display: 'swap' }}
+  {{ body_font_bold_italic | font_face: font_display: 'swap' }}
+  {{ settings.type_header_font | font_face: font_display: 'swap' }}
+  {{ heading_font_italic | font_face: font_display: 'swap'}}
+  {% liquid
+    if body_font_weight != '500' and body_font_bolder_weight != '500'
+      assign body_font_medium = settings.type_body_font | font_modify: 'weight', '500'
+      echo body_font_medium | font_face: font_display: 'swap'
+    endif
+
+    if settings.subheading_font == 'heading'
+      if subheading_font_weight != heading_font_weight
+        assign extra_font_weight = settings.type_header_font | font_modify: 'weight', subheading_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    else
+      if subheading_font_weight != body_font_weight and subheading_font_weight != '700' and subheading_font_weight != body_font_bolder_weight
+        assign extra_font_weight = settings.type_body_font | font_modify: 'weight', subheading_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    endif
+
+    if settings.buttons_font == 'heading'
+      if buttons_font_weight != heading_font_weight
+        assign extra_font_weight = settings.type_header_font | font_modify: 'weight', buttons_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    else
+      if buttons_font_weight != body_font_weight and buttons_font_weight != '700' and buttons_font_weight != body_font_bolder_weight
+        assign extra_font_weight = settings.type_body_font | font_modify: 'weight', buttons_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    endif
+
+    if settings.pcard_title_font == 'heading'
+      if pcard_title_font_weight != heading_font_weight
+        assign extra_font_weight = settings.type_header_font | font_modify: 'weight', pcard_title_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    else
+      if pcard_title_font_weight != body_font_weight and pcard_title_font_weight != '700' and pcard_title_font_weight != body_font_bolder_weight
+        assign extra_font_weight = settings.type_body_font | font_modify: 'weight', pcard_title_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    endif
+
+    if settings.pcard_badge_font == 'heading'
+      if pcard_badge_font_weight != heading_font_weight
+        assign extra_font_weight = settings.type_header_font | font_modify: 'weight', pcard_badge_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    else
+      if pcard_badge_font_weight != body_font_weight and pcard_badge_font_weight != '700' and pcard_badge_font_weight != body_font_bolder_weight
+        assign extra_font_weight = settings.type_body_font | font_modify: 'weight', pcard_badge_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    endif
+
+    if settings.pcard_price_font == 'heading'
+      if pcard_price_font_weight != heading_font_weight
+        assign extra_font_weight = settings.type_header_font | font_modify: 'weight', pcard_price_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    else
+      if pcard_price_font_weight != body_font_weight and pcard_price_font_weight != '700' and pcard_price_font_weight != body_font_bolder_weight
+        assign extra_font_weight = settings.type_body_font | font_modify: 'weight', pcard_price_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    endif
+
+    if settings.navigation_font == 'heading'
+      if navigation_font_weight != heading_font_weight
+        assign extra_font_weight = settings.type_header_font | font_modify: 'weight', navigation_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    else
+      if navigation_font_weight != body_font_weight and navigation_font_weight != '700' and navigation_font_weight != body_font_bolder_weight
+        assign extra_font_weight = settings.type_body_font | font_modify: 'weight', navigation_font_weight
+        echo extra_font_weight | font_face: font_display: 'swap'
+      endif
+    endif
+  %}
+
+  {% for scheme in settings.color_schemes -%}
+    {% assign scheme_classes = scheme_classes | append: ', .color-' | append: scheme.id %}
+    {% if forloop.index == 1 -%}
+      :root,
+    {%- endif %}
+    {%- liquid
+    # Color lighten in hex: #666666
+    assign color_text_lighten_60 = scheme.settings.background | color_mix: scheme.settings.text, 40
+    assign color_text_lighten_40 = scheme.settings.background | color_mix: scheme.settings.text, 60
+    assign color_text_lighten_19 = scheme.settings.background | color_mix: scheme.settings.text, 81
+
+    assign form_field_color = scheme.settings.form_field | downcase
+    assign background_color = scheme.settings.background | downcase
+    -%}
+    {%- capture css_vars -%}
+      --color-background: {{ scheme.settings.background.red }},{{ scheme.settings.background.green }},{{ scheme.settings.background.blue }};
+      --color-secondary-background: {{ scheme.settings.secondary_background.red }},{{ scheme.settings.secondary_background.green }},{{ scheme.settings.secondary_background.blue }};
+      --color-primary: {{ scheme.settings.primary_accent.red }},{{ scheme.settings.primary_accent.green }},{{ scheme.settings.primary_accent.blue }};
+      --color-text-heading: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+      --color-foreground: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+      --color-subtext: {{ scheme.settings.subtext.red }},{{ scheme.settings.subtext.green }},{{ scheme.settings.subtext.blue }};
+      --color-subtext-alpha: {{ scheme.settings.subtext.alpha }};
+      --color-border: {{ scheme.settings.border.red }},{{ scheme.settings.border.green }},{{ scheme.settings.border.blue }};
+      --color-border-alpha: {{ scheme.settings.border.alpha }};
+      --color-button: {{ scheme.settings.button.red }},{{ scheme.settings.button.green }},{{ scheme.settings.button.blue }};
+      --color-button-text: {{ scheme.settings.button_label.red }},{{ scheme.settings.button_label.green }},{{ scheme.settings.button_label.blue }};
+      --color-secondary-button: {{ scheme.settings.secondary_button.red }},{{ scheme.settings.secondary_button.green }},{{ scheme.settings.secondary_button.blue }};
+      --color-secondary-button-border: {{ scheme.settings.secondary_button_border.red }},{{ scheme.settings.secondary_button_border.green }},{{ scheme.settings.secondary_button_border.blue }};
+      --color-secondary-button-text: {{ scheme.settings.secondary_button_label.red }},{{ scheme.settings.secondary_button_label.green }},{{ scheme.settings.secondary_button_label.blue }};
+      --color-button-before: {{ scheme.settings.button_hover | color_lighten: 20 }};
+      --color-field: {{ scheme.settings.form_field.red }},{{ scheme.settings.form_field.green }},{{ scheme.settings.form_field.blue }};
+      --color-field-alpha: {{ scheme.settings.form_field.alpha }};
+      --color-field-text: {{ scheme.settings.form_field_label.red }},{{ scheme.settings.form_field_label.green }},{{ scheme.settings.form_field_label.blue }};
+      --color-link: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+      --color-link-hover: {{ scheme.settings.text.red }},{{ scheme.settings.text.green }},{{ scheme.settings.text.blue }};
+      --color-product-price-sale: {{ scheme.settings.product_price_sale.red }},{{ scheme.settings.product_price_sale.green }},{{ scheme.settings.product_price_sale.blue }};
+      --color-progress-bar: {{ scheme.settings.progress_bar_color.red }},{{ scheme.settings.progress_bar_color.green }},{{ scheme.settings.progress_bar_color.blue }};
+      --color-foreground-lighten-60: {{ color_text_lighten_60 }};
+      --color-foreground-lighten-40: {{ color_text_lighten_40 }};
+      --color-foreground-lighten-19: {{ color_text_lighten_19 }};
+
+    {%- endcapture -%}
+    .color-{{ scheme.id }} {
+      {{ css_vars }}
+      {%- if form_field_color == background_color -%}
+        --inputs-border-width: 1px;
+        --inputs-search-border-width: 2px;
+      {%- else -%}
+        --inputs-border-width: 0px;
+        --inputs-search-border-width: 0px;
+      {%- endif -%}
+    }
+    @media (min-width: 768px) {
+      body .desktop-color-{{ scheme.id }} {
+        {{ css_vars }}
+        color: rgb(var(--color-foreground));
+        background-color: rgb(var(--color-background));
+      }
+    }
+    @media (max-width: 767px) {
+      body .mobile-color-{{ scheme.id }} {
+        {{ css_vars }}
+        color: rgb(var(--color-foreground));
+        background-color: rgb(var(--color-background));
+      }
+    }
+  {% endfor %}
+
+  {{ scheme_classes | prepend: 'body' }} {
+    color: rgb(var(--color-foreground));
+    background-color: rgb(var(--color-background));
+  }
+
+  :root {
+    /* Animation variable */
+    --animation-long: .7s cubic-bezier(.3, 1, .3, 1);
+    --animation-nav: .5s cubic-bezier(.6, 0, .4, 1);
+    --animation-default: .5s cubic-bezier(.3, 1, .3, 1);
+    --animation-fast: .3s cubic-bezier(.7, 0, .3, 1);
+    --animation-button: .4s ease;
+    --transform-origin-start: left;
+    --transform-origin-end: right;
+    --duration-default: 200ms;
+    --duration-image: 1000ms;
+
+    --font-body-family: {{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }};
+    --font-body-style: {{ settings.type_body_font.style }};
+    --font-body-weight: {{ settings.type_body_font.weight }};
+    --font-body-weight-bolder: {{ settings.body_font_weight_bolder }};
+    --font-body-weight-bold: {{ settings.type_body_font.weight | plus: 200 | at_most: 1000 }};
+    --font-body-size: {{ settings.body_font_size | divided_by: 10.0 }}rem;
+    --font-body-line-height: {{ body_line_height }};
+
+    --font-heading-family: {{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }};
+    --font-heading-style: {{ settings.type_header_font.style }};
+    --font-heading-weight: {{ settings.type_header_font.weight }};
+    --font-heading-letter-spacing: {{ settings.heading_letter_spacing | divided_by: 100.0 }}em;
+    --font-heading-transform: {% if settings.heading_uppercase %}uppercase{% else %}none{% endif %};
+    --font-heading-scale: {{ settings.heading_scale | divided_by: 100.0 }};
+    --font-heading-mobile-scale: {{ settings.heading_scale | times: heading_font_mobile_ratio | divided_by: 100.0 }};
+
+    --font-hd1-transform:{% if settings.display_heading_uppercase %}uppercase{% else %}none{% endif %};
+
+    --font-subheading-family: {% if settings.subheading_font == 'heading' %}{{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }}{% else %}{{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }}{% endif %};
+    --font-subheading-weight: {{ subheading_font_weight }};
+    --font-subheading-scale: {{ settings.subheading_scale | divided_by: 100.0 }};
+    --font-subheading-transform: {{ settings.subheading_transform }};
+    --font-subheading-letter-spacing: {{ settings.subheading_letter_spacing | divided_by: 100.0 }}em;
+
+    --font-navigation-family: {% if settings.navigation_font == 'heading' %}{{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }}{% else %}{{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }}{% endif %};
+    --font-navigation-weight: {{ navigation_font_weight }};
+    --navigation-transform: {% if settings.navigation_uppercase %}uppercase{% else %}none{% endif %};
+
+    --font-button-family: {% if settings.buttons_font == 'heading' %}{{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }}{% else %}{{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }}{% endif %};
+    --font-button-weight: {{ buttons_font_weight }};
+    --buttons-letter-spacing: {{ settings.buttons_letter_spacing | divided_by: 100.0 }}em;
+    --buttons-transform: {{ settings.buttons_transform }};
+    --buttons-height: {{ buttons_height | divided_by: 10.0 }}rem;
+    --buttons-border-width: 1px;
+
+    --font-pcard-title-family: {% if settings.pcard_title_font == 'heading' %}{{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }}{% else %}{{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }}{% endif %};
+    --font-pcard-title-style: {% if settings.pcard_title_font == 'heading' %}{{ settings.type_header_font.style }}{% else %}{{ settings.type_body_font.style }}{% endif %};
+    --font-pcard-title-weight: {{ pcard_title_font_weight }};
+    --font-pcard-title-scale: {{ settings.pcard_title_scale | divided_by: 100.0 }};
+    --font-pcard-title-transform: {% if settings.pcard_title_uppercase %}uppercase{% else %}none{% endif %};
+    --font-pcard-title-size: {{ pcard_title_size | divided_by: 10.0 }}rem;
+    --font-pcard-title-line-height: {{ pcard_title_line_height }};
+    --font-pcard-price-family: {% if settings.pcard_price_font == 'heading' %}{{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }}{% else %}{{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }}{% endif %};
+    --font-pcard-price-style: {% if settings.pcard_price_font == 'heading' %}{{ settings.type_header_font.style }}{% else %}{{ settings.type_body_font.style }}{% endif %};
+    --font-pcard-price-weight: {{ pcard_price_font_weight }};
+    --font-pcard-badge-family: {% if settings.pcard_badge_font == 'heading' %}{{ settings.type_header_font.family }}, {{ settings.type_header_font.fallback_families }}{% else %}{{ settings.type_body_font.family }}, {{ settings.type_body_font.fallback_families }}{% endif %};
+    --font-pcard-badge-style: {% if settings.pcard_badge_font == 'heading' %}{{ settings.type_header_font.style }}{% else %}{{ settings.type_body_font.style }}{% endif %};
+    --font-pcard-badge-weight: {{ pcard_badge_font_weight }};
+
+    --font-hd1-size: {{ settings.display_heading_size | times: 0.1428572 }}rem;
+    --font-hd2-size: {{ settings.display_heading_size | times: 0.1 }}rem;
+    --font-h1-size: calc(var(--font-heading-scale) * 4rem);
+    --font-h2-size: calc(var(--font-heading-scale) * 3.2rem);
+    --font-h3-size: calc(var(--font-heading-scale) * 2.8rem);
+    --font-h4-size: calc(var(--font-heading-scale) * 2.2rem);
+    --font-h5-size: calc(var(--font-heading-scale) * 1.8rem);
+    --font-h6-size: calc(var(--font-heading-scale) * 1.6rem);
+    --font-subheading-size: calc(var(--font-subheading-scale) * var(--font-body-size));
+
+    --color-badge-sale: {{ settings.color_badge_sale }};
+    --color-badge-sale-text: {{ settings.color_badge_sale_text }};
+    --color-badge-soldout: {{ settings.color_badge_soldout }};
+    --color-badge-soldout-text: {{ settings.color_badge_soldout_text }};
+    --color-badge-hot: {{ settings.color_badge_hot }};
+    --color-badge-hot-text: {{ settings.color_badge_hot_text }};
+    --color-badge-new: {{ settings.color_badge_new }};
+    --color-badge-new-text: {{ settings.color_badge_new_text }};
+    --color-badge-coming-soon: {{ settings.color_badge_coming_soon }};
+    --color-badge-coming-soon-text: {{ settings.color_badge_coming_soon_text }};
+    --color-cart-bubble: {{ settings.color_cart_bubble }};
+    --color-keyboard-focus: {{ settings.color_key_board_focus.rgb }};
+
+    --buttons-radius: {{ buttons_radius | divided_by: 10.0 }}rem;
+    --inputs-radius: {{ inputs_radius | divided_by: 10.0 }}rem;
+    --textareas-radius: {{ textareas_radius | divided_by: 10.0 }}rem;
+    --blocks-radius: {{ blocks_radius | divided_by: 10.0 }}rem;
+    --blocks-radius-mobile: {{ blocks_radius | times: 0.08 }}rem;
+    --small-blocks-radius: {{ small_blocks_radius | divided_by: 10.0 }}rem;
+    --medium-blocks-radius: {{ medium_blocks_radius | divided_by: 10.0 }}rem;
+    --pcard-radius: {{ pcard_radius | divided_by: 10.0 }}rem;
+    --pcard-inner-radius: {{ pcard_inner_radius | divided_by: 10.0 }}rem;
+    --badges-radius: {{ badges_radius | divided_by: 10.0 }}rem;
+
+    --page-width: {{ settings.page_width }}px;
+    --page-width-margin: {% if settings.page_width == '1600' %}2{% else %}0{% endif %}rem;
+    --header-padding-bottom: 3.2rem;
+    --header-padding-bottom-mobile: 2.4rem;
+    --header-padding-bottom-large: 6rem;
+    --header-padding-bottom-large-lg: 3.2rem;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: inherit;
+  }
+
+  html {
+    touch-action: manipulation;
+    box-sizing: border-box;
+    font-size: 62.5%;
+    height: 100%;
+  }
+
+  body {
+    min-height: 100%;
+    margin: 0;
+    font-family: var(--font-body-family);
+    font-style: var(--font-body-style);
+    font-weight: var(--font-body-weight);
+    font-size: var(--font-body-size);
+    line-height: var(--font-body-line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    font-feature-settings: normal;
+  }
+  @media (min-width: {{ settings.page_width | plus: 75 }}px) {
+    .swiper-controls--outside {
+      --swiper-navigation-offset-x: calc((var(--swiper-navigation-size) + 2.7rem) * -1);
+    }
+  }
+{% endstyle %}
+
+{%- unless settings.type_body_font.system? -%}
+  {% comment %}theme-check-disable AssetPreload{% endcomment %}
+  <link rel="preload" as="font" href="{{ settings.type_body_font | font_url }}" type="font/woff2" crossorigin>
+  {% comment %}theme-check-enable AssetPreload{% endcomment %}
+{%- endunless -%}
+{%- unless settings.type_header_font.system? -%}
+  {% comment %}theme-check-disable AssetPreload{% endcomment %}
+  <link rel="preload" as="font" href="{{ settings.type_header_font | font_url }}" type="font/woff2" crossorigin>
+  {% comment %}theme-check-enable AssetPreload{% endcomment %}
+{%- endunless -%}

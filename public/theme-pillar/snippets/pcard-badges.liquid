@@ -1,0 +1,86 @@
+{%- liquid
+  assign selected_variant = product.selected_or_first_available_variant
+  assign compare_at_price = selected_variant.compare_at_price
+  assign price = selected_variant.price
+  assign on_sale = false
+  if compare_at_price > price
+    assign on_sale = true
+  endif
+
+  assign show_soldout = settings.pcard_show_badge_soldout
+  assign show_on_sale_badge = settings.pcard_show_sale_badge
+
+  unless on_sale
+    assign show_on_sale_badge = false
+  endunless
+-%}
+{%- if product.available == false or on_sale or product.tags.size > 0 -%}
+  <div class="product-card__badge">
+    {%- if product.available == false and show_soldout -%}
+      <span class="f-badge f-badge--soldout" aria-hidden="true">
+        {{- 'products.product.sold_out' | t -}}
+      </span>
+    {%- endif -%}
+    {%- if show_on_sale_badge and product.available -%}
+      {%- liquid
+        assign sale_badge = ''
+        assign amount = 0
+        case settings.pcard_sale_badge_type
+          when 'show_percentage'
+            if compare_at_price > price
+              assign amount = compare_at_price | minus: price | times: 100 | divided_by: compare_at_price
+            endif
+            assign sale_badge = amount | times: -1 | append: '%'
+          when 'show_amount'
+            if compare_at_price > price
+              assign amount = compare_at_price | minus: price | money
+            endif
+            assign sale_badge = 'products.product.price.save_price_html' | t: amount: amount
+          else
+            assign sale_badge = 'products.product.on_sale' | t
+        endcase
+      -%}
+      <span class="f-badge f-badge--sale" aria-hidden="true">{{- sale_badge -}}</span>
+    {%- endif -%}
+    {%- liquid
+      assign new_tags_list = settings.product_new_tags | newline_to_br | strip_newlines | split: '<br />'
+      assign hot_tags_list = settings.product_hot_tags | newline_to_br | strip_newlines | split: '<br />'
+      assign coming_tags_list = settings.product_coming_tags | newline_to_br | strip_newlines | split: '<br />'
+    -%}
+    {%- for tag in product.tags -%}
+      {%- liquid
+        assign tag_handle = tag | handle
+        assign badge_type = ''
+
+        for item in new_tags_list
+          assign item_handle = item | handle
+          if tag_handle == item_handle
+            assign badge_type = 'new'
+            break
+          endif
+        endfor
+
+        for item in hot_tags_list
+          assign item_handle = item | handle
+          if tag_handle == item_handle
+            assign badge_type = 'hot'
+            break
+          endif
+        endfor
+
+        for item in coming_tags_list
+          assign item_handle = item | handle
+          if tag_handle == item_handle
+            assign badge_type = 'coming'
+            break
+          endif
+        endfor
+
+        if badge_type == blank
+          continue
+        endif
+      -%}
+      <span class="f-badge f-badge--{{ badge_type }}">{{ tag }}</span>
+    {%- endfor -%}
+  </div>
+{%- endif -%}

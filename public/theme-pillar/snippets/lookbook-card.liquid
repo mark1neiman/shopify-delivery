@@ -1,0 +1,216 @@
+{% comment %}
+  Usage:
+  {{ 'component-lookbook-card.css' | asset_url | stylesheet_tag }}
+  {{ 'component-lookbook-card-modal.css' | asset_url | stylesheet_tag }}
+
+  {% render 'lookbook-card',
+    block_id: block.id,
+    color_scheme: color_scheme,
+    product_list: product_list,
+    image: image,
+    image_ratio: image_ratio,
+    heading: heading,
+    heading_size: heading_size
+  %}
+{% endcomment %}
+
+{%- liquid
+  assign modal_id = 'lbcard__popup-' | append: block_id
+  assign image_ratio = image_ratio | default: '1/1'
+  assign alt = image.alt | default: shop.name | escape
+  assign loading = 'lazy'
+  assign fetchpriority = 'low'
+
+  assign heading_size = heading_size | default: 'h6'
+
+  assign color_scheme = color_scheme | default: 'scheme-1'
+  assign popup_color_scheme = popup_color_scheme | default: 'scheme-1'
+
+  assign product_count = 2
+  if product_list != blank
+    assign product_count = product_list.count
+  endif
+
+  if pcard_image_ratio == blank
+    assign pcard_image_ratio = settings.pcard_image_ratio | default: '1'
+  endif
+-%}
+<lookbook-card-wrapper class="lbcard relative h-full block">
+  <div
+    class="lbcard__media h-full{% unless image != blank %} bg-none{% endunless %} blocks-radius"
+    style="--aspect-ratio:{{ image_ratio }};"
+  >
+    {% if video != blank %}
+      {%- render 'video',
+        video: video,
+        muted: true,
+        autoplay: false,
+        controls: false,
+        loop: true,
+        show_play_button: false,
+        classes: 'lbcard__video'
+      -%}
+    {% endif %}
+    <motion-element
+      data-motion="zoom-out"
+      data-motion-delay="50"
+      class="media-wrapper lbcard__image absolute inset-0 w-full h-full flex flex-col items-center justify-center"
+    >
+      {% if video != blank and video.preview_image != blank %}
+        {% liquid
+          assign video_alt = video.alt | default: shop.name
+          assign alt = 'accessibility.load_video' | t: description: video_alt | escape
+        %}
+        {{
+          video.preview_image
+          | image_url: width: 1500
+          | image_tag:
+            loading: loading,
+            fetchpriority: fetchpriority,
+            class: 'motion-reduce w-full h-full',
+            widths: '375, 550, 750, 1100, 1500',
+            is: 'image-lazy',
+            alt: video_alt
+        }}
+      {% elsif image != blank %}
+        {{
+          image
+          | image_url: width: 1500
+          | image_tag:
+            loading: loading,
+            fetchpriority: fetchpriority,
+            class: 'motion-reduce w-full h-full',
+            widths: '375, 550, 750, 1100, 1500',
+            is: 'image-lazy',
+            alt: alt
+        }}
+      {% else %}
+        {{ 'image' | placeholder_svg_tag: 'placeholder-svg hover-scale-up w-full h-full' }}
+      {% endif %}
+      {% if video != blank %}
+        <span class="lbcard__play-button absolute flex items-center justify-center rounded pointer-events-auto z-10 motion-reduce">
+          {%- render 'icon-play', size: 'large' -%}
+        </span>
+      {% endif %}
+    </motion-element>
+  </div>
+  <button
+    class="lbcard__popup-btn-trigger z-1 btn btn--white"
+    aria-label="{{ 'products.product.view_product_list' | t }}"
+    aria-controls="{{ modal_id }}"
+    aria-haspopup="true"
+    aria-expanded="false"
+  >
+    <span class="btn__text flex items-center gap-x-2">
+      {%- render 'icon-tag', name: settings.cart_icon -%}
+      {{- product_count -}}
+    </span>
+  </button>
+  <lookbook-card id="{{ modal_id }}" class="lbcard__popup drawer modal">
+    <div class="fixed-overlay" aria-controls="{{ modal_id }}"></div>
+    <div class="drawer__inner flex flex-col color-{{ popup_color_scheme }}">
+      <div class="lbcard__popup-header shrink-0">
+        <h3 class="lbcard__popup-heading {{ heading_size }}">
+          {% render 'highlight-text',
+            hl_text: heading,
+            hl_style: highlight_style,
+            hl_font_style: highlight_font_style,
+            hl_style_color: highlight_style_color,
+            hl_text_color: highlight_text_color
+          %}
+        </h3>
+        <button
+          class="lbcard__popup-btn-close btn--inherit drawer__close-btn"
+          aria-controls="{{ modal_id }}"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          {%- render 'icon-close' -%}
+        </button>
+      </div>
+      <div class="lbcard__popup-body v-scrollable flex flex-col">
+        {%- if product_list != blank -%}
+          {%- for prod in product_list -%}
+            {%- liquid
+              assign product_image_ratio = pcard_image_ratio
+              if pcard_image_ratio == 'adapt'
+                if prod.featured_media != blank
+                  assign product_image_ratio = prod.featured_media.aspect_ratio
+                else
+                  assign product_image_ratio = '1'
+                endif
+              endif
+            -%}
+            <div class="lbcard__product flex items-center gap-3">
+              <a
+                class="lbcard__product-thumbnail shrink-0"
+                href="{{ prod.url }}"
+                aria-label="{{ prod.title | escape }}"
+                tabindex="-1"
+              >
+                <div
+                  class="media-wrapper blocks-radius-md"
+                  style="--aspect-ratio: {{ product_image_ratio }};"
+                >
+                  {%- if prod.featured_media != blank -%}
+                    {%- liquid
+                      assign alt = prod.featured_media.alt | default: prod.title | escape
+                    -%}
+                    {{
+                      prod
+                      | image_url: width: 150
+                      | image_tag:
+                        loading: 'lazy',
+                        fetchpriority: 'low',
+                        class: 'motion-reduce',
+                        widths: '60, 75, 120, 150',
+                        is: 'image-lazy',
+                        alt: alt
+                    }}
+                  {%- else -%}
+                    {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+                  {%- endif -%}
+                </div>
+              </a>
+              <div class="lbcard__product-info flex-1">
+                <h3 class="lbcard__product-title text-pcard-title text-limit-2-lines m-0">
+                  <a href="{{ prod.url }}" class="reversed-link focus-inset">
+                    {{- prod.title -}}
+                  </a>
+                </h3>
+                <div class="lbcard__product-price">{% render 'price', product: prod %}</div>
+              </div>
+              <a href="{{ prod.url }}" class="btn btn--icon-circle btn--icon" aria-label="{{ prod.title | escape }}">
+                <span class="btn__text flex">{% render 'icon-caret-right', size: 'extra-small icon--thick' %}</span>
+              </a>
+            </div>
+          {%- endfor -%}
+        {%- else -%}
+          {%- liquid
+            assign product_image_ratio = pcard_image_ratio
+            if pcard_image_ratio == 'adapt'
+              assign product_image_ratio = '1'
+            endif
+          -%}
+          {%- for i in (1..2) -%}
+            <div class="lbcard__product flex items-center gap-3">
+              <div class="lbcard__product-thumbnail shrink-0">
+                <div
+                  class="media-wrapper blocks-radius-md"
+                  style="--aspect-ratio: {{ product_image_ratio }};"
+                >
+                  {{ 'product-' | append: i | placeholder_svg_tag: 'placeholder-svg' }}
+                </div>
+              </div>
+              <div class="lbcard__product-info flex-1">
+                <h3 class="lbcard__product-title text-pcard-title text-limit-2-lines m-0">
+                  {{- 'onboarding.product_title' | t -}}
+                </h3>
+                <div class="lbcard__product-price">{% render 'price' %}</div>
+              </div>
+            </div>
+          {%- endfor -%}
+        {%- endif -%}
+      </div>
+    </div>
+  </lookbook-card>
+</lookbook-card-wrapper>

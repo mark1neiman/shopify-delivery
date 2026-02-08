@@ -1,0 +1,185 @@
+{% liquid
+  assign image = block.settings.image
+  assign text = block.settings.text
+  assign author = block.settings.author
+  assign bio = block.settings.bio
+  assign avatar = block.settings.avatar
+  assign icon = block.settings.icon
+  assign heading = block.settings.heading
+  assign heading_size = heading_size | default: 'h4'
+
+  assign image_ratio = image_ratio | default: 'adapt'
+  if image_ratio == 'adapt'
+    if image != blank
+      assign image_ratio = image.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+
+  assign has_bg_mobile = false
+  if section_color_scheme != content_color_scheme
+    assign has_bg_mobile = true
+  endif
+
+  assign enable_bg_overlay = true
+%}
+
+<testimonial-layered
+  class="testimonial testimonial--layout-3 relative h-full flex flex-col{% unless has_bg_mobile %} testimonial--color-inherit-mobile{% endunless %}"
+  data-trigger="{{ card_trigger_behavior | default: 'click' }}"
+  data-color-scheme="color-{{ color_scheme }}"
+  data-content-color-scheme="color-{{ content_color_scheme }}"
+>
+  <div class="testimonial__image h-full media-wrapper blocks-radius relative">
+    <motion-element data-motion="zoom-out-sm" class="block h-full" style="--aspect-ratio: {{ image_ratio }};">
+      {% if image != blank %}
+        {% assign alt = image.alt | default: shop.name | escape %}
+        {{
+          image
+          | image_url: width: 750
+          | image_tag: loading: 'lazy', widths: '165, 360, 535, 750', is: 'image-lazy', alt: alt, class: 'motion-reduce'
+        }}
+      {% else %}
+        {{ 'image' | placeholder_svg_tag: 'placeholder-svg hover-scale-up w-full h-full' }}
+      {% endif %}
+    </motion-element>
+    {% if block.settings.product != blank %}
+      {%- liquid
+        assign product = all_products[block.settings.product]
+        assign alt = product.featured_image | default: product.title | escape
+      -%}
+      <a
+        class="testimonial__float-product flex items-center justify-center md:hidden"
+        href="{{ product.url }}"
+        title="{{ product.title }}"
+        aria-label="{{ product.title }}"
+      >
+        <span class="block blocks-radius-sm shrink-0" style="--aspect-ratio: 1;">
+          {{
+            product.featured_image
+            | image_url: width: 360
+            | image_tag: loading: 'lazy', widths: '165, 360', is: 'image-lazy', alt: alt, class: 'motion-reduce'
+          }}
+        </span>
+      </a>
+    {% endif %}
+  </div>
+  <div class="testimonial__wrapper flex items-end justify-center relative z-1 blocks-radius{% if enable_bg_overlay %} has-overlay color-{{ color_scheme }}{% endif %}">
+    <div class="testimonial__inner color-{{ color_scheme }} mobile-color-{{ content_color_scheme }} blocks-radius">
+      <div
+        class="testimonial__header relative"
+        {% if card_trigger_behavior == 'click' %}
+          role="button"
+        {% endif %}
+      >
+        {% if icon != 'none' %}
+          <div class="testimonial__icon">
+            {% render 'icon-testimonial', icon_name: block.settings.icon, size: 'extra-small' %}
+          </div>
+        {% endif %}
+        {% if heading != blank %}
+          <h3 class="testimonial__heading {{ heading_size }}">
+            {{ heading }}
+          </h3>
+        {% endif %}
+        <button
+          class="testimonial__toggle hidden md:flex"
+          type="button"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          {% render 'icon-close', size: 'large' %}
+        </button>
+      </div>
+      <div class="testimonial__summary">
+        <div class="testimonial__summary-inner overflow-hidden">
+          {% if text != blank %}
+            <div class="testimonial__content overflow-hidden">
+              <div class="testimonial__text rte {{ card_text_size }}{% if card_text_size == 'text-base' %} text-subtext{% endif %}">
+                {{ text }}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if author != blank or bio != blank or avatar != blank %}
+            {%- liquid
+              assign author_info_vertical = true
+              if section.settings.author_info_layout == 'horizontal'
+                assign author_info_vertical = false
+              endif
+            -%}
+            <div class="testimonial__author inline-flex items-center gap-x-3">
+              {% if avatar != blank %}
+                {% liquid
+                  assign alt_default = author | default: shop.name
+                  assign alt = avatar.alt | default: alt_default | escape
+                %}
+                <div class="testimonial__avatar rounded overflow-hidden" style="--aspect-ratio: 1;">
+                  {{
+                    avatar
+                    | image_url: width: 360
+                    | image_tag:
+                      loading: 'lazy',
+                      fetchpriority: 'low',
+                      widths: '50, 100',
+                      sizes: '50px',
+                      is: 'image-lazy',
+                      alt: alt
+                  }}
+                </div>
+              {% endif %}
+              <div class="testimonial__info text-left flex gap-x-2 gap-y-1{% if author_info_vertical %} flex-col{% else %} flex-wrap items-center{% endif %}">
+                {% if author != blank %}
+                  <h3 class="testimonial__name h6">{{ author }}</h3>
+                {% endif %}
+                {% if bio != blank %}
+                  <div class="testimonial__bio text-subtext text-sm">{{ bio }}</div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
+          {% if block.settings.product != blank %}
+            <div class="testimonial__footer hidden md:block">
+              {%- liquid
+                assign product = all_products[block.settings.product]
+
+                assign featured_media = product.featured_media
+                assign featured_media_type = featured_media.media_type
+                assign featured_media_ratio = settings.pcard_image_ratio | default: '1'
+
+                if featured_media_type == 'model' or featured_media_type == 'video'
+                  assign featured_media = product.featured_media.preview_image
+                endif
+
+                if featured_media_ratio == 'adapt'
+                  if featured_media != blank
+                    assign featured_media_ratio = featured_media.aspect_ratio
+                  else
+                    assign featured_media_ratio = '1'
+                  endif
+                endif
+                assign alt = product.featured_image.alt | default: product.title | escape
+              -%}
+              <a
+                class="testimonial__product"
+                href="{{ product.url }}"
+              >
+                <span class="block blocks-radius-sm" style="--aspect-ratio: {{ featured_media_ratio }};">
+                  {{
+                    featured_media
+                    | image_url: width: 360
+                    | image_tag: loading: 'lazy', widths: '165, 360', is: 'image-lazy', alt: alt, class: 'motion-reduce'
+                  }}
+                </span>
+                <p class="testimonial__product-title m-0">
+                  <span class="reversed-link">{{ product.title }}</span>
+                </p>
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</testimonial-layered>

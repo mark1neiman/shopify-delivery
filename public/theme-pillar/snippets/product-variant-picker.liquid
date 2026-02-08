@@ -1,0 +1,181 @@
+{% comment %}
+  Renders product variant-picker
+
+  Accepts:
+  - product: {Object} product object.
+  - block: {Object} passing the block information.
+  - product_form_id: {String} Id of the product form to which the variant picker is associated.
+  - update_url: {Boolean} whether or not to update url when changing variants. If false, the url isn't updated. Default: true (optional).
+  Usage:
+  {% render 'product-variant-picker', product: product, block: block, product_form_id: product_form_id %}
+{% endcomment %}
+{%- unless product.has_only_default_variant -%}
+  {% liquid
+    assign size_option_name = block.settings.size_title | downcase
+    assign size_chart_content = product.metafields.foxtheme.size_chart
+    assign size_chart_modal_id = 'SizeChartModal-' | append: block.id
+
+    if size_chart_content == blank and block.settings.size_chart_from_page != blank
+      assign size_chart_content = pages[block.settings.size_chart_from_page].content
+    endif
+  %}
+  <script src="{{ 'variant-selects.js' | asset_url }}" defer="defer"></script>
+  <variant-selects
+    id="variant-selects-{{ section.id }}"
+    data-section="{{ section.id }}"
+    data-url="{{ product.url }}"
+    data-update-url="{% if update_url == false %}false{% else %}true{% endif %}"
+  >
+    {%- for option in product.options_with_values -%}
+      {%- liquid
+        assign option_name_downcase = option.name | downcase
+        assign swatch_count = option.values | map: 'swatch' | compact | size
+        assign picker_type = block.settings.picker_type
+
+        assign attach_size_chart = false
+        if size_option_name contains option_name_downcase
+          assign attach_size_chart = true
+        endif
+
+        if block.settings.picker_type == 'button' and settings.color_swatch_trigger != blank
+          assign color_swatch_trigger = settings.color_swatch_trigger | downcase | split: ','
+          assign has_color = color_swatch_trigger | where: option_name_downcase | first
+
+          if has_color != blank
+            assign picker_type = 'color'
+          elsif option_name_downcase contains 'colour'
+            assign color_swatch_trigger = color_swatch_trigger | replace: 'color', 'colour'
+            assign has_color = color_swatch_trigger | where: option_name_downcase | first
+            if has_color != blank
+              assign picker_type = 'color'
+            endif
+          endif
+        endif
+
+        if swatch_count > 0
+          if block.settings.picker_type == 'dropdown'
+            assign picker_type = 'swatch_dropdown'
+          else
+            if block.settings.swatch_type != 'variant_image'
+              assign picker_type = 'swatch'
+            endif
+          endif
+        endif
+
+        assign wrap_class = 'product-form__input product-form__input--' | append: picker_type
+        case picker_type
+          when 'swatch', 'color', 'button'
+            assign is_fieldset_tag = true
+            assign wrap_class = wrap_class | append: ' js flex flex-wrap'
+
+            if picker_type == 'button'
+              assign button_style = block.settings.button_style | default: 'normal'
+              assign wrap_class = wrap_class | append: ' gap-2'
+              assign wrap_class = wrap_class | append: ' product-form__input--button-' | append: button_style
+            else
+              assign swatch_style = block.settings.swatch_style | default: 'standard'
+              assign wrap_class = wrap_class | append: ' gap-4'
+              assign wrap_class = wrap_class | append: ' product-form__input--button-' | append: swatch_style
+            endif
+          else
+            assign is_fieldset_tag = false
+        endcase
+
+        assign tag_fieldset = 'fieldset'
+        assign tag_legend = 'legend'
+        unless is_fieldset_tag
+          assign tag_fieldset = 'div'
+          assign tag_legend = 'label'
+        endunless
+      -%}
+      <{{ tag_fieldset }}
+        class="{{ wrap_class }}"
+        {% if picker_type == 'color' %}
+          data-swatch-type="{{ block.settings.swatch_type }}"
+        {% endif %}
+        style="--swatch-size: {{ block.settings.swatch_size | default: 40 }}px;"
+      >
+        <{{ tag_legend }}
+          {% unless is_fieldset_tag %}
+            for="Option-{{ section.id }}-{{ forloop.index0 }}"
+          {% endunless %}
+          class="block w-full p-0"
+        >
+          <div class="form__label">
+            <div class="flex flex-wrap gap-2">
+              <span class="font-body-bolder">{{ option.name }}:</span>
+              <span class="text-subtext" data-selected-swatch-value="{{ option.name }}">
+                {{- option.selected_value -}}
+              </span>
+            </div>
+            {%- if size_chart_content != blank and attach_size_chart -%}
+              <button
+                class="open-size-chart no-js-hidden btn--link tracking-normal"
+                aria-controls="{{ size_chart_modal_id }}"
+                aria-haspopup="dialog"
+              >
+                {{ 'products.product.open_size_chart' | t }}
+              </button>
+            {%- endif -%}
+          </div>
+        </{{ tag_legend }}>
+        {%- case picker_type -%}
+          {%- when 'swatch', 'color', 'button' -%}
+            {% render 'product-variant-options',
+              product: product,
+              option: option,
+              block: block,
+              picker_type: picker_type
+            %}
+          {%- else -%}
+            <div class="select">
+              {%- if picker_type == 'swatch_dropdown' -%}
+                <span
+                  data-selected-value
+                  class="dropdown-swatch"
+                >
+                  {% comment %} {% render 'swatch', swatch: option.selected_value.swatch %} {% endcomment %}
+                </span>
+              {%- endif -%}
+              <select
+                id="Option-{{ section.id }}-{{ forloop.index0 }}"
+                class="form-control form-control--select"
+                name="options[{{ option.name | escape }}]"
+                form="{{ product_form_id }}"
+              >
+                {% render 'product-variant-options',
+                  product: product,
+                  option: option,
+                  block: block,
+                  picker_type: picker_type
+                %}
+              </select>
+              {%- render 'icon-caret-down', size: '2xs' -%}
+            </div>
+        {%- endcase -%}
+      </{{ tag_fieldset }}>
+    {%- endfor -%}
+    <script type="application/json" data-selected-variant>
+      {{ product.selected_or_first_available_variant | json }}
+    </script>
+  </variant-selects>
+  {%- if size_chart_content != blank -%}
+    <div id="SizeChart-{{ section.id }}">
+      <basic-modal id="{{ size_chart_modal_id }}" class="drawer modal" style="--modal-width: 77rem;">
+        <div class="fixed-overlay" aria-controls="{{ size_chart_modal_id }}"></div>
+        <div class="drawer__inner color-{{ settings.overlay_color_scheme }}">
+          <button
+            class="drawer__close-btn"
+            aria-controls="{{ size_chart_modal_id }}"
+            aria-label="{{ 'accessibility.close' | t }}"
+          >
+            {% render 'icon-close' %}
+          </button>
+          <div class="drawer__body v-scrollable h-full rte">
+            {{ size_chart_content }}
+          </div>
+        </div>
+      </basic-modal>
+    </div>
+  {%- endif -%}
+{%- endunless -%}

@@ -1,0 +1,121 @@
+{%- liquid
+  assign heading = sidebar.settings.heading
+  assign text = sidebar.settings.text
+  assign button_style = sidebar.settings.button_style
+  assign button_label = sidebar.settings.button_label
+  assign button_link = sidebar.settings.button_link
+  assign button_icon = sidebar.settings.button_icon
+
+  assign motion_delay = 50
+-%}
+<div class="help-sidebar__sidebar" {{ sidebar.shopify_attributes }}>
+  <div class="sticky-element">
+    {%- if heading != blank or text != blank -%}
+      <div class="help-sidebar__text rich-text rich-text--tight">
+        {%- if heading != blank -%}
+          <h3 class="rich-text__heading {{ sidebar.settings.heading_size }}">
+            <motion-element data-motion="fade-up" data-motion-delay="{{ motion_delay }}" class="block">
+              {% render 'highlight-text',
+                hl_text: heading,
+                hl_style: sidebar.settings.highlight_style,
+                hl_font_style: sidebar.settings.highlight_font_style,
+                hl_style_color: sidebar.settings.highlight_style_color,
+                hl_text_color: sidebar.settings.highlight_text_color
+              %}
+            </motion-element>
+          </h3>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+        {%- if text != blank -%}
+          <motion-element
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+            class="block rich-text__text rte {{ sidebar.settings.text_size }} text-subtext"
+          >
+            {{- text -}}
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  
+    {%- for i in (1..3) -%}
+      {%- liquid
+        assign icon_key = 'icon_' | append: i
+        assign icon_custom_key = 'icon_custom_' | append: i
+        assign icon_width_key = 'icon_width_' | append: i
+        assign icon_heading_key = 'icon_heading_' | append: i
+        assign icon_heading_size_key = 'icon_heading_size_' | append: i
+        assign icon_text_key = 'icon_text_' | append: i
+        assign icon_color_key = 'icon_color_' | append: i
+        assign icon_v_aighment_key = 'icon_vertical_alignment_' | append: i
+  
+        assign icon = sidebar.settings[icon_key]
+        assign icon_custom = sidebar.settings[icon_custom_key]
+        assign icon_width = sidebar.settings[icon_width_key]
+        assign icon_heading = sidebar.settings[icon_heading_key]
+        assign icon_heading_size = sidebar.settings[icon_heading_size_key]
+        assign icon_text = sidebar.settings[icon_text_key]
+        assign icon_color = sidebar.settings[icon_color_key]
+        assign icon_v_aighment = sidebar.settings[icon_v_aighment_key]
+      -%}
+      {%- if icon_heading != blank or icon_text != blank -%}
+        <motion-element
+          class="block help-sidebar__icon-text help-sidebar__icon-text-{{ i }}"
+          data-motion="fade-up"
+          data-motion-delay="{{ motion_delay }}"
+        >
+          <div
+            class="icon-with-text gap-x-3 items-{{ icon_v_aighment }}"
+            style="--icon-size: {{ icon_width }}px;--icon-color: {{ icon_color.red }}, {{ icon_color.green }}, {{ icon_color.blue }};"
+          >
+            <div class="icon-with-text__media inline-flex items-center">
+              <div class="no-empty {{ icon_heading_size }}" style="width: 0;" aria-hidden="true">&nbsp;</div>
+              {%- if icon_custom != blank -%}
+                <img
+                  src="{{ icon_custom | image_url }}"
+                  {% if icon_custom.alt != blank %}
+                    alt="{{ icon_custom.alt | escape }}"
+                  {% else %}
+                    role="presentation"
+                  {% endif %}
+                  height="auto"
+                  width="auto"
+                  loading="lazy"
+                >
+              {%- else -%}
+                {%- render 'icons', icon: icon, size: 'custom' -%}
+              {%- endif -%}
+            </div>
+            <div class="flex flex-col gap-y-1">
+              {%- if icon_heading != blank -%}
+                <h3 class="inline-richtext {{ icon_heading_size }}">
+                  {{- icon_heading -}}
+                </h3>
+              {%- endif -%}
+              {%- if icon_text != blank -%}
+                <div class="rte m-0 text-subtext">{{- icon_text -}}</div>
+              {%- endif -%}
+            </div>
+          </div>
+        </motion-element>
+        {%- assign motion_delay = motion_delay | plus: 50 -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {%- if button_label != blank -%}
+      <motion-element
+        class="help-sidebar__button block"
+        data-motion="fade-up"
+        data-motion-delay="{{ motion_delay }}"
+      >
+        {% render 'button',
+          button_style: button_style,
+          button_link: button_link,
+          button_label: button_label,
+          button_icon: button_icon
+        %}
+      </motion-element>
+      {%- assign motion_delay = motion_delay | plus: 50 -%}
+    {%- endif -%}
+  </div>
+</div>

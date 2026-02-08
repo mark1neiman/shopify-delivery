@@ -1,0 +1,53 @@
+{% liquid
+  assign style_color_inherit = true
+  if hl_style_color != blank
+    assign style_color_inherit = false
+    assign style_color_alpha_first = hl_style_color.alpha | split: '.' | first | plus: 0
+    assign style_color_alpha_last = hl_style_color.alpha | split: '.' | last | plus: 0
+    if style_color_alpha_first == 0 and style_color_alpha_last == 0
+      assign style_color_inherit = true
+    endif
+  endif
+
+  assign text_color_inherit = true
+  if hl_text_color != blank
+    assign text_color_inherit = false
+    assign text_color_alpha_first = hl_text_color.alpha | split: '.' | first | plus: 0
+    assign text_color_alpha_last = hl_text_color.alpha | split: '.' | last | plus: 0
+    if text_color_alpha_first == 0 and text_color_alpha_last == 0
+      assign text_color_inherit = true
+    endif
+  endif
+%}
+
+{%- capture hl_color -%}
+  style="{%- unless style_color_inherit -%}--hl-style-color: {{ hl_style_color.red }}, {{ hl_style_color.green }}, {{ hl_style_color.blue }}, {{ hl_style_color.alpha }};{%- endunless -%}{%- unless text_color_inherit -%}--hl-text-color: {{ hl_text_color.red }}, {{ hl_text_color.green }}, {{ hl_text_color.blue }}, {{ hl_text_color.alpha }};{%- endunless -%}"
+{%- endcapture -%}
+{%- liquid
+  assign highlight_text = hl_text
+  assign highlight_style = hl_style
+
+  assign highlight_text_class = 'highlight-text relative inline-block font-' | append: hl_font_style
+
+  case highlight_style
+    when 'drawer_line'
+      assign highlight_text_class = highlight_text_class | append: ' highlight-text--drawer-line'
+      assign svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 124 8" class="highlight-text__svg" fill="none"><path pathLength="1" d="M1 7C25.1195 3.3694 83.2869 -2.39418 123 3.59631" stroke="currentColor" stroke-width="2"/></svg>'
+    when 'hand_drawn_circle'
+      assign highlight_text_class = highlight_text_class | append: ' highlight-text--hand-drawn-circle'
+      assign svg = '<svg viewBox="0 -55 800 420" class="absolute highlight-text__svg" stroke="currentColor" fill="none" role="presentation" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path transform="matrix(0.9791300296783447,0,0,0.9791300296783447,400,179)" stroke-linejoin="miter" stroke-miterlimit="4" stroke-width="16" pathLength="1" d=" M253,-161 C253,-161 -284.78900146484375,-201.4600067138672 -376,-21 C-469,163 67.62300109863281,174.2100067138672 256,121 C564,34 250.82899475097656,-141.6929931640625 19.10700035095215,-116.93599700927734"/></svg>'
+    when 'thick_underline'
+      assign highlight_text_class = highlight_text_class | append: ' highlight-text--thick-underline'
+    when 'wave_underline'
+      assign highlight_text_class = highlight_text_class | append: ' highlight-text--wave-underline'
+      assign svg = '<svg xmlns="http://www.w3.org/2000/svg" class="absolute highlight-text__svg" viewBox="0 0 64 8" fill="none"><path d="M0 1c1.778 0 1.778 2.5 3.555 2.5S5.333 1 7.11 1s1.778 2.5 3.555 2.5S12.443 1 14.22 1s1.778 2.5 3.555 2.5S19.553 1 21.33 1s1.778 2.5 3.556 2.5c1.777 0 1.777-2.5 3.555-2.5 1.777 0 1.777 2.5 3.555 2.5 1.777 0 1.777-2.5 3.555-2.5 1.777 0 1.777 2.5 3.555 2.5 1.777 0 1.777-2.5 3.555-2.5 1.777 0 1.777 2.5 3.555 2.5 1.777 0 1.777-2.5 3.555-2.5 1.777 0 1.777 2.5 3.558 2.5S55.109 1 56.884 1c1.778 0 1.778 2.5 3.558 2.5C62.22 3.5 62.22 1 64 1" stroke="currentColor" stroke-width="1.5" stroke-miterlimit="10" stroke-dasharray="300" stroke-dashoffset="300"/></svg>'
+  endcase
+
+  assign em_open_tag = '<em is="highlight-text" class="' | append: highlight_text_class | append: '"' | append: hl_color | append: '>'
+  assign em_close_tag = svg | append: '</em>'
+
+  assign updated_highlight_text = highlight_text | replace: '<em>', em_open_tag
+  assign updated_highlight_text = updated_highlight_text | replace: '</em>', em_close_tag
+-%}
+
+{{- updated_highlight_text -}}

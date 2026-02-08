@@ -1,0 +1,91 @@
+{
+  "name": "t:sections.header.name",
+  "type": "header",
+  "sections": {
+    "topbar_3YD96h": {
+      "type": "topbar",
+      "blocks": {
+        "link_list_En8dpz": {
+          "type": "link_list",
+          "settings": {
+            "position": "left"
+          }
+        },
+        "text_Ahn3nP": {
+          "type": "text",
+          "settings": {
+            "text": "✌🏼 Free Express Shipping on orders $120!",
+            "position": "center"
+          }
+        },
+        "language_country_MyFf6D": {
+          "type": "language_country",
+          "settings": {
+            "show_language_selector": true,
+            "show_country_selector": true,
+            "position": "right"
+          }
+        },
+        "social_links_BcFqP9": {
+          "type": "social_links",
+          "settings": {
+            "show_facebook": true,
+            "show_instagram": true,
+            "show_twitter": true,
+            "show_tiktok": true,
+            "show_pinterest": false,
+            "show_snapchat": false,
+            "show_tumblr": false,
+            "show_youtube": false,
+            "show_vimeo": false,
+            "position": "right"
+          }
+        }
+      },
+      "block_order": [
+        "link_list_En8dpz",
+        "text_Ahn3nP",
+        "language_country_MyFf6D",
+        "social_links_BcFqP9"
+      ],
+      "custom_css": [],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-2",
+        "show_separator_line": true,
+        "padding_top": 12,
+        "padding_bottom": 12
+      }
+    },
+    "header": {
+      "type": "header",
+      "custom_css": [
+        ".search__form {--search-form-width: 63rem;}",
+        "@media (min-width: 1024px) {.header__top--logo-left .header__search {padding-inline: 1.8rem; }}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-2",
+        "menu_mobile": "",
+        "header_layout": "logo-left",
+        "menu_trigger": "hover",
+        "sticky_header": "always",
+        "enable_collapse_on_scroll": true,
+        "show_sperator_line": false,
+        "show_social_media_icons": true,
+        "enable_language_selector": false,
+        "enable_country_selector": true,
+        "header_top_padding_top": 20,
+        "header_top_padding_bottom": 20,
+        "navigation_color_scheme": "scheme-2",
+        "navigation_content_alignment": "start",
+        "navigation_padding_top": 0,
+        "navigation_padding_bottom": 12
+      }
+    }
+  },
+  "order": [
+    "topbar_3YD96h",
+    "header"
+  ]
+}

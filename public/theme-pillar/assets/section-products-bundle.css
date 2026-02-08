@@ -1,0 +1,143 @@
+@media (min-width: 1280px) {
+  .page-width:not(.page-width--full) .products-bundle__wrapper {
+    padding-inline: 5rem;
+  }
+}
+.products-bundle__slider .f-column {
+  transition: opacity 0.3s;
+}
+@media (min-width: 1280px) {
+  .products-bundle.is-hover .products-bundle__slider .f-column:not(.is-selected) {
+    opacity: 0.3;
+  }
+}
+.products-bundle--image-left .products-bundle__image {
+  padding-inline-end: var(--image-x-spacing);
+}
+@media (min-width: 768px) {
+  .products-bundle--image-left {
+    --image-x-spacing: 3rem;
+  }
+}
+@media (min-width: 1024px) {
+  .products-bundle--image-left {
+    --image-x-spacing: 5rem;
+  }
+}
+@media (min-width: 1280px) {
+  .products-bundle--image-left {
+    --image-x-spacing: 10rem;
+  }
+}
+.products-bundle--image-right .products-bundle__image {
+  padding-inline-start: var(--image-x-spacing);
+}
+@media (min-width: 768px) {
+  .products-bundle--image-right {
+    --image-x-spacing: 3rem;
+  }
+}
+@media (min-width: 1024px) {
+  .products-bundle--image-right {
+    --image-x-spacing: 5rem;
+  }
+}
+@media (min-width: 1536px) {
+  .products-bundle--image-right {
+    --image-x-spacing: 10rem;
+  }
+}
+.products-bundle--container-full {
+  --image-x-spacing: 0;
+}
+@media (max-width: 767.98px) {
+  .products-bundle--container-full {
+    padding-inline: var(--page-padding);
+    padding-block: min(4.8rem, var(--section-padding-top, 0) * 0.6);
+  }
+  .products-bundle--container-full .products-bundle__image .media-wrapper {
+    border-radius: var(--blocks-radius-mobile);
+  }
+}
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .products-bundle__main {
+    width: 24rem;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+}
+@media (max-width: 767.98px) {
+  .products-bundle .products-bundle__content {
+    display: contents;
+  }
+  .products-bundle .section__header {
+    order: -1;
+  }
+  .products-bundle .products-bundle__main {
+    margin-block-start: 1.2rem;
+  }
+}
+
+.product-bundle-hotspot {
+  --factor-x: -1;
+  inset-inline-start: var(--horizontal);
+  top: var(--vertical);
+  transition: all var(--animation-default);
+  transform: translate(calc(var(--horizontal) * var(--factor-x)), calc(var(--vertical) * -1));
+  transform-origin: center;
+  backface-visibility: hidden;
+  will-change: transform;
+  cursor: pointer;
+  aspect-ratio: 1;
+  background-color: transparent;
+}
+@media (max-width: 767.98px) {
+  .product-bundle-hotspot {
+    inset-inline-start: var(--horizontal-mobile, var(--horizontal));
+    top: var(--vertical-mobile, var(--vertical));
+    transform: translate(calc(var(--horizontal-mobile, var(--horizontal)) * var(--factor-x)), calc(var(--vertical-mobile, var(--vertical)) * -1));
+  }
+}
+.product-bundle-hotspot * {
+  pointer-events: none;
+}
+.product-bundle-hotspot--dot {
+  width: 4rem;
+}
+.product-bundle-hotspot--dot .product-bundle-hotspot__pin span {
+  box-shadow: 0px 4px 9px 0px rgba(0, 0, 0, 0.2);
+  background-color: rgb(var(--color-background));
+  width: 33.33%;
+  z-index: 3;
+  transition: all 0.4s;
+}
+.product-bundle-hotspot--dot .product-bundle-hotspot__pin:before, .product-bundle-hotspot--dot .product-bundle-hotspot__pin:after {
+  content: "";
+  border-radius: 50%;
+  position: absolute;
+  width: 100%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translateZ(0) scale(1);
+}
+.product-bundle-hotspot--dot .product-bundle-hotspot__pin:before {
+  background-color: rgba(var(--color-background), 0.2);
+  width: 66.66%;
+  z-index: 2;
+  transition: all 0.4s;
+}
+.product-bundle-hotspot--dot .product-bundle-hotspot__pin:after {
+  border: 1px solid rgba(var(--color-background), 0);
+  background-color: rgba(0, 0, 0, 0.2);
+  animation: 1.5s dotscale ease infinite;
+  z-index: 1;
+  transition: all 0.4s;
+}
+.product-bundle-hotspot--dot:hover .product-bundle-hotspot__pin:before,
+.product-bundle-hotspot--dot:hover .product-bundle-hotspot__pin span, .product-bundle-hotspot--dot.is-active .product-bundle-hotspot__pin:before,
+.product-bundle-hotspot--dot.is-active .product-bundle-hotspot__pin span {
+  width: 50%;
+}
+.product-bundle-hotspot--dot:hover .product-bundle-hotspot__pin:after, .product-bundle-hotspot--dot.is-active .product-bundle-hotspot__pin:after {
+  border-color: rgba(var(--color-background), 0.5);
+}

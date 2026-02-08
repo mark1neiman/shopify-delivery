@@ -1,0 +1,127 @@
+{%- liquid
+  if recommendations.performed
+    if products_recommendations != blank
+      assign products_count = products_recommendations.count
+    elsif recommendations.products_count > 0
+      assign products_recommendations = recommendations.products
+      assign products_count = recommendations.products_count
+    endif
+  endif
+
+  assign heading_size = 'h6'
+  assign columns = 3
+  assign wrapper_css_class = ''
+  assign is_list_layout = false
+  assign is_carousel = false
+  assign is_carousel_mobile = false
+
+  if layout == 'horizontal-list'
+    assign is_list_layout = true
+    assign columns = 1
+    assign wrapper_css_class = css_class | append: ' gap-3'
+  else
+    assign wrapper_css_class = css_class | append: ' gap-4 md:gap-5'
+  endif
+
+  if products_count > columns
+    assign is_carousel = true
+
+    if is_list_layout == true
+      assign is_carousel_mobile = true
+    endif
+  endif
+-%}
+<cart-drawer-products-recommendation
+  class="cart-drawer-products-recommendation cart-drawer-products-recommendation--{{ layout }} color-{{ color_scheme }}{% if settings.overlay_color_scheme == color_scheme %} border-top{% endif %}"
+  data-url="{{ routes.product_recommendations_url }}?section_id={{ section_id }}&product_id={{ product_id }}&limit={{ limit }}&intent=complementary"
+>
+  <div class="relative flex flex-col{{ wrapper_css_class }}">
+    <div class="cart-drawer-products-recommendation__header flex items-center justify-between">
+      <p class="{{ heading_size }}">{{ heading | escape }}</p>
+    </div>
+    {%- if recommendations.performed -%}
+      <div class="{% unless is_list_layout %}relative swiper-show-nav-on-hover{% endunless %}">
+        <div
+          id="cart-drawer-products-recommendation-{{ section.id }}"
+          class="cart-drawer-products-recommendation__container{% unless is_list_layout %} swipe-mobile swipe-mobile--2-cols{% else %} pcard-radius{% endunless %}{% if is_carousel %} swiper{% endif %}"
+          data-columns="{{ columns }}"
+          data-enable-slider-mobile="{{ is_carousel_mobile }}"
+        >
+          <div class="{% if is_carousel %}swiper-wrapper{% else %}f-grid{% endif %}{% unless is_list_layout %} swipe-mobile__inner{% endunless %} cart-drawer-products-recommendation__wrapper f-grid--gap-extra-small">
+            {%- if is_list_layout -%}
+              {%- for recommendation in products_recommendations -%}
+                <div class="f-column swiper-slide">
+                  {% render 'card-product-horizontal',
+                    product: recommendation,
+                    parent_color_scheme: color_scheme,
+                    title_line_limit: '1-line',
+                    button_type: 'text'
+                  %}
+                </div>
+              {%- endfor -%}
+            {%- else -%}
+              {%- for recommendation in products_recommendations -%}
+                <div class="swiper-slide">
+                  {%- comment -%}
+                    image_size = modal_width - modal_gap - grid_gap = 500 - 6rem - 2rem = 42rem
+                  {%- endcomment -%}
+                  {%- render 'card-product-list',
+                    product: recommendation,
+                    show_vendor: false,
+                    show_type: false,
+                    image_sizes: '(max-width: 767px) 42vw, calc(42rem / 3)'
+                  -%}
+                </div>
+              {%- endfor -%}
+            {%- endif -%}
+          </div>
+        </div>
+        {%- if is_carousel -%}
+          {%- if is_list_layout -%}
+            <div class="swiper-controls swiper-controls--grouped swiper-controls--pagination-fraction justify-center">
+              <div class="line-height-placeholder hidden {{ heading_size }}" style="width: 0;" aria-hidden="true">
+                &nbsp;
+              </div>
+              <button
+                class="swiper-button swiper-button-prev swiper-button--blank"
+                name="previous"
+                aria-label="{{ 'general.slider.previous_slide' | t }}"
+              >
+                <span class="btn__text">
+                  {% render 'icon-caret-left', size: 'small' %}
+                </span>
+              </button>
+              <div class="swiper-pagination"></div>
+              <button
+                class="swiper-button swiper-button-next swiper-button--blank"
+                name="next"
+                aria-label="{{ 'general.slider.next_slide' | t }}"
+              >
+                <span class="btn__text">
+                  {% render 'icon-caret-right', size: 'small' %}
+                </span>
+              </button>
+            </div>
+          {%- else -%}
+            <div class="swiper-controls swiper-controls--nav-floating hidden md:flex">
+              <button
+                class="swiper-button-prev swiper-button btn swiper-button--drop-shadow"
+                name="previous"
+                aria-label="{{ 'general.slider.previous_slide' | t }}"
+              >
+                <span class="btn__text">{%- render 'icon-slider-prev', size: 'small' -%}</span>
+              </button>
+              <button
+                class="swiper-button-next swiper-button btn swiper-button--drop-shadow"
+                name="next"
+                aria-label="{{ 'general.slider.next_slide' | t }}"
+              >
+                <span class="btn__text">{%- render 'icon-slider-next', size: 'small' -%}</span>
+              </button>
+            </div>
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+</cart-drawer-products-recommendation>

@@ -1,0 +1,143 @@
+{% liquid
+  assign image = block.settings.image
+  assign text = block.settings.text
+  assign author = block.settings.author
+  assign bio = block.settings.bio
+  assign avatar = block.settings.avatar
+  assign icon = block.settings.icon
+
+  assign image_ratio = image_ratio | default: 'adapt'
+  if image_ratio == 'adapt'
+    if image != blank
+      assign image_ratio = image.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+%}
+
+<div class="testimonial testimonial--layout-1 h-full">
+  <div class="testimonial__container{% if has_bg %} testimonial--has-bg blocks-radius{% endif %} color-{{ color_scheme }} h-full flex flex-col{% unless section.settings.show_image %} text-center{% endunless %}">
+    <div class="testimonial__wrapper">
+      {% if section.settings.show_image %}
+        {% assign alt = image.alt | default: shop.name | escape %}
+        <div class="testimonial__image media-wrapper blocks-radius">
+          <motion-element data-motion="zoom-out-sm" class="block" style="--aspect-ratio: {{ image_ratio }};">
+            {%- if image != blank -%}
+            {{
+              image
+              | image_url: width: 750
+              | image_tag:
+                loading: 'lazy',
+                widths: '165, 360, 535, 750',
+                is: 'image-lazy',
+                alt: alt,
+                class: 'motion-reduce'
+            }}
+            {%- else -%}
+              {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+            {%- endif -%}
+          </motion-element>
+        </div>
+      {% endif %}
+
+      <div class="testimonial__inner">
+        {% if icon != 'none' %}
+          <div class="testimonial__icon{% unless image != blank %} justify-center{% endunless %}">
+            {% render 'icon-testimonial', icon_name: block.settings.icon %}
+          </div>
+        {% endif %}
+        {% if text != blank %}
+          <div class="testimonial__content rte {{ card_text_size }}">{{ text }}</div>
+        {% endif %}
+        {% if author != blank or bio != blank or section.settings.show_author_image %}
+          {%- liquid
+            assign author_info_vertical = true
+            if section.settings.author_info_layout == 'horizontal'
+              assign author_info_vertical = false
+            endif
+          -%}
+          <div class="testimonial__author inline-flex items-center gap-x-3">
+            {% if section.settings.show_author_image %}
+              {% liquid
+                assign alt_default = author | default: shop.name
+                assign alt = avatar.alt | default: alt_default | escape
+              %}
+              <div class="testimonial__avatar rounded overflow-hidden" style="--aspect-ratio: 1;">
+                {% if avatar != blank %}
+                {{
+                  avatar
+                  | image_url: width: 360
+                  | image_tag:
+                    loading: 'lazy',
+                    fetchpriority: 'low',
+                    widths: '50, 100',
+                    sizes: '50px',
+                    is: 'image-lazy',
+                    alt: alt
+                }}
+                {% else %}
+                  {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+                {% endif %}
+              </div>
+            {% endif %}
+            <div class="testimonial__info text-left flex gap-x-2 gap-y-1{% if author_info_vertical %} flex-col{% else %} flex-wrap items-center{% endif %}{% if image == blank and avatar == blank %} text-center{% if author_info_vertical %} items-center{% else %} justify-center{% endif %}{% endif %}">
+              {% if author != blank %}
+                <h3 class="testimonial__name h5">{{ author }}</h3>
+              {% endif %}
+              {% if bio != blank %}
+                <div class="testimonial__bio text-subtext">{{ bio }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if block.settings.product != blank %}
+      <div class="testimonial__footer{% if has_bg %} flex-1 flex flex-col justify-end{% endif %}">
+        {%- liquid
+          assign product = all_products[block.settings.product]
+
+          assign featured_media = product.featured_media
+          assign featured_media_type = featured_media.media_type
+          assign featured_media_ratio = settings.pcard_image_ratio | default: '1'
+
+          if featured_media_type == 'model' or featured_media_type == 'video'
+            assign featured_media = product.featured_media.preview_image
+          endif
+
+          if featured_media_ratio == 'adapt'
+            if featured_media != blank
+              assign featured_media_ratio = featured_media.aspect_ratio
+            else
+              assign featured_media_ratio = '1'
+            endif
+          endif
+          assign alt = product.featured_image.alt | default: product.title | escape
+        -%}
+        <a
+          class="testimonial__product{% unless image != blank %} justify-center{% endunless %}"
+          href="{{ product.url }}"
+        >
+          <span class="block blocks-radius-sm" style="--aspect-ratio: {{ featured_media_ratio }};">
+            {{
+              featured_media
+              | image_url: width: 360
+              | image_tag:
+                loading: 'lazy',
+                widths: '40, 80',
+                sizes: '40px',
+                is: 'image-lazy',
+                alt: alt,
+                class: 'motion-reduce'
+            }}
+          </span>
+          <p class="testimonial__product-title m-0">
+            <span class="reversed-link">{{ product.title }}</span>
+          </p>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>

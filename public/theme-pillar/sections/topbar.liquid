@@ -1,0 +1,389 @@
+{% liquid
+  assign position = 'left,center,right' | split: ','
+%}
+<div
+  class="topbar section--padding color-{{ section.settings.color_scheme }} page-width page-width--{{ section.settings.container }}{% if section.settings.show_separator_line %} topbar--show-separator-line{% endif %}"
+  style="--section-padding-top: {{ section.settings.padding_top }}px; --section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+>
+  <div class="topbar__inner grid items-center">
+    {% for pos in position %}
+      <div class="topbar__column topbar__{{ pos }}{% unless pos == 'center' %} hidden{% else %} flex{% endunless %} lg:flex flex-wrap flex-col lg:flex-row items-center lg:justify-{{ pos | replace: 'left','start' | replace: 'right','end' }} text-center lg:text-{{ pos }}">
+        {% for block in section.blocks %}
+          {% unless block.settings.position == pos %}
+            {% continue %}
+          {% endunless %}
+          {%- case block.type -%}
+            {% when 'link_list' %}
+              <ul class="topbar__menu flex flex-wrap items-center justify-center lg:justify-{{ pos | replace: 'left','start' | replace: 'right','end' }}">
+                {% for link in linklists[block.settings.menu].links %}
+                  <li class="topbar__menu-item">
+                    <a href="{{ link.url }}" class="block reversed-link">{{ link.title }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% when 'text' %}
+              <div class="topbar__text rte" style="--highlight-text-color: {{ block.settings.highlight_text_color }}; --highlight-text-background-color: {{ block.settings.highlight_text_background_color }};">
+                {% if block.settings.highlight_text != blank %}
+                  <p class="highlight-text highlight-text--{{ block.settings.highlight_text_style }}">
+                    {{- block.settings.highlight_text -}}
+                  </p>
+                {% endif %}
+                <p>{{- block.settings.text -}}</p>
+              </div>
+            {% when 'language_country' %}
+              <div class="topbar__country flex items-center gap-4">
+                {% liquid
+                  if block.settings.show_language_selector
+                    render 'language-selector', plain: true, class: 'flex', form_id: block.id
+                  endif
+                  if block.settings.show_country_selector
+                    render 'country-selector', plain: true, class: 'flex', form_id: block.id
+                  endif
+                %}
+              </div>
+            {% when 'social_links' %}
+              {% liquid
+                assign socials = 'facebook,instagram,youtube,tiktok,twitter,pinterest,snapchat,tumblr,vimeo' | split: ','
+                assign show_social = false
+                for social in socials
+                  assign social_setting = 'show_' | append: social
+                  assign social_link = 'social_' | append: social | append: '_link'
+                  if block.settings[social_setting] and settings[social_link] != blank
+                    assign show_social = true
+                    break
+                  endif
+                endfor
+              %}
+              {% if show_social %}
+                {% render 'social-icons',
+                  class: 'topbar__social',
+                  size: 'medium',
+                  show_facebook: block.settings.show_facebook,
+                  show_instagram: block.settings.show_instagram,
+                  show_tiktok: block.settings.show_tiktok,
+                  show_twitter: block.settings.show_twitter,
+                  show_pinterest: block.settings.show_pinterest,
+                  show_snapchat: block.settings.show_snapchat,
+                  show_tumblr: block.settings.show_tumblr,
+                  show_youtube: block.settings.show_youtube,
+                  show_vimeo: block.settings.show_vimeo
+                %}
+              {% endif %}
+          {%- endcase -%}
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.top-bar.name",
+  "class": "topbar-section z-31",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "label": "t:general.container.label",
+      "default": "fixed",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ]
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_separator_line",
+      "label": "t:general.show_separator_line.label",
+      "default": false
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "t:general.padding.top.label",
+      "min": 0,
+      "max": 120,
+      "unit": "px",
+      "step": 2,
+      "default": 12
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "t:general.padding.bottom.label",
+      "min": 0,
+      "max": 120,
+      "unit": "px",
+      "step": 2,
+      "default": 12
+    }
+  ],
+  "blocks": [
+    {
+      "type": "link_list",
+      "name": "t:sections.top-bar.blocks.linklist.name",
+      "settings": [
+        {
+          "type": "link_list",
+          "id": "menu",
+          "label": "t:general.menu.label",
+          "default": "main-menu"
+        },
+        {
+          "type": "select",
+          "id": "position",
+          "label": "t:general.position.label",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:general.content_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.content_alignment.options__2.label"
+            },
+            {
+              "value": "right",
+              "label": "t:general.content_alignment.options__3.label"
+            }
+          ],
+          "default": "left"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:general.text.name",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "t:general.text.label",
+          "default": "Welcome to our store"
+        },
+        {
+          "type": "select",
+          "id": "position",
+          "label": "t:general.position.label",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:general.content_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.content_alignment.options__2.label"
+            },
+            {
+              "value": "right",
+              "label": "t:general.content_alignment.options__3.label"
+            }
+          ],
+          "default": "center"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.top-bar.blocks.highlight_text.content"
+        },
+        {
+          "type": "text",
+          "id": "highlight_text",
+          "label": "t:sections.top-bar.blocks.highlight_text.label"
+        },
+        {
+          "type": "select",
+          "id": "highlight_text_style",
+          "label": "t:sections.top-bar.blocks.highlight_text.highlight_text_style.label",
+          "options": [
+            {
+              "value": "button",
+              "label": "t:sections.top-bar.blocks.highlight_text.highlight_text_style.options__1.label"
+            },
+            {
+              "value": "text-color",
+              "label": "t:sections.top-bar.blocks.highlight_text.highlight_text_style.options__2.label"
+            }
+          ],
+          "default": "button"
+        },
+        {
+          "type": "color",
+          "id": "highlight_text_color",
+          "label": "t:sections.top-bar.blocks.highlight_text.highlight_text_color.label",
+          "info": "t:sections.top-bar.blocks.highlight_text.highlight_text_color.info"
+        },
+        {
+          "type": "color",
+          "id": "highlight_text_background_color",
+          "label": "t:sections.top-bar.blocks.highlight_text.highlight_text_background_color.label",
+          "info": "t:sections.top-bar.blocks.highlight_text.highlight_text_background_color.info",
+          "visible_if": "{{ block.settings.highlight_text_style == 'button' }}"
+        }
+      ]
+    },
+    {
+      "type": "social_links",
+      "name": "t:general.social_links.name",
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_facebook",
+          "label": "t:general.social_links.show_facebook.label",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_instagram",
+          "label": "t:general.social_links.show_instagram.label",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_twitter",
+          "label": "t:general.social_links.show_x.label",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_tiktok",
+          "label": "t:general.social_links.show_tiktok.label",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_pinterest",
+          "label": "t:general.social_links.show_pinterest.label",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "show_snapchat",
+          "label": "t:general.social_links.show_snapchat.label",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "show_tumblr",
+          "label": "t:general.social_links.show_tumblr.label",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "show_youtube",
+          "label": "t:general.social_links.show_youtube.label",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "show_vimeo",
+          "label": "t:general.social_links.show_vimeo.label",
+          "default": false
+        },
+        {
+          "type": "select",
+          "id": "position",
+          "label": "t:general.position.label",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:general.content_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.content_alignment.options__2.label"
+            },
+            {
+              "value": "right",
+              "label": "t:general.content_alignment.options__3.label"
+            }
+          ],
+          "default": "right"
+        }
+      ]
+    },
+    {
+      "type": "language_country",
+      "name": "t:sections.top-bar.blocks.language_country.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_language_selector",
+          "label": "t:general.show_language_selector.label",
+          "info": "t:general.show_language_selector.info",
+          "default": true
+        },
+        {
+          "type": "checkbox",
+          "id": "show_country_selector",
+          "label": "t:general.show_country_selector.label",
+          "info": "t:general.show_country_selector.info",
+          "default": true
+        },
+        {
+          "type": "select",
+          "id": "position",
+          "label": "t:general.position.label",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:general.content_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.content_alignment.options__2.label"
+            },
+            {
+              "value": "right",
+              "label": "t:general.content_alignment.options__3.label"
+            }
+          ],
+          "default": "right"
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["header"]
+  },
+  "presets": [
+    {
+      "name": "t:sections.top-bar.name",
+      "blocks": [
+        {
+          "type": "link_list"
+        },
+        {
+          "type": "text"
+        },
+        {
+          "type": "language_country"
+        },
+        {
+          "type": "social_links"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

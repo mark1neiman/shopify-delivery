@@ -1,0 +1,16 @@
+.newsletter__container--image {
+  --form-spacing: 0;
+}
+@media (min-width: 768px) {
+  .newsletter__container--image {
+    --form-spacing: 4rem;
+  }
+}
+@media (min-width: 1024px) {
+  .newsletter__container--image {
+    --form-spacing: 8rem;
+  }
+}
+.newsletter__form-wrapper {
+  padding-inline-start: var(--form-spacing);
+}

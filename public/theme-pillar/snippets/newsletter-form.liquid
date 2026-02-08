@@ -1,0 +1,95 @@
+{%- liquid
+  assign default_placeholder = 'newsletter.label' | t
+  assign default_button_label = 'newsletter.button_label' | t
+  assign button_label = button_label | default: default_button_label
+  assign custom_id = custom_id | default: section.id
+  assign form_id = 'ContactSubscribe-' | append: custom_id
+  assign button_style = button_style | default: 'btn--primary'
+-%}
+<div class="newsletter-form">
+  {%- form 'customer', id: form_id, is: 'newsletter-form' -%}
+    <input type="hidden" name="contact[tags]" value="newsletter">
+    <div class="newsletter-form__field-wrapper">
+      <div class="form-field relative">
+        <label class="form-label visually-hidden" for="NewsletterForm-{{ custom_id }}">
+          {{ default_placeholder }}
+        </label>
+        <input
+          id="NewsletterForm-{{ custom_id }}"
+          type="email"
+          name="contact[email]"
+          class="form-control flex-1"
+          value="{{ form.email }}"
+          aria-required="true"
+          autocorrect="off"
+          autocapitalize="off"
+          autocomplete="email"
+          {% if form.errors %}
+            autofocus
+            aria-invalid="true"
+            aria-describedby="Newsletter-error--{{ custom_id }}"
+          {% elsif form.posted_successfully? %}
+            aria-describedby="Newsletter-success--{{ custom_id }}"
+          {% endif %}
+          placeholder="{{ 'newsletter.placeholder' | t }}"
+          required
+        >
+        {% capture button_attributes %}
+          type="submit"
+          name="commit"
+          id="Newsletter-submit--{{ custom_id }}"
+        {% endcapture %}
+        {% render 'button',
+          button_style: button_style,
+          button_tag: 'button',
+          button_label: button_label,
+          button_icon: button_icon,
+          additional_attributes: button_attributes
+        %}
+    
+        <basic-modal class="drawer modal modal--newsletter-alert" id="NewsletterAlertModal-{{ custom_id }}" hidden>
+          <div
+            class="fixed-overlay"
+            aria-controls="NewsletterAlertModal-{{ custom_id }}"
+          ></div>
+          <div class="drawer__inner v-scrollable color-{{ settings.overlay_color_scheme }}">
+            <button
+              class="drawer__close-btn z-1"
+              aria-controls="NewsletterAlertModal-{{ custom_id }}"
+              aria-label="{{ 'accessibility.close' | t }}"
+            >
+              {% render 'icon-close' %}
+            </button>
+            <div class="drawer__body no-empty">
+              <p
+                class="form-message alert alert--error blocks-radius hidden w-full"
+                id="Newsletter-error-subscribed--{{ custom_id }}"
+              >
+                {% render 'icon-error' %}
+                {{- 'newsletter.already_subscribed' | t -}}
+              </p>
+              {%- if form.errors -%}
+                <p class="form-message form-message--main alert alert--error blocks-radius w-full" id="Newsletter-error--{{ custom_id }}">
+                  {% render 'icon-error' %}
+                  {{- form.errors.translated_fields.email | capitalize }}
+                  {{ form.errors.messages.email -}}
+                </p>
+              {%- endif -%}
+              {%- if form.posted_successfully? -%}
+                <p
+                  class="form-message form-message--main alert alert--success blocks-radius h6 w-full"
+                  id="Newsletter-success--{{ custom_id }}"
+                  tabindex="-1"
+                  autofocus
+                >
+                  {% render 'icon-success', size: 'small' %}
+                  {{- 'newsletter.success' | t }}
+                </p>
+              {%- endif -%}
+            </div>
+          </div>
+        </basic-modal>
+      </div>
+    </div>
+  {%- endform -%}
+</div>

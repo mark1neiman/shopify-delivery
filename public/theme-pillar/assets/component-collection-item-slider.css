@@ -1,0 +1,18 @@
+.collection-item-slider {
+  gap: 2.4rem;
+}
+.collection-item-slider + .collection-item-slider {
+  margin-top: 3.2rem;
+}
+
+@media (min-width: 768px) {
+  .collection-item-slider {
+    gap: 3.2rem;
+  }
+  .collection-item-slider + .collection-item-slider {
+    margin-top: 4rem;
+  }
+  .collection-item-slider__header .swiper-controls {
+    --swiper-controls-top-offset: 0;
+  }
+}

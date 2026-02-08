@@ -1,0 +1,816 @@
+{
+  "sections": {
+    "breadcrumbs_DgnWDV": {
+      "type": "breadcrumbs",
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "start",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "main": {
+      "type": "main-page",
+      "disabled": true,
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "center",
+        "padding_top": 28,
+        "padding_bottom": 28
+      }
+    },
+    "rich_text_kyFd96": {
+      "type": "rich-text",
+      "blocks": {
+        "subheading_PPhXfw": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "Our story"
+          }
+        },
+        "heading_Y9MMVQ": {
+          "type": "heading",
+          "settings": {
+            "heading": "California's original <em>lifestyle brand</em> dedicated to <em>quality, durability</em> and <em>good looks.</em>",
+            "highlight_style": "thick_underline",
+            "highlight_font_style": "normal",
+            "highlight_style_color": "#ffe093",
+            "highlight_text_color": "",
+            "heading_size": "h1"
+          }
+        },
+        "text_7h6LaE": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Explore a gathering of curated, inspired content from a community of ocean lovers, adventurers & activists. For many, design is about organizing our surroundings with beauty. A little broader, it is also about the idea of the good life – that the home is both functional, but also gives peace to recharge. </p>",
+            "text_size": "text-base",
+            "text_line_limit": "none",
+            "button_style": "btn--underline",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "subheading_PPhXfw",
+        "heading_Y9MMVQ",
+        "text_7h6LaE"
+      ],
+      "custom_css": [
+        ".rich-text {max-width: 88rem; margin: 0 auto;}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "use_color_scheme_in_container": false,
+        "content_spacing": "standard",
+        "content_alignment": "center",
+        "padding_top": 20,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "image_with_text_eUKGwj": {
+      "type": "image-with-text",
+      "blocks": {
+        "badge_AdmYNg": {
+          "type": "badge",
+          "settings": {
+            "color_scheme": "scheme-3",
+            "text": "Out clothing is designed for adventure -",
+            "position_mobile": "right"
+          }
+        },
+        "subheading_t37PND": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "In the winter of 1954"
+          }
+        },
+        "heading_yrtiRH": {
+          "type": "heading",
+          "settings": {
+            "heading": "Make truly exceptional products",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h1"
+          }
+        },
+        "text_DycqGr": {
+          "type": "text",
+          "settings": {
+            "text": "<p>From rugged coastlines to open roads and hidden trails, our clothing is built to move with you—wherever life takes you. We combine timeless style with durable comfort, creating pieces that don’t just look good, but keep up with your every step. Whether you’re chasing waves, climbing peaks, or just enjoying the everyday</p>",
+            "subtext_color": true
+          }
+        },
+        "button_A8M4Bm": {
+          "type": "button",
+          "settings": {
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "badge_AdmYNg",
+        "subheading_t37PND",
+        "heading_yrtiRH",
+        "text_DycqGr",
+        "button_A8M4Bm"
+      ],
+      "custom_css": [
+        ".image-with-text__content {max-width: 52rem;}",
+        ".image-with-text__badge .badge__icon {max-width: 8.8rem;}",
+        "@media (max-width: 767.98px) {.image-with-text__badge .badge__icon {max-width: 4.5rem; }}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "image_position": "left",
+        "image_width": 50,
+        "desktop_content_position": "center",
+        "desktop_content_alignment": "left",
+        "mobile_content_alignment": "inherit",
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 0
+      }
+    },
+    "image_with_text_XwHBqT": {
+      "type": "image-with-text",
+      "blocks": {
+        "subheading_GPjXQt": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "Quality, Durability & Good Looks"
+          }
+        },
+        "heading_dVxMFf": {
+          "type": "heading",
+          "settings": {
+            "heading": "Our clothing is designed for adventure",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h1"
+          }
+        },
+        "text_7geiy3": {
+          "type": "text",
+          "settings": {
+            "text": "<p>From winding coastal roads to quiet forest trails, our clothing is made for the journey. Built with quality fabrics and thoughtful design, each piece combines everyday comfort with outdoor durability. Whether you’re chasing waves, exploring new towns, or unwinding by the fire</p>",
+            "subtext_color": true
+          }
+        },
+        "button_gUa4Ae": {
+          "type": "button",
+          "settings": {
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "subheading_GPjXQt",
+        "heading_dVxMFf",
+        "text_7geiy3",
+        "button_gUa4Ae"
+      ],
+      "custom_css": [
+        ".image-with-text__content {max-width: 52rem;}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "image_position": "right",
+        "image_width": 50,
+        "desktop_content_position": "center",
+        "desktop_content_alignment": "left",
+        "mobile_content_alignment": "inherit",
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 60
+      }
+    },
+    "brand_logos_WeyqiQ": {
+      "type": "brand-logos",
+      "blocks": {
+        "logo_ne4zeV": {
+          "type": "logo",
+          "settings": {}
+        },
+        "logo_h4bDin": {
+          "type": "logo",
+          "settings": {}
+        },
+        "logo_WUqQx4": {
+          "type": "logo",
+          "settings": {}
+        },
+        "logo_cp6Etj": {
+          "type": "logo",
+          "settings": {}
+        },
+        "logo_6CkDEc": {
+          "type": "logo",
+          "settings": {}
+        },
+        "logo_YTUgaE": {
+          "type": "logo",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "logo_ne4zeV",
+        "logo_h4bDin",
+        "logo_WUqQx4",
+        "logo_cp6Etj",
+        "logo_6CkDEc",
+        "logo_YTUgaE"
+      ],
+      "custom_css": [
+        ".section__wrapper {max-width: 1140px; margin: 0 auto;}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "section_header_alignment": "center",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "Featured Brands",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h5",
+        "description": "",
+        "text_size": "text-sm",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--underline",
+        "button_icon": "none",
+        "image_padding": "none",
+        "image_width": "large",
+        "columns_desktop": 6,
+        "column_gap": "large",
+        "row_gap": "inherit",
+        "grid_bordered": false,
+        "columns_mobile": "3",
+        "swipe_on_mobile": true,
+        "padding_top": 60,
+        "padding_bottom": 60,
+        "show_section_divider": true,
+        "divider_width": "fixed"
+      }
+    },
+    "multicolumn_icon_LfJGpX": {
+      "type": "multicolumn-icon",
+      "blocks": {
+        "column_BqJfC4": {
+          "type": "column",
+          "settings": {
+            "icon": "chat",
+            "max_width": 40,
+            "max_width_mb": 40,
+            "title": "Organic Cotton",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h4",
+            "heading_font": "heading",
+            "text": "<p>Currently, 82% feature organic or recycled materials</p>",
+            "text_size": "text-base",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "btn--underline",
+            "button_icon": "none"
+          }
+        },
+        "column_bJdhLB": {
+          "type": "column",
+          "settings": {
+            "icon": "phone",
+            "max_width": 40,
+            "max_width_mb": 40,
+            "title": "Life Cycle",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h4",
+            "heading_font": "heading",
+            "text": "<p>Our Repairs Program revives beloved products, keeping them in action.</p>",
+            "text_size": "text-base",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "btn--underline",
+            "button_icon": "none"
+          }
+        },
+        "column_BRrfmd": {
+          "type": "column",
+          "settings": {
+            "icon": "paperplane",
+            "max_width": 40,
+            "max_width_mb": 40,
+            "title": "Recycle Bags",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h4",
+            "heading_font": "heading",
+            "text": "<p>Orders ship in compostable poly mailers and recycled corrugate</p>",
+            "text_size": "text-base",
+            "button_label": "",
+            "button_link": "",
+            "button_style": "btn--underline",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "column_BqJfC4",
+        "column_bJdhLB",
+        "column_BRrfmd"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-info",
+        "header_layout": "standing-column",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "center",
+        "subheading": "",
+        "heading": "Today Quality, Durability & Good Looks",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--underline",
+        "button_icon": "none",
+        "enable_sticky": false,
+        "card_color_scheme": "scheme-info",
+        "content_alignment": "center",
+        "image_position": "top",
+        "icon_color": "#ffffff",
+        "columns_desktop": 3,
+        "column_gap": "medium",
+        "row_gap": "inherit",
+        "show_divider_col": false,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 50,
+        "padding_bottom": 50
+      }
+    },
+    "buttons_with_icon_njkqzq": {
+      "type": "buttons-with-icon",
+      "blocks": {
+        "button_item_Yx9Wey": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Moisture wicking",
+            "button_link": "",
+            "icon": "check"
+          }
+        },
+        "button_item_QbPF98": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Quick dry",
+            "button_link": "",
+            "icon": "check"
+          }
+        },
+        "button_item_MywPDC": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Safe for ocean",
+            "button_link": "",
+            "icon": "check"
+          }
+        },
+        "button_item_WnHYGy": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Matte finish fabric",
+            "button_link": "",
+            "icon": "check"
+          }
+        }
+      },
+      "block_order": [
+        "button_item_Yx9Wey",
+        "button_item_QbPF98",
+        "button_item_MywPDC",
+        "button_item_WnHYGy"
+      ],
+      "custom_css": [
+        ".rich-text__heading {max-width: 88rem;}",
+        "@media (max-width: 1023.98px) {.rich-text__heading {max-width: 56rem; }}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-12",
+        "section_header_alignment": "center",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "Making the world a more colourful place with our everyday essentials.",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h1",
+        "item_alignment": "center",
+        "item_button_style": "btn--icon",
+        "enable_slider": true,
+        "swipe_on_mobile": true,
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 0
+      }
+    },
+    "multicolumn_dMkfrx": {
+      "type": "multicolumn",
+      "blocks": {
+        "column_dVBPfL": {
+          "type": "column",
+          "settings": {
+            "title": "Considered design",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h4",
+            "text": "<p>Crafted with care and intention, this piece blends modern aesthetics with timeless comfort—perfect for any season.</p>",
+            "text_size": "text-base",
+            "button_label": "Explore Now",
+            "button_style": "btn--plain",
+            "button_icon": "caret-right"
+          }
+        },
+        "column_YcY7Q9": {
+          "type": "column",
+          "settings": {
+            "title": "100% Cotton",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h4",
+            "text": "<p>Made from soft, breathable 100% cotton, this garment delivers all-day comfort and a natural feel against the skin.</p>",
+            "text_size": "text-base",
+            "button_label": "Explore Now",
+            "button_style": "btn--plain",
+            "button_icon": "caret-right"
+          }
+        },
+        "column_b87h4P": {
+          "type": "column",
+          "settings": {
+            "title": "Tailored Protection",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h4",
+            "text": "<p>Designed for outdoor adventures, this hoodie offers lightweight coverage and flexibility, keeping you protected in style.</p>",
+            "text_size": "text-base",
+            "button_label": "Explore Now",
+            "button_style": "btn--plain",
+            "button_icon": "caret-right"
+          }
+        }
+      },
+      "block_order": [
+        "column_dVBPfL",
+        "column_YcY7Q9",
+        "column_b87h4P"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h1",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--underline",
+        "button_icon": "none",
+        "content_alignment": "left",
+        "show_col_count": false,
+        "show_image": true,
+        "columns_desktop": 3,
+        "column_gap": "large",
+        "row_gap": "inherit",
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 60
+      }
+    },
+    "scrolling_promotion_HJ6qN8": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "image_JcCxx8": {
+          "type": "image",
+          "settings": {
+            "image_height": 80,
+            "image_rounded": false,
+            "image_link": "",
+            "image_height_mobile": 60
+          }
+        },
+        "text_WB9ijH": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "New Season Essential",
+            "text_size": "h3",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "image_9wrjFV": {
+          "type": "image",
+          "settings": {
+            "image_height": 80,
+            "image_rounded": false,
+            "image_link": "",
+            "image_height_mobile": 60
+          }
+        },
+        "text_m87WdC": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Designed for adventure",
+            "text_size": "h3",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "image_pm96Nw": {
+          "type": "image",
+          "settings": {
+            "image_height": 80,
+            "image_rounded": false,
+            "image_link": "",
+            "image_height_mobile": 60
+          }
+        },
+        "text_LAPJ9t": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Make it yours",
+            "text_size": "h3",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "image_rALqXH": {
+          "type": "image",
+          "settings": {
+            "image_height": 80,
+            "image_rounded": false,
+            "image_link": "",
+            "image_height_mobile": 60
+          }
+        },
+        "text_trh7iG": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Winter must-haves",
+            "text_size": "h3",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "image_fgHVpz": {
+          "type": "image",
+          "settings": {
+            "image_height": 80,
+            "image_rounded": false,
+            "image_link": "",
+            "image_height_mobile": 60
+          }
+        },
+        "text_HP7nFQ": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Summer must-haves",
+            "text_size": "h3",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        }
+      },
+      "block_order": [
+        "image_JcCxx8",
+        "text_WB9ijH",
+        "image_9wrjFV",
+        "text_m87WdC",
+        "image_pm96Nw",
+        "text_LAPJ9t",
+        "image_rALqXH",
+        "text_trh7iG",
+        "image_fgHVpz",
+        "text_HP7nFQ"
+      ],
+      "settings": {
+        "color_scheme": "scheme-9",
+        "direction": "left",
+        "pause_on_hover": true,
+        "speed": 0.2,
+        "h_spacing": 32,
+        "show_section_divider": false,
+        "padding_top": 24,
+        "padding_bottom": 24
+      }
+    },
+    "collapsible_tabs_MiKLR8": {
+      "type": "collapsible-tabs",
+      "blocks": {
+        "image_card_CEdMGg": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "desktop_image_position": "left",
+            "image_width": 36,
+            "alignment": "center",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "top-center",
+            "content_alignment": "center",
+            "content_spacing": "medium",
+            "content_gap": "fitted",
+            "subheading": "",
+            "subheading_style": "",
+            "heading": "Still need help?",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "<p>Shoot our team an email & we’ll get back to you ASAP</p>",
+            "button_label": "Contact Us",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "order_first": true
+          }
+        },
+        "heading_tAjiLE": {
+          "type": "heading",
+          "settings": {
+            "sub_heading": "",
+            "heading": "Discover more in our FAQs",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h1"
+          }
+        },
+        "collapsible_item_RRkEtE": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How do I cancel or edit an order?",
+            "content": "<p>Unfortunately, we cannot cancel orders due to a change of mind. However, we understand that mistakes happen. If you need to edit your order information, such as the delivery address or contact number, please contact our customer service as soon as possible.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": true,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_bcQh8m": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How can I track my order?",
+            "content": "<p>You can track your order using the tracking link provided in your confirmation email. If you haven’t received a tracking link, please contact our customer service team, and we’ll be happy to assist you.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_T7zEhg": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "What if there is a problem with my order?",
+            "content": "<p>If there is an issue with your order, such as a missing or damaged item, please reach out to our customer service team as soon as possible. We’ll work with you to find a suitable solution.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_jjNpea": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "I didn't receive all off my order?",
+            "content": "<p>Sometimes orders are shipped in multiple packages. Please check your shipping confirmation to see if your items were sent separately. If you’re still missing part of your order, contact our customer service and we’ll help resolve the issue.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        }
+      },
+      "block_order": [
+        "image_card_CEdMGg",
+        "heading_tAjiLE",
+        "collapsible_item_RRkEtE",
+        "collapsible_item_bcQh8m",
+        "collapsible_item_T7zEhg",
+        "collapsible_item_jjNpea"
+      ],
+      "custom_css": [
+        ".section--collapsible-tabs {border-top: 1px solid #c4c0b3;}"
+      ],
+      "settings": {
+        "container": "narrow",
+        "color_scheme": "scheme-9",
+        "header_layout": "vertical",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h1",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--primary",
+        "button_icon": "none",
+        "column_gap": "extra-large",
+        "row_gap": "inherit",
+        "item_style": "standard",
+        "item_color_scheme": "",
+        "item_heading_font": "heading",
+        "item_heading_size": "h5",
+        "item_icon_size": "extra-large",
+        "padding_top": 60,
+        "padding_bottom": 60,
+        "show_section_divider": false,
+        "divider_width": "full"
+      }
+    }
+  },
+  "order": [
+    "breadcrumbs_DgnWDV",
+    "main",
+    "rich_text_kyFd96",
+    "image_with_text_eUKGwj",
+    "image_with_text_XwHBqT",
+    "brand_logos_WeyqiQ",
+    "multicolumn_icon_LfJGpX",
+    "buttons_with_icon_njkqzq",
+    "multicolumn_dMkfrx",
+    "scrolling_promotion_HJ6qN8",
+    "collapsible_tabs_MiKLR8"
+  ]
+}

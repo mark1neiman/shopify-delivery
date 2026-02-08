@@ -1,0 +1,54 @@
+{%- liquid
+  unless form_id
+    assign random_number = 'now' | date: '%N' | modulo: 10 | plus: 25
+    assign form_id = 'language-' | append: random_number
+  endunless
+-%}
+{%- if localization.available_languages.size > 1 -%}
+  <div class="language-switcher no-js-hidden {{ class }}">
+    <localization-form
+      class="disclosure no-js-hidden disclosure--{{ position | default: 'down' }}{% if plain == true %} disclosure--plain{% endif %}"
+      data-disclosure-locale
+    >
+      {%- form 'localization', class: 'selectors-form', id: form_id, data-disclosure-form: '' -%}
+        <h2 class="visually-hidden">
+          {{- 'localization.language_label' | t -}}
+        </h2>
+        <button
+          type="button"
+          class="disclosure__toggle{% if plain == true %} btn--plain{% endif %} text-normal font-body"
+          aria-expanded="false"
+          aria-controls="lang-list"
+          aria-describedby="lang-heading"
+          data-disclosure-toggle
+        >
+          {{ localization.language.endonym_name | capitalize }}
+          {% render 'icon-caret-up' %}
+        </button>
+        <ul class="disclosure-list v-scrollable text-left">
+          {% for language in localization.available_languages %}
+            <li
+              class="disclosure-list__item{% if language.iso_code == localization.language.iso_code %} disclosure-list__item--current{% endif %}"
+              tabindex="-1"
+            >
+              <a
+                class="disclosure-list__option"
+                href="#"
+                hreflang="{{ language.iso_code }}"
+                lang="{{ language.iso_code }}"
+                {% if language.iso_code == localization.language.iso_code %}
+                  aria-current="true"
+                {% endif %}
+                data-value="{{ language.iso_code }}"
+                data-disclosure-option
+              >
+                {{ language.endonym_name | capitalize }}
+              </a>
+            </li>
+          {%- endfor -%}
+        </ul>
+        <input type="hidden" name="locale_code" value="{{ localization.language.iso_code }}" data-disclosure-input>
+      {% endform %}
+    </localization-form>
+  </div>
+{%- endif -%}

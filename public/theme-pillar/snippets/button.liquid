@@ -1,0 +1,69 @@
+{% comment %}
+  Renders button
+
+  Accepts:
+  - button_label: {String} Button label (required)
+  - button_link: {String} Button link (optional)
+  - button_style: {String} Button style (optional)
+  - button_size: {String} Button size (optional)
+  - button_tag: {String} Button icon (optional)
+  - button_icon: {String} Button icon (optional)
+  - button_icon_size: {String} Button icon size (optional)
+  - button_icon_position: {String} Button icon position. Accepted value: first/last (optional)
+  - additional_classes: {String} Additional button classes (optional)
+  - additional_attributes: {String} Additional button attributes (optional)
+
+  Usage:
+  {% render 'button', button_label: button_label, button_link: button_link, button_style: button_style %}
+{% endcomment %}
+{%- capture button_href -%}href="{{ button_link }}"{%- endcapture -%}
+{% liquid
+  assign button_tag = button_tag | default: 'a'
+  assign is_button_icon = false
+  if button_icon != nil and button_icon != 'none'
+    assign is_button_icon = true
+    assign icon_file = button_icon | prepend: 'icon-' | append: '.svg'
+  endif
+  assign button_icon_size = button_icon_size | default: 'small'
+  assign button_icon_position = button_icon_position | default: 'last'
+
+  assign button_classes = 'btn'
+  if button_style != nil
+    assign button_classes = button_classes | append: ' ' | append: button_style
+  endif
+  if button_size != nil
+    assign button_classes = button_classes | append: ' ' | append: button_size
+  endif
+  if is_button_icon
+    assign button_classes = button_classes | append: ' btn--with-icon'
+  endif
+  if additional_classes != blank
+    assign button_classes = button_classes | append: ' ' | append: additional_classes
+  endif
+
+  assign button_attributes = ''
+  if button_tag == 'a'
+    if button_link != nil
+      assign button_attributes = button_attributes | append: button_href
+    else
+      assign button_attributes = button_attributes | append: 'disabled' | append: ' aria-disabled="true"'
+    endif
+  endif
+
+  if additional_attributes != blank
+    assign button_attributes = button_attributes | append: ' ' | append: additional_attributes
+  endif
+%}
+{% if button_label != blank %}
+  <{{ button_tag }}
+    class="{{ button_classes }}"
+    {{ button_attributes }}
+  >
+    <span class="btn__text">{{- button_label -}}</span>
+    {% if is_button_icon %}
+      <span class="btn__icon order-{{ button_icon_position }} svg-icon svg-icon--{{ button_icon }} icon--{{ button_icon_size }} icon--{{ thickness | default: 'thick' }} inline-flex">
+        {{ icon_file | inline_asset_content }}
+      </span>
+    {% endif %}
+  </{{ button_tag }}>
+{% endif %}

@@ -1,0 +1,96 @@
+.promotion-banner {
+  --padding-x: 2.4rem;
+  --padding-y: 2.4rem;
+  padding: var(--padding-y) var(--padding-x);
+}
+@media (min-width: 768px) {
+  .promotion-banner {
+    --padding-x: 2rem;
+    --padding-y: 3.2rem;
+  }
+  .promotion-banner.color-scheme-inherit {
+    --padding-x: 0;
+  }
+}
+@media (min-width: 1024px) {
+  .promotion-banner {
+    --padding-x: 3rem;
+    --padding-y: 4.6rem;
+  }
+}
+@media (min-width: 1280px) {
+  .promotion-banner {
+    --padding-x: 5rem;
+  }
+}
+@media (max-width: 767.98px) {
+  .promotion-banner.color-scheme-inherit-mobile {
+    --padding-x: 0;
+  }
+}
+.promotion-banner__inner--horizontal {
+  --subheading-margin-bottom: 1.2rem;
+}
+@media (min-width: 1024px) {
+  .promotion-banner__inner--horizontal {
+    gap: 2.4rem;
+    --text-margin-top: 0;
+    --child-margin-top: 0;
+    --subheading-margin-bottom: 0;
+  }
+}
+.promotion-banner__inner .countdown-timer__inner {
+  --margin-inline: 1.2rem;
+}
+@media (min-width: 1024px) {
+  .promotion-banner__inner .countdown-timer__inner {
+    --margin-inline: 1.6rem;
+  }
+}
+.promotion-banner__inner .countdown-timer__block {
+  margin: 0 var(--margin-inline);
+}
+.promotion-banner__inner .countdown-timer__block div:after {
+  inset-inline-end: 0;
+  transform: translate(calc(50% + var(--margin-inline)), -50%);
+}
+.promotion-banner__timer, .promotion-banner__code, .promotion-banner__button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.promotion-banner__group-heading {
+  border: 0 solid var(--border-color, rgb(var(--color-foreground)));
+  padding-inline: 2rem;
+}
+.promotion-banner__group-heading.group-heading__left {
+  border-inline-start-width: 0.2rem;
+}
+.promotion-banner__group-heading.group-heading__right {
+  border-inline-end-width: 0.2rem;
+}
+@media (max-width: 1023.98px) {
+  .promotion-banner__group-heading.group-heading-mobile__left {
+    border-inline-width: 0;
+    border-inline-start-width: 0.2rem;
+  }
+  .promotion-banner__group-heading.group-heading-mobile__right {
+    border-inline-width: 0;
+    border-inline-end-width: 0.2rem;
+  }
+  .promotion-banner__group-heading.group-heading-mobile__center {
+    border-inline-width: 0;
+  }
+}
+.promotion-banner__badge {
+  display: inline-block;
+  color: var(--badge-color);
+  border: 0.2rem solid var(--badge-color);
+  border-radius: var(--badges-radius, 0);
+  padding: 0.6rem 2.4rem;
+  margin-block-start: var(--badge-margin-top, 0);
+}
+@media (max-width: 1023.98px) {
+  .promotion-banner__badge {
+    --badge-margin-top: 0.8rem;
+  }
+}

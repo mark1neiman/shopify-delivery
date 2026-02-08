@@ -1,0 +1,84 @@
+{%- liquid
+  assign target = product.selected_or_first_available_variant
+
+  assign in_stock = true
+  if target.inventory_management == 'shopify' and target.inventory_quantity < 1 and target.inventory_policy != 'continue'
+    assign in_stock = false
+  endif
+-%}
+{%- if in_stock -%}
+  {%- liquid
+    assign compare_at_price = target.compare_at_price
+    assign price = target.price | default: 1999
+
+    assign on_sale = false
+    if compare_at_price > price
+      assign on_sale = true
+    endif
+
+    assign new_tags_list = settings.product_new_tags | newline_to_br | strip_newlines | split: '<br />'
+    assign hot_tags_list = settings.product_hot_tags | newline_to_br | strip_newlines | split: '<br />'
+    assign coming_tags_list = settings.product_coming_tags | newline_to_br | strip_newlines | split: '<br />'
+  -%}
+  {%- for tag in product.tags -%}
+    {%- liquid
+      assign tag_handle = tag | handle
+      assign badge_type = ''
+
+      for item in new_tags_list
+        assign item_handle = item | handle
+        if tag_handle == item_handle
+          assign badge_type = 'new'
+          break
+        endif
+      endfor
+
+      for item in hot_tags_list
+        assign item_handle = item | handle
+        if tag_handle == item_handle
+          assign badge_type = 'hot'
+          break
+        endif
+      endfor
+
+      for item in coming_tags_list
+        assign item_handle = item | handle
+        if tag_handle == item_handle
+          assign badge_type = 'coming'
+          break
+        endif
+      endfor
+
+      if badge_type == blank
+        continue
+      endif
+    -%}
+    <span class="f-badge f-badge--{{ badge_type }}">{{ tag }}</span>
+  {%- endfor -%}
+  {%- if on_sale and block.settings.show_sale_badge -%}
+    {%- liquid
+      assign sale_badge = ''
+      assign amount = 0
+
+      case block.settings.sale_badge_type
+        when 'percentage'
+          if compare_at_price > price
+            assign amount = compare_at_price | minus: price | times: 100 | divided_by: compare_at_price | append: '%'
+          endif
+          assign sale_badge = 'products.product.price.save_price_html' | t: amount: amount
+        when 'fixed_amount'
+          if compare_at_price > price
+            assign amount = compare_at_price | minus: price | money
+          endif
+          assign sale_badge = 'products.product.price.save_price_html' | t: amount: amount
+        else
+          assign sale_badge = 'products.product.on_sale' | t
+      endcase
+    -%}
+    <span class="f-badge f-badge--sale">{{ sale_badge }}</span>
+  {%- endif -%}
+{%- else -%}
+  {%- if block.settings.show_soldout_badge -%}
+    <span class="f-badge f-badge--soldout">{{ 'products.product.sold_out' | t }}</span>
+  {%- endif -%}
+{%- endif -%}

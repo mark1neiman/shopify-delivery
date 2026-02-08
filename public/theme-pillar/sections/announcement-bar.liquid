@@ -1,0 +1,410 @@
+<div
+  data-section-index="{{ section.index }}"
+  class="announcement-bar color-{{ section.settings.color_scheme }} page-width section--padding"
+  style="--section-padding-top: {{ section.settings.padding_top }}px;--section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+>
+  <announcement-bar
+    class="swiper announcement-bar__wrapper block"
+    {% if section.settings.autoplay %}
+      autoplay autoplay-speed="{{ section.settings.autoplay_speed }}"
+    {% endif %}
+    style="--content-width: {{ section.settings.content_width }}%;"
+    data-section-id="{{ section.id }}"
+  >
+    <div class="swiper-wrapper items-center">
+      {%- for block in section.blocks -%}
+        <div class="swiper-slide" {{ block.shopify_attributes }} data-index="{{ forloop.index0 }}">
+          {%- case block.type -%}
+            {%- when 'announcement_bar' -%}
+              {%- if block.settings.link != blank -%}
+                <a class="announcement-bar__content rte text-center block" href="{{ block.settings.link }}">
+              {%- else -%}
+                <div class="announcement-bar__content rte text-center">
+              {%- endif -%}
+              {%- if block.settings.text != blank -%}
+                <p class="announcement-bar__text">{{ block.settings.text }}</p>
+              {%- endif -%}
+              {%- if block.settings.link != blank -%}
+                </a>
+              {%- else -%}
+                </div>
+              {%- endif -%}
+            {%- when 'timer' -%}
+              <div class="countdown__wrapper announcement-bar__content announcement-bar__timer flex items-center justify-between sm:justify-center gap-2 md:gap-4">
+                {%- if block.settings.text != blank -%}
+                  <div class="md:text-base text-sm-extra">{{ block.settings.text }}</div>
+                {%- endif -%}
+                {%- if block.settings.type == 'evergreen' or block.settings.time != blank -%}
+                  {%- render 'countdown-timer',
+                    id: block.id,
+                    type: block.settings.type,
+                    duration: block.settings.duration,
+                    time: block.settings.time,
+                    number_size: 'h4',
+                    custom_class: 'flex items-center justify-center',
+                    block_class: 'font-body-bolder'
+                  -%}
+                {%- endif -%}
+                {%- if block.settings.button_label != blank -%}
+                  {% liquid
+                    assign button_icon = block.settings.button_icon
+                    assign is_button_icon = false
+                    if button_icon != 'none'
+                      assign is_button_icon = true
+                      assign icon_file = button_icon | prepend: 'icon-' | append: '.svg'
+                    endif
+                  %}
+                  <a
+                    href="{{ block.settings.button_link | default: "#" }}"
+                    class="btn btn--extra-small {{ block.settings.button_style }}{% if is_button_icon %} btn--with-icon{% endif %}"
+                  >
+                    <span class="hidden sm:block btn__text">{{- block.settings.button_label -}}</span>
+                    {% if is_button_icon %}
+                      <span class="hidden sm:flex btn__icon svg-icon svg-icon--{{ button_icon }} icon--extra-small">
+                        {{ icon_file | inline_asset_content }}
+                      </span>
+                    {% endif %}
+                    <span class="sm:hidden flex btn__icon svg-icon {% if button_icon != 'none' %}svg-icon--{{ button_icon }}{% else %}svg-icon--caret-right{% endif %} icon--extra-small">
+                      {% if button_icon != 'none' %}
+                        {{ icon_file | inline_asset_content }}
+                      {% else %}
+                        {{ 'icon-caret-right.svg' | inline_asset_content }}
+                      {% endif %}
+                    </span>
+                  </a>
+                {%- endif -%}
+              </div>
+          {%- endcase -%}
+        </div>
+      {%- endfor -%}
+    </div>
+    {%- if section.blocks.size > 1 -%}
+      <div class="slider-controls">
+        <div
+          class="swiper-button swiper-button-prev swiper-button--blank"
+          name="previous"
+          aria-label="{{ 'general.slider.previous_slide' | t }}"
+        >
+          {%- render 'icon-slider-prev', size: 'small' -%}
+        </div>
+        <div class="swiper-pagination"></div>
+        <div
+          class="swiper-button swiper-button-next swiper-button--blank"
+          name="next"
+          aria-label="{{ 'general.slider.next_slide' | t }}"
+        >
+          {%- render 'icon-slider-next', size: 'small' -%}
+        </div>
+      </div>
+    {%- endif -%}
+  </announcement-bar>
+</div>
+{% schema %}
+{
+  "name": "t:sections.announcement-bar.name",
+  "class": "announcement-bar-section",
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-inverse"
+    },
+    {
+      "type": "range",
+      "id": "content_width",
+      "label": "t:general.content_width.label",
+      "min": 20,
+      "max": 100,
+      "unit": "%",
+      "step": 1,
+      "default": 30
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "t:general.carousel.autoplay.label",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "label": "t:general.carousel.autoplay_delay.label",
+      "min": 3,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "unit": "s"
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "t:general.padding.top.label",
+      "default": 12,
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "t:general.padding.bottom.label",
+      "default": 12,
+      "min": 0,
+      "max": 50,
+      "step": 1,
+      "unit": "px"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "announcement_bar",
+      "name": "t:sections.announcement-bar.blocks.announcement.name",
+      "settings": [
+        {
+          "type": "inline_richtext",
+          "id": "text",
+          "label": "t:general.text.label",
+          "default": "Welcome to our store"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:general.link.label"
+        }
+      ]
+    },
+    {
+      "type": "timer",
+      "name": "t:general.timer.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "type",
+          "label": "t:general.timer.type.label",
+          "options": [
+            {
+              "value": "evergreen",
+              "label": "t:general.timer.type.options__1.label"
+            },
+            {
+              "value": "fixed_time",
+              "label": "t:general.timer.type.options__2.label"
+            }
+          ],
+          "default": "evergreen"
+        },
+        {
+          "type": "header",
+          "content": "t:general.timer.header__evergreen.content"
+        },
+        {
+          "type": "select",
+          "id": "duration",
+          "label": "t:general.timer.evergreen_duration.label",
+          "options": [
+            {
+              "value": "every_2_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_2_hrs.label"
+            },
+            {
+              "value": "every_6_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_6_hrs.label"
+            },
+            {
+              "value": "every_12_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_12_hrs.label"
+            },
+            {
+              "value": "every_24_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_24_hrs.label"
+            },
+            {
+              "value": "every_week",
+              "label": "t:general.timer.evergreen_duration.options__every_week.label"
+            },
+            {
+              "value": "every_month",
+              "label": "t:general.timer.evergreen_duration.options__every_month.label"
+            }
+          ],
+          "default": "every_month"
+        },
+        {
+          "type": "header",
+          "content": "t:general.timer.header__fixed_time.content"
+        },
+        {
+          "type": "text",
+          "id": "time",
+          "default": "2025/08/20 03:45 PM",
+          "label": "t:general.timer.time.label",
+          "info": "t:general.timer.time.info"
+        },
+        {
+          "type": "header",
+          "content": "t:general.header__content_settings.content"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "t:general.text.label",
+          "default": "Sales end in"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:general.button.button_link.label"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:general.button.button_style.label",
+          "options": [
+            {
+              "value": "btn--primary",
+              "label": "t:general.button.button_style.options__1.label"
+            },
+            {
+              "value": "btn--secondary",
+              "label": "t:general.button.button_style.options__2.label"
+            },
+            {
+              "value": "btn--underline",
+              "label": "t:general.button.button_style.options__4.label"
+            },
+            {
+              "value": "btn--plain",
+              "label": "t:general.button.button_style.options__7.label"
+            }
+          ],
+          "default": "btn--primary"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    }
+  ],
+  "enabled_on": {
+    "groups": ["header"]
+  },
+  "presets": [
+    {
+      "name": "t:sections.announcement-bar.name",
+      "blocks": [
+        {
+          "type": "announcement_bar"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

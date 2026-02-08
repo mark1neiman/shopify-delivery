@@ -1,0 +1,93 @@
+{%- liquid
+  assign swatch_trigger = settings.color_swatch_trigger | downcase
+  assign swatch_file_extension = 'png'
+  assign swatch_count = 0
+
+  assign image_sizes = image_sizes | default: '450px'
+  assign image_widths = image_widths | default: '70, 140, 165, 355, 450, 535, 710, 900, 1070, 1420'
+-%}
+{%- for option in product.options_with_values -%}
+  {%- liquid
+    assign option_name = option.name | downcase
+    assign is_color = false
+
+    if swatch_trigger contains option_name
+      assign is_color = true
+    elsif swatch_trigger contains 'color' and option_name contains 'colour'
+      assign is_color = true
+    endif
+
+    # Skip if it's not a color option
+    unless is_color
+      continue
+    endunless
+
+    assign option_index = forloop.index0
+    assign value = ''
+    assign max_swatch_count = settings.pcard_maximum_swatches_to_show
+  -%}
+  <ul
+    is="color-swatch"
+    class="product-card__swatches swatches swatches--{{ settings.pcard_swatch_shape }} swatches--product-card flex flex-wrap gap-2 items-center justify-{{ settings.pcard_content_alignment }}{% if settings.pcard_swatches_type == 'variant_image' %} swatches--variant-image{% endif %}"
+  >
+    {%- for variant in product.variants -%}
+      {%- liquid
+        assign value = variant.options[option_index]
+      -%}
+      {%- unless values contains value -%}
+        {%- liquid
+          assign values = values | join: ',' | append: ',' | append: value | split: ','
+          assign swatch_count = swatch_count | plus: 1
+          assign swatch_title = product.title | append: ' - ' | append: value
+          assign swatch_url = variant.url
+
+          assign swatch = blank
+          if value.swatch != blank
+            assign swatch = value.swatch
+          endif
+
+          if settings.pcard_swatches_type == 'variant_image' and variant.image
+            assign swatch = variant
+          endif
+        -%}
+        {%- if swatch_count <= max_swatch_count -%}
+          <li class="swatch-item" data-tooltip>
+            {%- if variant.image != blank -%}
+              {{
+                variant.image
+                | image_url: width: variant.image.width
+                | image_tag:
+                  loading: 'lazy',
+                  fetchpriority: 'low',
+                  class: 'color-swatch--variant-image hidden',
+                  widths: image_widths,
+                  sizes: image_sizes
+              }}
+            {%- endif -%}
+            {%- render 'swatch',
+              href: swatch_url,
+              title: swatch_title,
+              value: value,
+              file_extension: swatch_file_extension,
+              swatch: swatch,
+              tooltip: value
+            -%}
+          </li>
+        {%- endif -%}
+      {%- endunless -%}
+    {%- endfor -%}
+    {%- if swatch_count > max_swatch_count -%}
+      <li class="swatch-more">
+        <a
+          href="{{ product.url }}"
+          class="block reversed-link text-sm-extra"
+          {% if enable_quick_view %}
+            aria-controls="{{ quick_view_modal_id }}"
+          {% endif %}
+          aria-expanded="false"
+          ><span class="reversed-link__text">+{{ swatch_count | minus: max_swatch_count -}}</span>
+        </a>
+      </li>
+    {%- endif -%}
+  </ul>
+{%- endfor -%}

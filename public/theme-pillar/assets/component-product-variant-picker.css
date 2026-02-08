@@ -1,0 +1,182 @@
+variant-selects {
+  display: block;
+}
+variant-selects input:is([type=checkbox], [type=radio]):is(:disabled, .disabled) + label {
+  cursor: pointer;
+}
+
+.product-form__input {
+  /* Custom styles for Pill display type */
+}
+.product-form__input input[type=radio] {
+  clip: rect(0, 0, 0, 0);
+  overflow: hidden;
+  position: absolute;
+  height: 1px;
+  width: 1px;
+}
+.product-form__input input[type=radio]:not(.disabled):not(.visually-disabled) + label > .label-unavailable {
+  display: none;
+}
+.product-form__input--dropdown {
+  --swatch-input--size: 2rem;
+  margin-bottom: 1.6rem;
+}
+.product-form__input--dropdown .dropdown-swatch {
+  position: absolute;
+  inset-inline-start: 1.6rem;
+  top: calc(50% - var(--swatch-input--size) / 2);
+  width: var(--swatch-input--size);
+  height: var(--swatch-input--size);
+  z-index: 1;
+}
+.product-form__input--dropdown .dropdown-swatch + select {
+  padding-inline-start: calc(2.4rem + var(--swatch-input--size));
+}
+.product-form__input--button {
+  --variant-pills-border-width: 1px;
+}
+.product-form__input--button input[type=radio] + label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  margin: 0;
+  padding: 0 2rem;
+  min-height: var(--buttons-height);
+  min-width: var(--buttons-height);
+  transition: all var(--duration-default) ease;
+  color: rgb(var(--color-foreground));
+  background-color: rgb(var(--color-background));
+  border: var(--variant-pills-border-width) solid rgb(var(--color-foreground));
+  border-radius: var(--variant-pills-radius, var(--buttons-radius));
+}
+.product-form__input--button input[type=radio] + label:hover {
+  background-color: rgb(var(--color-foreground));
+  color: rgb(var(--color-background));
+}
+.product-form__input--button input[type=radio]:checked + label {
+  background-color: rgb(var(--color-foreground));
+  color: rgb(var(--color-background));
+}
+.product-form__input--button input[type=radio]:checked + label::selection {
+  background-color: rgba(var(--color-background), 0.3);
+}
+.product-form__input--button input[type=radio]:disabled + label, .product-form__input--button input[type=radio].disabled + label {
+  border-color: var(--color-foreground-lighten-19);
+  color: var(--color-foreground-lighten-19);
+}
+.product-form__input--button input[type=radio]:disabled + label:before, .product-form__input--button input[type=radio].disabled + label:before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: linear-gradient(to bottom left, transparent calc(50% - var(--variant-pills-border-width)), var(--color-foreground-lighten-19) 50%, transparent calc(50% + var(--variant-pills-border-width))) no-repeat;
+  border-radius: inherit;
+  z-index: 1;
+}
+.product-form__input--button input[type=radio]:disabled + label:hover, .product-form__input--button input[type=radio].disabled + label:hover {
+  color: rgb(var(--color-background));
+}
+.product-form__input--button input[type=radio]:disabled:checked + label, .product-form__input--button input[type=radio].disabled:checked + label {
+  color: rgba(var(--color-background), 0.5);
+}
+.product-form__input--button input[type=radio]:disabled:checked + label:before, .product-form__input--button input[type=radio].disabled:checked + label:before {
+  background: linear-gradient(to bottom left, transparent calc(50% - var(--variant-pills-border-width)), rgba(var(--color-background), 0.5) 50%, transparent calc(50% + var(--variant-pills-border-width))) no-repeat;
+}
+.product-form__input--button input[type=radio]:focus-visible + label, .product-form__input--button input[type=radio].focused + label {
+  box-shadow: 0 0 0 0.3rem rgb(var(--color-background)), 0 0 0 0.5rem rgba(var(--color-foreground), 0.55);
+}
+.product-form__input--button-square {
+  --swatch-radius: 0;
+}
+.product-form__input--button-square input[type=radio] + label,
+.product-form__input--button-square input[type=radio] + label > .swatch-color {
+  border-radius: 0;
+}
+.product-form__input--button-square input[type=radio] + label:not([data-swatch-type=variant_image],
+[data-swatch-type=color_swatch],
+[data-swatch-type=shopify_swatch],
+[data-swatch-type=text]) {
+  padding: 0 0.8rem;
+}
+.product-form__input--button-circle {
+  --swatch-radius: 9999px;
+}
+.product-form__input--button-circle input[type=radio] + label:not([data-swatch-type=variant_image],
+[data-swatch-type=color_swatch],
+[data-swatch-type=shopify_swatch]) {
+  border-radius: calc(var(--buttons-height) / 2);
+}
+.product-form__input--button-circle input[type=radio] + label:not([data-swatch-type=variant_image],
+[data-swatch-type=color_swatch],
+[data-swatch-type=shopify_swatch],
+[data-swatch-type=text]) {
+  padding: 0 0.8rem;
+}
+.product-form__input--button-standard {
+  --swatch-radius: var(--small-blocks-radius);
+  --variant-pills-radius: var(--small-blocks-radius);
+}
+.product-form__input--color .swatch-color, .product-form__input--swatch .swatch-color {
+  background: var(--swatch-background);
+  background-position: var(--swatch-focal-point, 50%);
+  background-size: cover;
+  min-width: calc(var(--swatch-size) - 0.2rem);
+  min-height: calc(var(--swatch-size) - 0.2rem);
+  border-radius: var(--swatch-radius);
+  position: relative;
+}
+.product-form__input--color .swatch-color:before, .product-form__input--swatch .swatch-color:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transition: all var(--duration-default);
+}
+.product-form__input--color .swatch-color:before, .product-form__input--swatch .swatch-color:before {
+  opacity: 0;
+  box-shadow: 0 0 0 0.1rem rgba(var(--color-border), var(--color-border-alpha, 1)), 0 0 0 0.4rem rgb(var(--color-background)), 0 0 0 0.5rem var(--active-shadow-color);
+}
+.product-form__input--color .swatch-color:after, .product-form__input--swatch .swatch-color:after {
+  display: none;
+}
+.product-form__input--color input[type=radio]:checked + label .swatch-color, .product-form__input--swatch input[type=radio]:checked + label .swatch-color {
+  --active-shadow-color: rgb(var(--color-foreground));
+}
+.product-form__input--color input[type=radio]:checked + label .swatch-color:before, .product-form__input--swatch input[type=radio]:checked + label .swatch-color:before {
+  opacity: 1;
+}
+.product-form__input--color input[type=radio]:is(.disabled) + label, .product-form__input--swatch input[type=radio]:is(.disabled) + label {
+  opacity: 1;
+}
+.product-form__input--color input[type=radio]:is(.disabled) + label .swatch-color, .product-form__input--swatch input[type=radio]:is(.disabled) + label .swatch-color {
+  opacity: 0.5;
+}
+.product-form__input--color input[type=radio]:is(.disabled) + label .swatch-color:before, .product-form__input--swatch input[type=radio]:is(.disabled) + label .swatch-color:before {
+  background: linear-gradient(to bottom left, transparent calc(50% - 0.5px), var(--color-foreground-lighten-19) calc(50% - 0.5px) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  opacity: 1;
+  box-shadow: none;
+}
+.product-form__input--color input[type=radio]:is(.disabled):checked + label .swatch-color:before, .product-form__input--swatch input[type=radio]:is(.disabled):checked + label .swatch-color:before {
+  inset: -0.5rem;
+  box-shadow: 0 0 0 0.1rem var(--color-foreground-lighten-19);
+}
+.product-form__input--swatch {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@media screen and (forced-colors: active) {
+  .product-form__input--button input[type=radio]:checked + label {
+    text-decoration: underline;
+  }
+  .product-form__input--button input[type=radio]:focus-visible + label {
+    outline: transparent solid 1px;
+    outline-offset: 2px;
+  }
+}

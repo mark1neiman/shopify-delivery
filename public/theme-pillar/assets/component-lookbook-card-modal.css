@@ -1,0 +1,130 @@
+/**
+ * Lookbook card modal using in Lookbook cards section.
+ */
+.lbcard {
+  box-sizing: border-box;
+}
+.lbcard__popup {
+  padding: 0;
+  justify-content: center;
+  align-items: flex-end;
+}
+.lbcard__popup .drawer__inner {
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  padding: 0 0 1.6rem;
+}
+@media (max-width: 767.98px) {
+  .lbcard__popup .drawer__inner {
+    border-radius: 0;
+    transform: translateY(100%);
+  }
+}
+@media (max-width: 767.98px) {
+  .lbcard__popup[active] .drawer__inner {
+    transform: translateY(0);
+  }
+}
+.lbcard__popup-header {
+  position: relative;
+  padding: 1.2rem 1.6rem;
+  padding-inline-end: 3rem;
+  min-height: 2rem;
+  border-bottom: 0.1rem solid rgba(var(--color-border), var(--color-border-alpha, 1));
+}
+.lbcard__popup-btn-close {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 1.6rem;
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+}
+.lbcard__popup-btn-close:before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  top: -1rem;
+  width: 4rem;
+  height: 4rem;
+}
+.lbcard__popup-btn-trigger {
+  position: absolute !important;
+  bottom: 2rem;
+  inset-inline-end: 2rem;
+  --btn-trigger-padding: 1.2rem;
+  padding: 0 var(--btn-trigger-padding);
+}
+@media (max-width: 767.98px) {
+  .lbcard__popup-btn-trigger {
+    bottom: 1rem;
+    inset-inline-end: 1rem;
+  }
+}
+@media (min-width: 768px) {
+  .lbcard__popup {
+    position: absolute;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 2rem;
+    z-index: 1;
+  }
+  .lbcard__popup .fixed-overlay {
+    opacity: 0 !important;
+    position: absolute;
+  }
+  .lbcard__popup .drawer__inner {
+    width: clamp(50%, 37.5rem, 100%);
+    height: auto;
+  }
+}
+@media (min-width: 1280px) {
+  .lbcard__popup {
+    padding: 3rem;
+  }
+}
+.lbcard.is-open .lbcard__popup-btn-trigger {
+  opacity: 0;
+}
+.lbcard__product {
+  padding: 1.6rem;
+}
+.lbcard__product:last-child {
+  padding-bottom: 0;
+}
+.lbcard__product + .lbcard__product {
+  border-top: 0.1rem solid rgba(var(--color-border), var(--color-border-alpha, 1));
+}
+.lbcard__product-thumbnail {
+  width: 7.5rem;
+}
+@media (max-width: 767.98px) {
+  .lbcard__product-thumbnail {
+    width: 5rem;
+  }
+}
+.lbcard__product .btn {
+  width: 3.2rem;
+  height: 3.2rem;
+}
+.lbcard__image {
+  opacity: 1;
+  transition: 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.is-hovering .lbcard__image {
+  opacity: 0;
+}
+.lbcard__video {
+  opacity: 0;
+  transition: 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.is-hovering .lbcard__video {
+  opacity: 1;
+}
+.lbcard__play-button {
+  width: 6rem;
+  aspect-ratio: 1/1;
+  color: rgb(var(--color-button-text));
+  background-color: rgba(var(--color-button-text), 0.3);
+}

@@ -1,0 +1,1083 @@
+{%- liquid
+  assign modal_id = 'SpotlightModal-' | append: section.id
+  assign block_size = section.blocks.size
+-%}
+{%- if block_size > 0 -%}
+  {%- style -%}
+    .toggle-spotlight-drawer {
+      position: fixed;
+      top: 50%;
+      inset-inline-start: 100%;
+      transform: translate(0%, -100%) rotate(-90deg);
+      transform-origin: bottom center;
+      height: 4rem;
+      padding: 0 1.2rem;
+      border-radius: var(--medium-blocks-radius);
+      border-end-start-radius: 0;
+      border-end-end-radius: 0;
+      z-index: 29 !important;
+    }
+    .toggle-spotlight-drawer .badge {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 50%;
+      background-color: currentColor;
+      white-space: nowrap;
+    }
+    .toggle-spotlight-drawer .badge-count {
+      color: rgb(var(--color-foreground));
+    }
+    .toggle-spotlight-drawer:hover .badge-count {
+      color: rgb(var(--color-button-text));
+    }
+    .toggle-spotlight-drawer .btn__text {
+      transform: rotate(180deg);
+    }
+  {%- endstyle -%}
+  <link rel="stylesheet" href="{{ 'section-spotlight-picks.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'section-spotlight-picks.css' | asset_url | stylesheet_tag }}</noscript>
+  <spotlight-pick
+    id="{{ modal_id }}"
+    class="drawer drawer--right drawer--spotlight"
+    shopify-design-mode
+    hidden
+  >
+    <div class="fixed-overlay" aria-controls="{{ modal_id }}"></div>
+    <div class="drawer__inner color-{{ settings.overlay_color_scheme }}">
+      <div class="drawer__content flex flex-col h-full w-full">
+        <div class="drawer__header">
+          {%- if section.settings.header_message != blank -%}
+            <div class="drawer__header-message color-{{ section.settings.header_color_scheme }} text-{{ section.settings.header_message_alignment }}">
+              {{ section.settings.header_message }}
+            </div>
+          {%- endif -%}
+          <div class="drawer__header-inner flex items-center justify-between gap-3">
+            <h2 class="drawer__heading {{ section.settings.heading_size }}">
+              {% render 'highlight-text',
+                hl_text: section.settings.heading,
+                hl_style: section.settings.highlight_style,
+                hl_font_style: section.settings.highlight_font_style,
+                hl_style_color: section.settings.highlight_style_color,
+                hl_text_color: section.settings.highlight_text_color
+              %}
+              <span
+                >(
+                {{- block_size -}}
+                )</span
+              >
+            </h2>
+            <button
+              class="drawer__close-btn z-1 static"
+              aria-controls="{{ modal_id }}"
+              type="button"
+              aria-label="{{ 'accessibility.close' | t }}"
+            >
+              {% render 'icon-close', size: 'large' %}
+            </button>
+          </div>
+        </div>
+        <div class="drawer__body flex-grow v-scrollable">
+          <div class="spotlight__list flex flex-col">
+            {%- for block in section.blocks -%}
+              <div
+                class="spotlight__item flex items-center gap-3 theme-radius color-{{ block.settings.color_scheme }}"
+                {{ block.shopify_attributes }}
+              >
+                {%- case block.type -%}
+                  {%- when 'item' -%}
+                    <div class="spotlight__item-info flex-grow flex gap-3">
+                      <div class="spotlight__item-icon shrink-0">
+                        {% render 'icons', icon: block.settings.icon, size: block.settings.icon_size %}
+                      </div>
+                      <div class="spotlight__item-content flex flex-col gap-1">
+                        <h3 class="spotlight__item-heading {{ block.settings.heading_size }}">
+                          {% render 'highlight-text',
+                            hl_text: block.settings.heading,
+                            hl_style: block.settings.highlight_style,
+                            hl_font_style: block.settings.highlight_font_style,
+                            hl_style_color: block.settings.highlight_style_color,
+                            hl_text_color: block.settings.highlight_text_color
+                          %}
+                        </h3>
+                        {%- if block.settings.description != blank -%}
+                          <div class="rte text-subtext">{{- block.settings.description -}}</div>
+                        {%- endif -%}
+                      </div>
+                    </div>
+                    {%- if block.settings.button_label != blank -%}
+                      <div class="spotlight__item-actions shrink-0">
+                        {% render 'button',
+                          button_style: block.settings.button_style,
+                          button_link: block.settings.button_link,
+                          button_label: block.settings.button_label,
+                          button_size: 'btn--small',
+                          button_icon: block.settings.button_icon
+                        %}
+                      </div>
+                    {%- endif -%}
+                  {%- when 'discount' -%}
+                    <div class="spotlight__item-info flex-grow flex gap-3">
+                      <div class="spotlight__item-icon shrink-0">
+                        {% render 'icons', icon: block.settings.icon, size: block.settings.icon_size %}
+                      </div>
+                      <div class="spotlight__item-content flex flex-col gap-1">
+                        <h3 class="spotlight__item-heading {{ block.settings.heading_size }}">
+                          {% render 'highlight-text',
+                            hl_text: block.settings.heading,
+                            hl_style: block.settings.highlight_style,
+                            hl_font_style: block.settings.highlight_font_style,
+                            hl_style_color: block.settings.highlight_style_color,
+                            hl_text_color: block.settings.highlight_text_color
+                          %}
+                        </h3>
+                        {%- if block.settings.description != blank -%}
+                          <div class="rte text-subtext">{{- block.settings.description -}}</div>
+                        {%- endif -%}
+                      </div>
+                    </div>
+                    {%- if block.settings.button_label != blank -%}
+                      {% capture button_attributes %}
+                        {% if block.settings.discount_code == blank %}
+                          aria-disabled="true"
+                          disabled
+                        {% endif %}
+                      {% endcapture %}
+                      <div
+                        class="spotlight__item-actions shrink-0 tooltip--manual"
+                        data-tooltip
+                        is="copy-to-clipboard"
+                        data-copy-value="{{ block.settings.discount_code }}"
+                      >
+                        <span class="tooltip pointer-events-none">{{- 'general.share.copied' | t -}}</span>
+                        {% render 'button',
+                          button_style: 'btn--primary',
+                          button_tag: 'button',
+                          button_size: 'btn--small',
+                          button_icon_size: 'extra-small',
+                          button_label: block.settings.button_label,
+                          button_icon: block.settings.button_icon,
+                          additional_classes: 'w-full',
+                          additional_attributes: button_attributes
+                        %}
+                      </div>
+                    {%- endif -%}
+                {%- endcase -%}
+              </div>
+            {%- endfor -%}
+          </div>
+        </div>
+      </div>
+    </div>
+  </spotlight-pick>
+  <button
+    class="btn btn--primary no-js-hidden toggle-spotlight-drawer"
+    role="button"
+    aria-haspopup="dialog"
+    aria-controls="{{ modal_id }}"
+    data-toggle-spotlight
+    style="--color-button: {{ section.settings.teaser_button_background.red }},{{ section.settings.teaser_button_background.green }},{{ section.settings.teaser_button_background.blue }};--color-button-text:{{ section.settings.teaser_button_text_color.red }},{{ section.settings.teaser_button_text_color.green }},{{ section.settings.teaser_button_text_color.blue }};"
+  >
+    <div class="btn__text flex items-center gap-2">
+      <div class="badge shrink text-sm-extra inline-flex items-center justify-center">
+        <span class="badge-count">{{ block_size }}</span>
+      </div>
+      {{- section.settings.teaser_button_label -}}
+      {%- if section.settings.show_close_teaser_button -%}
+        <span class="close-teaser inline-flex" data-close-teaser>
+          {%- render 'icon-close', class: 'pointer-events-none' -%}
+        </span>
+      {%- endif -%}
+    </div>
+  </button>
+{%- endif -%}
+{% schema %}
+{
+  "name": "t:sections.spotlight-picks.name",
+  "enabled_on": {
+    "groups": ["custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.spotlight-picks.settings.header__message.content"
+    },
+    {
+      "type": "color_scheme",
+      "id": "header_color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-inverse"
+    },
+    {
+      "type": "text",
+      "id": "header_message",
+      "label": "t:general.message.label"
+    },
+    {
+      "id": "header_message_alignment",
+      "type": "select",
+      "label": "t:general.text_alignment.label",
+      "default": "center",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:general.section_header.content"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "t:general.heading.label",
+      "default": "Spotlight picks",
+      "info": "t:general.heading.info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "label": "t:general.highlight_text.highlight_style.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+        },
+        {
+          "value": "hand_drawn_circle",
+          "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+        },
+        {
+          "value": "thick_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+        },
+        {
+          "value": "wave_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "highlight_font_style",
+      "label": "t:general.highlight_text.highlight_font_style.label",
+      "options": [
+        {
+          "value": "italic",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+        },
+        {
+          "value": "normal",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "highlight_style_color",
+      "label": "t:general.highlight_text.highlight_style_color.label"
+    },
+    {
+      "type": "color",
+      "id": "highlight_text_color",
+      "label": "t:general.highlight_text.highlight_text_color.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:general.text_size.heading.label",
+      "default": "h3",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:general.text_size.options__h5.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:general.text_size.options__h4.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:general.text_size.options__h3.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:general.text_size.options__h2.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:general.text_size.options__h1.label"
+        },
+        {
+          "value": "hd2",
+          "label": "t:general.text_size.options__hd2.label"
+        },
+        {
+          "value": "hd1",
+          "label": "t:general.text_size.options__hd1.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:sections.spotlight-picks.settings.open_button.header.content"
+    },
+    {
+      "type": "text",
+      "id": "teaser_button_label",
+      "label": "t:general.button.button_label.label",
+      "default": "Special offers for you"
+    },
+    {
+      "type": "color",
+      "id": "teaser_button_background",
+      "label": "t:sections.spotlight-picks.settings.open_button.button_background.label",
+      "default": "#F4F691"
+    },
+    {
+      "type": "color",
+      "id": "teaser_button_text_color",
+      "label": "t:sections.spotlight-picks.settings.open_button.button_text.label",
+      "default": "#000000"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_close_teaser_button",
+      "label": "t:sections.spotlight-picks.settings.open_button.show_close_teaser.label",
+      "default": false
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "t:sections.spotlight-picks.blocks.item.name",
+      "settings": [
+        {
+          "type": "color_scheme",
+          "id": "color_scheme",
+          "label": "t:general.colors.label",
+          "default": "scheme-1"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.icon.options__1.label"
+            },
+            {
+              "value": "car-simple",
+              "label": "t:general.icon.options__2.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:general.icon.options__3.label"
+            },
+            {
+              "value": "package",
+              "label": "t:general.icon.options__4.label"
+            },
+            {
+              "value": "currency-circle-dollar",
+              "label": "t:general.icon.options__5.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:general.icon.options__6.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.icon.options__7.label"
+            },
+            {
+              "value": "globe",
+              "label": "t:general.icon.options__8.label"
+            },
+            {
+              "value": "check",
+              "label": "t:general.icon.options__9.label"
+            },
+            {
+              "value": "arrow-up-left",
+              "label": "t:general.icon.options__10.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:general.icon.options__11.label"
+            },
+            {
+              "value": "calendar-blank",
+              "label": "t:general.icon.options__12.label"
+            },
+            {
+              "value": "bell-ringing",
+              "label": "t:general.icon.options__13.label"
+            },
+            {
+              "value": "location",
+              "label": "t:general.icon.options__14.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:general.icon.options__15.label"
+            },
+            {
+              "value": "map-pin",
+              "label": "t:general.icon.options__16.label"
+            },
+            {
+              "value": "smiley",
+              "label": "t:general.icon.options__17.label"
+            },
+            {
+              "value": "stool",
+              "label": "t:general.icon.options__18.label"
+            },
+            {
+              "value": "clock",
+              "label": "t:general.icon.options__19.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.icon.options__20.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.icon.options__21.label"
+            },
+            {
+              "value": "paperplane",
+              "label": "t:general.icon.options__22.label"
+            }
+          ],
+          "default": "tag",
+          "label": "t:general.icon.label"
+        },
+        {
+          "type": "select",
+          "id": "icon_size",
+          "options": [
+            {
+              "value": "extra-small",
+              "label": "t:general.icon_size.options__xs.label"
+            },
+            {
+              "value": "small",
+              "label": "t:general.icon_size.options__sm.label"
+            },
+            {
+              "value": "extra-medium",
+              "label": "t:general.icon_size.options__xmd.label"
+            },
+            {
+              "value": "medium",
+              "label": "t:general.icon_size.options__md.label"
+            },
+            {
+              "value": "large",
+              "label": "t:general.icon_size.options__lg.label"
+            },
+            {
+              "value": "extra-large",
+              "label": "t:general.icon_size.options__xl.label"
+            }
+          ],
+          "default": "large",
+          "label": "t:general.icon_size.label"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "heading",
+          "label": "t:general.heading.label",
+          "default": "New Arrivals",
+          "info": "t:general.heading.info"
+        },
+        {
+          "type": "select",
+          "id": "highlight_style",
+          "label": "t:general.highlight_text.highlight_style.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+            },
+            {
+              "value": "hand_drawn_circle",
+              "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+            },
+            {
+              "value": "thick_underline",
+              "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+            },
+            {
+              "value": "wave_underline",
+              "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+            }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "highlight_font_style",
+          "label": "t:general.highlight_text.highlight_font_style.label",
+          "options": [
+            {
+              "value": "italic",
+              "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+            },
+            {
+              "value": "normal",
+              "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+            }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "highlight_style_color",
+          "label": "t:general.highlight_text.highlight_style_color.label"
+        },
+        {
+          "type": "color",
+          "id": "highlight_text_color",
+          "label": "t:general.highlight_text.highlight_text_color.label"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:general.text_size.heading.label",
+          "default": "h5",
+          "options": [
+            {
+              "value": "text-base",
+              "label": "t:general.text_size.options__base.label"
+            },
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            }
+          ]
+        },
+        {
+          "type": "richtext",
+          "id": "description",
+          "label": "t:general.text.label",
+          "default": "<p>Highlight new products to keep your store fresh and engaging</p>"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:general.button.button_link.label"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:general.button.button_style.label",
+          "options": [
+            {
+              "value": "btn--primary",
+              "label": "t:general.button.button_style.options__1.label"
+            },
+            {
+              "value": "btn--secondary",
+              "label": "t:general.button.button_style.options__2.label"
+            },
+            {
+              "value": "btn--underline",
+              "label": "t:general.button.button_style.options__4.label"
+            },
+            {
+              "value": "btn--plain",
+              "label": "t:general.button.button_style.options__7.label"
+            }
+          ],
+          "default": "btn--primary"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    },
+    {
+      "type": "discount",
+      "name": "t:sections.spotlight-picks.blocks.discount.name",
+      "settings": [
+        {
+          "type": "color_scheme",
+          "id": "color_scheme",
+          "label": "t:general.colors.label",
+          "default": "scheme-1"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.icon.options__1.label"
+            },
+            {
+              "value": "car-simple",
+              "label": "t:general.icon.options__2.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:general.icon.options__3.label"
+            },
+            {
+              "value": "package",
+              "label": "t:general.icon.options__4.label"
+            },
+            {
+              "value": "currency-circle-dollar",
+              "label": "t:general.icon.options__5.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:general.icon.options__6.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.icon.options__7.label"
+            },
+            {
+              "value": "globe",
+              "label": "t:general.icon.options__8.label"
+            },
+            {
+              "value": "check",
+              "label": "t:general.icon.options__9.label"
+            },
+            {
+              "value": "arrow-up-left",
+              "label": "t:general.icon.options__10.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:general.icon.options__11.label"
+            },
+            {
+              "value": "calendar-blank",
+              "label": "t:general.icon.options__12.label"
+            },
+            {
+              "value": "bell-ringing",
+              "label": "t:general.icon.options__13.label"
+            },
+            {
+              "value": "location",
+              "label": "t:general.icon.options__14.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:general.icon.options__15.label"
+            },
+            {
+              "value": "map-pin",
+              "label": "t:general.icon.options__16.label"
+            },
+            {
+              "value": "smiley",
+              "label": "t:general.icon.options__17.label"
+            },
+            {
+              "value": "stool",
+              "label": "t:general.icon.options__18.label"
+            },
+            {
+              "value": "clock",
+              "label": "t:general.icon.options__19.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.icon.options__20.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.icon.options__21.label"
+            },
+            {
+              "value": "paperplane",
+              "label": "t:general.icon.options__22.label"
+            }
+          ],
+          "default": "tag",
+          "label": "t:general.icon.label"
+        },
+        {
+          "type": "select",
+          "id": "icon_size",
+          "options": [
+            {
+              "value": "extra-small",
+              "label": "t:general.icon_size.options__xs.label"
+            },
+            {
+              "value": "small",
+              "label": "t:general.icon_size.options__sm.label"
+            },
+            {
+              "value": "extra-medium",
+              "label": "t:general.icon_size.options__xmd.label"
+            },
+            {
+              "value": "medium",
+              "label": "t:general.icon_size.options__md.label"
+            },
+            {
+              "value": "large",
+              "label": "t:general.icon_size.options__lg.label"
+            },
+            {
+              "value": "extra-large",
+              "label": "t:general.icon_size.options__xl.label"
+            }
+          ],
+          "default": "large",
+          "label": "t:general.icon_size.label"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "heading",
+          "label": "t:general.heading.label",
+          "default": "Highlight Deals and Discounts",
+          "info": "t:general.heading.info"
+        },
+        {
+          "type": "select",
+          "id": "highlight_style",
+          "label": "t:general.highlight_text.highlight_style.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+            },
+            {
+              "value": "hand_drawn_circle",
+              "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+            },
+            {
+              "value": "thick_underline",
+              "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+            },
+            {
+              "value": "wave_underline",
+              "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+            }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "highlight_font_style",
+          "label": "t:general.highlight_text.highlight_font_style.label",
+          "options": [
+            {
+              "value": "italic",
+              "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+            },
+            {
+              "value": "normal",
+              "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+            }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "highlight_style_color",
+          "label": "t:general.highlight_text.highlight_style_color.label"
+        },
+        {
+          "type": "color",
+          "id": "highlight_text_color",
+          "label": "t:general.highlight_text.highlight_text_color.label"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:general.text_size.heading.label",
+          "default": "h5",
+          "options": [
+            {
+              "value": "text-base",
+              "label": "t:general.text_size.options__base.label"
+            },
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            }
+          ]
+        },
+        {
+          "type": "richtext",
+          "id": "description",
+          "label": "t:general.text.label",
+          "default": "<p>Showcase top discounts to help customers find great deals quickly</p>"
+        },
+        {
+          "type": "text",
+          "id": "discount_code",
+          "label": "t:sections.spotlight-picks.blocks.discount.settings.code.label",
+          "info": "t:sections.spotlight-picks.blocks.discount.settings.code.info"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Copy"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:general.button.button_style.label",
+          "options": [
+            {
+              "value": "btn--primary",
+              "label": "t:general.button.button_style.options__1.label"
+            },
+            {
+              "value": "btn--secondary",
+              "label": "t:general.button.button_style.options__2.label"
+            },
+            {
+              "value": "btn--underline",
+              "label": "t:general.button.button_style.options__4.label"
+            },
+            {
+              "value": "btn--plain",
+              "label": "t:general.button.button_style.options__7.label"
+            }
+          ],
+          "default": "btn--primary"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,37 @@
+{%- liquid
+  assign featured_media = product.featured_media
+
+  if featured_media.media_type == 'model' or featured_media.media_type == 'video'
+    assign featured_media = product.featured_media.preview_image
+  endif
+-%}
+<li class="compare-bar__item" data-product-id="{{ product.id }}">
+  <div
+    class="media-wrapper hover-wrapper blocks-radius-sm{% if settings.compare_show_image_border %} border-thin{% endif %}"
+    style="--aspect-ratio: 1;"
+  >
+    {%- if featured_media -%}
+      {{
+        featured_media
+        | image_url: width: featured_media.width
+        | image_tag:
+          loading: 'lazy',
+          fetchpriority: 'low',
+          class: 'motion-reduce hover-scale-up',
+          widths: '70, 140',
+          sizes: '70px',
+          is: 'image-lazy'
+      }}
+    {%- else -%}
+      {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg w-full h-full hover-scale-up' -}}
+    {%- endif -%}
+  </div>
+  <button
+    is="compare-remove"
+    data-product-id="{{ product.id }}"
+    class="compare-bar__item-remove btn btn--white"
+    aria-label="{{ 'products.compare.remove' | t }}"
+  >
+    {% render 'icon-close', size: 'extra-small' %}
+  </button>
+</li>

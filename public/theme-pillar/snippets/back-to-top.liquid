@@ -1,0 +1,61 @@
+<style>
+  .back-to-top {
+    position: fixed;
+    bottom: calc(var(--mobile-sticky-bar-height, 0px) + var(--sticky-atc-bar-height, 0px) + 1.5rem);
+    inset-inline-end: 1.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+  .back-to-top button {
+    background: rgb(var(--color-button));
+    color: rgb(var(--color-button-text));
+    border: 0;
+  }
+  .mobile-sticky-bar-down .back-to-top {
+    bottom: calc(var(--sticky-atc-bar-height, 0px) + 1.5rem);
+  }
+  .back-to-top svg {
+    transform: rotate(-90deg)!important;
+  }
+  .back-to-top.show {
+    opacity: 1;
+    visibility: visible;
+  }
+</style>
+<back-to-top class="block back-to-top">
+  <button class="btn btn--icon">
+    {% render 'icon-arrow-right' %}
+  </button>
+</back-to-top>
+
+<script>
+  class BackToTop extends HTMLElement {
+    constructor() {
+      super();
+      this.addEventListener('click', this.scrollToTop);
+    }
+
+    connectedCallback() {
+      window.addEventListener('scroll', this.toggleVisibility.bind(this));
+    }
+
+    scrollToTop() {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    }
+
+    toggleVisibility() {
+      if (window.scrollY > 400) {
+        this.classList.add('show');
+      } else {
+        this.classList.remove('show');
+      }
+    }
+  }
+
+  customElements.define('back-to-top', BackToTop);
+</script>

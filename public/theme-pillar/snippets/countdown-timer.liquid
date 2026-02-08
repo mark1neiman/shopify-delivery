@@ -1,0 +1,68 @@
+{{ 'component-countdown-timer.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'countdown-timer.js' | asset_url }}" defer="defer"></script>
+{%- liquid
+  assign number_size = number_size | default: 'h3'
+
+  assign display_text = false
+  assign style = style | default: 'number'
+  if style == 'with_text'
+    assign display_text = true
+  endif
+
+  assign type = type | default: 'evergreen'
+  assign duration = duration | default: 'every_month'
+-%}
+<countdown-timer
+  id="countdown-timer-{{ id }}"
+  class="countdown-timer hidden no-js-hidden {{ custom_class }}"
+  data-type="{{ type }}"
+  data-duration="{{ duration }}"
+  data-due-date="{{ time }}"
+>
+  <div class="countdown-timer__inner inline-flex items-center justify-center">
+    <div class="countdown-timer__block relative inline-flex flex-col items-center justify-center">
+      <div
+        class="relative text-center w-full countdown-timer__number countdown-timer__day {{ number_size }} {{ block_class }}"
+        data-timer-day
+      >
+        00
+      </div>
+      {%- if display_text -%}
+        <span class="text-subtext">{{ 'sections.countdown-timer.days' | t }}</span>
+      {%- endif -%}
+    </div>
+    <div class="countdown-timer__block relative inline-flex flex-col items-center justify-center">
+      <div
+        class="relative text-center w-full countdown-timer__number countdown-timer__hour {{ number_size }} {{ block_class }}"
+        data-timer-hour
+      >
+        00
+      </div>
+      {%- if display_text -%}
+        <span class="text-subtext">{{ 'sections.countdown-timer.hours' | t }}</span>
+      {%- endif -%}
+    </div>
+    <div class="countdown-timer__block relative inline-flex flex-col items-center justify-center">
+      <div
+        class="relative text-center w-full countdown-timer__number countdown-timer__minute {{ number_size }} {{ block_class }}"
+        data-timer-minute
+      >
+        00
+      </div>
+      {%- if display_text -%}
+        <span class="text-subtext">{{ 'sections.countdown-timer.minutes' | t }}</span>
+      {%- endif -%}
+    </div>
+    <div class="countdown-timer__block relative inline-flex flex-col items-center justify-center">
+      <div
+        class="relative text-center w-full countdown-timer__number countdown-timer__sec {{ number_size }} {{ block_class }}"
+        data-timer-second
+      >
+        00
+      </div>
+      {%- if display_text -%}
+        <span class="text-subtext">{{ 'sections.countdown-timer.seconds' | t }}</span>
+      {%- endif -%}
+    </div>
+  </div>
+</countdown-timer>

@@ -1,0 +1,21 @@
+.list-social {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--social-item-gap-x, 3rem);
+  row-gap: var(--social-item-gap-y, 2rem);
+}
+
+.list-social__link {
+  align-items: center;
+  display: flex;
+  position: relative;
+}
+.list-social__link::before {
+  content: "";
+  position: absolute;
+  inset: -1rem;
+}
+
+.list-social__link:hover .icon {
+  transform: scale(1.04);
+}

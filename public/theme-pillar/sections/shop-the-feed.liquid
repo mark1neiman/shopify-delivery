@@ -1,0 +1,965 @@
+{{ 'component-card-shop-the-feed.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'shop-the-feed.js' | asset_url }}" defer="defer"></script>
+
+{% liquid
+  assign columns_mobile = 1
+  assign enable_swipe_mobile = false
+  if section.settings.swipe_on_mobile and section.blocks.size > columns_mobile
+    assign enable_swipe_mobile = true
+  endif
+
+  assign columns_desktop = section.settings.columns_desktop
+  assign columns_latop = 4 | at_most: columns_desktop
+  assign columns_tablet = 3 | at_most: columns_desktop
+
+  if section.blocks.size < 2
+    assign columns_desktop = 1
+    assign columns_latop = 1
+    assign columns_tablet = 1
+  endif
+
+  assign enable_slider = section.settings.enable_slider
+
+  if section.blocks.size <= columns_desktop
+    assign enable_slider = false
+  endif
+
+  assign card_has_bg = false
+  if section.settings.color_scheme != section.settings.card_color_scheme
+    assign card_has_bg = true
+  endif
+
+  assign pagination_type = 'progressbar'
+%}
+
+{% style %}
+  .section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    --f-columns-mobile: {{ columns_mobile }};
+    --f-columns-md: {{ columns_tablet }};
+    --f-columns-xl: {{ columns_desktop }};
+  }
+{% endstyle %}
+
+{% render 'divider',
+  show_divider: section.settings.show_section_divider,
+  divider_width: section.settings.divider_width
+%}
+
+<div class="section section-{{ section.id }} section--padding shop-the-feed color-{{ section.settings.color_scheme }}">
+  <div class="section__container page-width page-width--{{ section.settings.container }}">
+    <div class="section__wrapper">
+      {% render 'section-heading',
+        section_settings: section.settings,
+        description_size: section.settings.text_size,
+        button_visible: true,
+        button_link: section.settings.button_link,
+        button_style: section.settings.button_style,
+        button_label: section.settings.button_label,
+        button_icon: section.settings.button_icon
+      %}
+      <div class="section__content">
+        <shop-the-feed
+          class="shop-the-feed__inner block relative{% if enable_slider %} swiper swiper-equal-height overflow-visible f-grid--gap-{{ section.settings.column_gap }}{% endif %}{% if enable_swipe_mobile %} swipe-mobile swipe-mobile--{{ columns_mobile }}-cols{% endif %}"
+          data-section-id="{{ section.id }}"
+          {% if enable_slider %}
+            data-enable-slider="true"
+            data-items="{{ columns_desktop }}"
+            data-tablet-items="{{ columns_tablet }}"
+            data-laptop-items="{{ columns_latop }}"
+            data-pagination-type="{{ pagination_type }}"
+          {% endif %}
+          id="shop-the-feed-{{ section.id }}"
+        >
+          <div class="shop-the-feed__items f-grid f-grid--gap-{{ section.settings.column_gap }} f-grid--row-gap-{{ section.settings.row_gap }}{% if enable_slider %} swiper-wrapper{% endif %}{% if enable_swipe_mobile %} swipe-mobile__inner{% endif %}">
+            {%- for block in section.blocks -%}
+              {%- liquid
+                assign video = block.settings.video
+                assign image = block.settings.image
+                assign card_image_ratio = section.settings.card_image_ratio
+                if card_image_ratio == 'adapt'
+                  if video != blank
+                    assign card_image_ratio = video.aspect_ratio
+                  elsif image != blank
+                    assign card_image_ratio = image.aspect_ratio
+                  else
+                    assign card_image_ratio = '1/1'
+                  endif
+                endif
+
+                assign loading = 'lazy'
+                assign fetchpriority = 'auto'
+                if forloop.index == 1 and section.index < 2
+                  assign loading = 'eager'
+                  assign fetchpriority = 'high'
+                endif
+
+                assign avatar = block.settings.avatar
+                assign author = block.settings.author
+                assign account = block.settings.account
+                assign icon = block.settings.icon
+                assign link = block.settings.link
+
+                assign show_info = true
+                if author == blank and account == blank
+                  assign show_info = false
+                endif
+              -%}
+              <div
+                class="f-column{% if enable_slider %} swiper-slide{% endif %}"
+                {{ block.shopify_attributes }}
+                data-index="{{ forloop.index0 }}"
+              >
+                <stf-card class="stf-card{% if card_has_bg %} stf-card--has-bg blocks-radius{% endif %} block color-{{ section.settings.card_color_scheme }}">
+                  {% if show_info %}
+                    {%- if link -%}
+                      <a
+                        href="{{ link }}"
+                        class="stf-card__info-link block"
+                        aria-label="{{ author | default: account }}"
+                      >
+                    {%- endif -%}
+                    <div class="stf-card__info flex items-center gap-x-2">
+                      {% if avatar != blank %}
+                        {% liquid
+                          assign alt_default = author | default: account
+                          assign alt = avatar.alt | default: alt_default | escape
+                        %}
+                        <div class="stf-card__avatar rounded overflow-hidden shrink-0" style="--aspect-ratio: 1;">
+                          {{
+                            avatar
+                            | image_url: width: 240
+                            | image_tag: loading: 'lazy', widths: '40, 80', sizes: '40px', is: 'image-lazy', alt: alt
+                          }}
+                        </div>
+                      {% endif %}
+                      <div class="stf-card__info-detail flex-1 flex flex-col">
+                        {% if author != blank %}
+                          <span class="stf-card__info-author">{{ author }}</span>
+                        {% endif %}
+                        {% if account != blank %}
+                          <span class="stf-card__info-account text-sm text-subtext">{{ account }}</span>
+                        {% endif %}
+                      </div>
+                      {% if icon != 'none' %}
+                        <div class="stf-card__social-icon flex shrink-0">
+                          {% liquid
+                            case icon
+                              when 'facebook'
+                                render 'icon-facebook', size: 'large'
+                              when 'twitter'
+                                render 'icon-twitter', size: 'large'
+                              when 'instagram'
+                                render 'icon-instagram', size: 'large'
+                              when 'tiktok'
+                                render 'icon-tiktok', size: 'large'
+                              when 'youtube'
+                                render 'icon-youtube', size: 'large'
+                              when 'vimeo'
+                                render 'icon-vimeo', size: 'large'
+                            endcase
+                          %}
+                        </div>
+                      {% endif %}
+                    </div>
+                    {%- if link -%}
+                      </a>
+                    {%- endif -%}
+                  {% endif %}
+                  <div
+                    class="stf-card__media blocks-radius"
+                    style="--aspect-ratio: {{ card_image_ratio }};"
+                  >
+                    {% if video != blank %}
+                      {%- render 'video',
+                        video: video,
+                        muted: true,
+                        autoplay: false,
+                        controls: false,
+                        loop: true,
+                        show_play_button: false,
+                        classes: 'stf-card__video'
+                      -%}
+                    {% endif %}
+                    <div class="stf-card__image absolute inset-0 w-full h-full flex flex-col items-center justify-center">
+                      {% if video != blank and video.preview_image != blank %}
+                        {% liquid
+                          assign video_alt = video.alt | default: shop.name
+                          assign alt = 'accessibility.load_video' | t: description: video_alt | escape
+                        %}
+                        {{
+                          video.preview_image
+                          | image_url: width: 1100
+                          | image_tag:
+                            loading: loading,
+                            fetchpriority: fetchpriority,
+                            widths: '165, 360, 535, 750, 940, 1100',
+                            is: 'image-lazy',
+                            alt: video_alt
+                        }}
+                      {% elsif image != blank %}
+                        {% liquid
+                          assign alt_image = image.alt | default: shop.name | escape
+                        %}
+                        {{
+                          image
+                          | image_url: width: 1100
+                          | image_tag:
+                            loading: loading,
+                            fetchpriority: fetchpriority,
+                            class: 'motion-reduce hover-scale-up',
+                            widths: '165, 360, 535, 750, 940, 1100',
+                            is: 'image-lazy',
+                            alt: alt_image
+                        }}
+                      {% else %}
+                        {{ 'image' | placeholder_svg_tag: 'placeholder-svg hover-scale-up' }}
+                      {% endif %}
+                      {% if video != blank %}
+                        <span class="stf-card__play-button absolute flex items-center justify-center rounded pointer-events-auto z-10 motion-reduce">
+                          {%- render 'icon-play', size: 'large' -%}
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                  {% if block.settings.product != blank %}
+                    {% liquid
+                      assign product = block.settings.product
+                      assign alt = product.featured_image | default: product.title | escape
+                    %}
+                    <div class="stf-card__footer">
+                      <a
+                        class="stf-card__product btn-hover-wrapper flex items-center gap-x-3"
+                        href="{{ product.url }}"
+                        target="_blank"
+                      >
+                        <span
+                          class="stf-card__product-media block blocks-radius-sm shrink-0"
+                          style="--aspect-ratio: 1;"
+                        >
+                          {{
+                            product.featured_image
+                            | image_url: width: 360
+                            | image_tag:
+                              loading: 'lazy',
+                              widths: '40, 80',
+                              sizes: '40px',
+                              is: 'image-lazy',
+                              alt: alt,
+                              class: 'motion-reduce'
+                          }}
+                        </span>
+                        <p class="stf-card__product-title m-0 text-limit-1-line flex-1">
+                          <span class="reversed-link">{{ product.title }}</span>
+                        </p>
+                        <button
+                          class="btn btn--icon-circle btn--icon shrink-0 md:inline-flex hidden"
+                          aria-label="{{- 'products.product.view_details' | t -}}"
+                          tabindex="-1"
+                        >
+                          <span class="btn__text flex">{% render 'icon-caret-right', size: 'extra-small' %}</span>
+                        </button>
+                      </a>
+                    </div>
+                  {% endif %}
+                </stf-card>
+              </div>
+            {%- endfor -%}
+          </div>
+        </shop-the-feed>
+        {%- if enable_slider -%}
+          <div class="swiper-controls swiper-controls--grouped swiper-controls--pagination-{{ pagination_type }} hidden md:flex">
+            <button
+              class="swiper-button swiper-button-prev btn"
+              name="previous"
+              aria-label="{{ 'general.slider.previous_slide' | t }}"
+            >
+              <span class="btn__text"> {% render 'icon-caret-left' %}</span>
+            </button>
+            <div class="swiper-pagination"></div>
+            <button
+              class="swiper-button swiper-button-next btn"
+              name="next"
+              aria-label="{{ 'general.slider.next_slide' | t }}"
+            >
+              <span class="btn__text"> {% render 'icon-caret-right' %}</span>
+            </button>
+          </div>
+        {%- endif -%}
+        {% if pagination_type == 'progressbar' and enable_swipe_mobile and section.settings.show_progress_bar %}
+          <scroll-progress-bar class="md:hidden" target="shop-the-feed-{{ section.id }}">
+            <div class="progress-container">
+              <div class="progress-bar no-empty"></div>
+            </div>
+          </scroll-progress-bar>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.shop-the-feed.name",
+  "tag": "section",
+  "class": "section-shop-the-feed",
+  "max_blocks": 18,
+  "disabled_on": {
+    "groups": ["footer", "header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        },
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:general.section_header.content"
+    },
+    {
+      "id": "section_header_alignment",
+      "type": "select",
+      "label": "t:general.text_alignment.label",
+      "default": "center",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "id": "section_header_alignment_mobile",
+      "type": "select",
+      "label": "t:general.text_alignment.mobile.label",
+      "default": "inherit",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.text_alignment.options__4.label"
+        },
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "t:general.subheading.label"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "Shop the feed",
+      "label": "t:general.heading.label",
+      "info": "t:general.heading.info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "label": "t:general.highlight_text.highlight_style.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+        },
+        {
+          "value": "hand_drawn_circle",
+          "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+        },
+        {
+          "value": "thick_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+        },
+        {
+          "value": "wave_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "highlight_font_style",
+      "label": "t:general.highlight_text.highlight_font_style.label",
+      "options": [
+        {
+          "value": "italic",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+        },
+        {
+          "value": "normal",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "highlight_style_color",
+      "label": "t:general.highlight_text.highlight_style_color.label"
+    },
+    {
+      "type": "color",
+      "id": "highlight_text_color",
+      "label": "t:general.highlight_text.highlight_text_color.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:general.text_size.heading.label",
+      "default": "h1",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:general.text_size.options__h5.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:general.text_size.options__h4.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:general.text_size.options__h3.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:general.text_size.options__h2.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:general.text_size.options__h1.label"
+        },
+        {
+          "value": "hd2",
+          "label": "t:general.text_size.options__hd2.label"
+        },
+        {
+          "value": "hd1",
+          "label": "t:general.text_size.options__hd1.label"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "t:general.text.label"
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "t:general.text_size.text.label",
+      "default": "text-base",
+      "options": [
+        {
+          "value": "text-sm",
+          "label": "t:general.text_size.options__small.label"
+        },
+        {
+          "value": "text-base",
+          "label": "t:general.text_size.options__base.label"
+        },
+        {
+          "value": "text-lg",
+          "label": "t:general.text_size.options__large.label"
+        },
+        {
+          "value": "text-inherit",
+          "label": "t:general.text_size.options__inherit.label"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:general.button.button_label.label"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:general.button.button_link.label"
+    },
+    {
+      "type": "select",
+      "id": "button_style",
+      "label": "t:general.button.button_style.label",
+      "options": [
+        {
+          "value": "btn--primary",
+          "label": "t:general.button.button_style.options__1.label"
+        },
+        {
+          "value": "btn--secondary",
+          "label": "t:general.button.button_style.options__2.label"
+        },
+        {
+          "value": "btn--underline",
+          "label": "t:general.button.button_style.options__4.label"
+        },
+        {
+          "value": "btn--plain",
+          "label": "t:general.button.button_style.options__7.label"
+        }
+      ],
+      "default": "btn--underline"
+    },
+    {
+      "type": "select",
+      "id": "button_icon",
+      "label": "t:general.button.button_icon.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.button.button_icon.options__1.label"
+        },
+        {
+          "value": "caret-right",
+          "label": "t:general.button.button_icon.options__2.label"
+        },
+        {
+          "value": "caret-left",
+          "label": "t:general.button.button_icon.options__22.label"
+        },
+        {
+          "value": "arrow-right",
+          "label": "t:general.button.button_icon.options__3.label"
+        },
+        {
+          "value": "arrow-left",
+          "label": "t:general.button.button_icon.options__23.label"
+        },
+        {
+          "value": "close",
+          "label": "t:general.button.button_icon.options__4.label"
+        },
+        {
+          "value": "home",
+          "label": "t:general.button.button_icon.options__5.label"
+        },
+        {
+          "value": "search",
+          "label": "t:general.button.button_icon.options__6.label"
+        },
+        {
+          "value": "hamburger",
+          "label": "t:general.button.button_icon.options__7.label"
+        },
+        {
+          "value": "pencil",
+          "label": "t:general.button.button_icon.options__8.label"
+        },
+        {
+          "value": "plus",
+          "label": "t:general.button.button_icon.options__9.label"
+        },
+        {
+          "value": "cart",
+          "label": "t:general.button.button_icon.options__10.label"
+        },
+        {
+          "value": "account",
+          "label": "t:general.button.button_icon.options__11.label"
+        },
+        {
+          "value": "sign-in",
+          "label": "t:general.button.button_icon.options__12.label"
+        },
+        {
+          "value": "chat",
+          "label": "t:general.button.button_icon.options__13.label"
+        },
+        {
+          "value": "download",
+          "label": "t:general.button.button_icon.options__14.label"
+        },
+        {
+          "value": "upload",
+          "label": "t:general.button.button_icon.options__15.label"
+        },
+        {
+          "value": "heart",
+          "label": "t:general.button.button_icon.options__16.label"
+        },
+        {
+          "value": "play-outline",
+          "label": "t:general.button.button_icon.options__17.label"
+        },
+        {
+          "value": "pause",
+          "label": "t:general.button.button_icon.options__18.label"
+        },
+        {
+          "value": "stop",
+          "label": "t:general.button.button_icon.options__19.label"
+        },
+        {
+          "value": "speaker",
+          "label": "t:general.button.button_icon.options__20.label"
+        },
+        {
+          "value": "setting",
+          "label": "t:general.button.button_icon.options__21.label"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "header",
+      "content": "t:general.grid.name"
+    },
+    {
+      "type": "range",
+      "id": "columns_desktop",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4,
+      "label": "t:general.grid.columns_desktop.label"
+    },
+    {
+      "type": "select",
+      "id": "column_gap",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.grid.gap.options__none.label"
+        },
+        {
+          "value": "2xs",
+          "label": "t:general.grid.gap.options__2xs.label"
+        },
+        {
+          "value": "extra-small",
+          "label": "t:general.grid.gap.options__xs.label"
+        },
+        {
+          "value": "small",
+          "label": "t:general.grid.gap.options__sm.label"
+        },
+        {
+          "value": "medium",
+          "label": "t:general.grid.gap.options__md.label"
+        },
+        {
+          "value": "large",
+          "label": "t:general.grid.gap.options__lg.label"
+        },
+        {
+          "value": "extra-large",
+          "label": "t:general.grid.gap.options__xl.label"
+        }
+      ],
+      "default": "medium",
+      "label": "t:general.grid.column_gap.label"
+    },
+    {
+      "type": "select",
+      "id": "row_gap",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.grid.gap.options__inherit.label"
+        },
+        {
+          "value": "none",
+          "label": "t:general.grid.gap.options__none.label"
+        },
+        {
+          "value": "2xs",
+          "label": "t:general.grid.gap.options__2xs.label"
+        },
+        {
+          "value": "extra-small",
+          "label": "t:general.grid.gap.options__xs.label"
+        },
+        {
+          "value": "small",
+          "label": "t:general.grid.gap.options__sm.label"
+        },
+        {
+          "value": "medium",
+          "label": "t:general.grid.gap.options__md.label"
+        },
+        {
+          "value": "large",
+          "label": "t:general.grid.gap.options__lg.label"
+        },
+        {
+          "value": "extra-large",
+          "label": "t:general.grid.gap.options__xl.label"
+        }
+      ],
+      "default": "inherit",
+      "label": "t:general.grid.row_gap.label"
+    },
+    {
+      "type": "header",
+      "content": "t:general.carousel.name"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_slider",
+      "label": "t:general.carousel.enable_carousel.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:general.header__card_settings.content"
+    },
+    {
+      "type": "color_scheme",
+      "id": "card_color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-10"
+    },
+    {
+      "type": "select",
+      "id": "card_image_ratio",
+      "label": "t:general.image_ratio.label",
+      "default": "adapt",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:general.image_ratio.options__1.label"
+        },
+        {
+          "value": "1/1",
+          "label": "t:general.image_ratio.options__2.label"
+        },
+        {
+          "value": "3/4",
+          "label": "t:general.image_ratio.options__3.label"
+        },
+        {
+          "value": "4/3",
+          "label": "t:general.image_ratio.options__4.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:general.mobile.name"
+    },
+    {
+      "type": "checkbox",
+      "id": "swipe_on_mobile",
+      "default": true,
+      "label": "t:general.mobile.swipe_on_mobile.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress_bar",
+      "label": "t:general.carousel.show_progress_bar.label",
+      "default": true,
+      "visible_if": "{{ section.settings.swipe_on_mobile == true }}"
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.top.label",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.bottom.label",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "t:general.divider.section_heading.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:general.divider.show_divider.label"
+    },
+    {
+      "type": "select",
+      "id": "divider_width",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "feed",
+      "name": "t:sections.shop-the-feed.blocks.name",
+      "settings": [
+        {
+          "type": "header",
+          "content": "t:sections.shop-the-feed.blocks.settings.header__media.content"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:general.image.label"
+        },
+        {
+          "type": "video",
+          "label": "t:general.video.label",
+          "id": "video"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.shop-the-feed.blocks.settings.header__info.content"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:general.link.label"
+        },
+        {
+          "type": "image_picker",
+          "id": "avatar",
+          "label": "t:sections.shop-the-feed.blocks.settings.avatar.label"
+        },
+        {
+          "type": "text",
+          "id": "author",
+          "label": "t:sections.shop-the-feed.blocks.settings.author.label",
+          "default": "Author"
+        },
+        {
+          "type": "text",
+          "id": "account",
+          "label": "t:sections.shop-the-feed.blocks.settings.account.label",
+          "default": "@account"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:general.social_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.social_icon.options__1.label"
+            },
+            {
+              "value": "instagram",
+              "label": "t:general.social_icon.options__2.label"
+            },
+            {
+              "value": "facebook",
+              "label": "t:general.social_icon.options__3.label"
+            },
+            {
+              "value": "twitter",
+              "label": "t:general.social_icon.options__4.label"
+            },
+            {
+              "value": "tiktok",
+              "label": "t:general.social_icon.options__5.label"
+            },
+            {
+              "value": "youtube",
+              "label": "t:general.social_icon.options__6.label"
+            },
+            {
+              "value": "vimeo",
+              "label": "t:general.social_icon.options__7.label"
+            }
+          ],
+          "default": "tiktok"
+        },
+        {
+          "type": "header",
+          "content": "t:general.product.label"
+        },
+        {
+          "type": "product",
+          "id": "product",
+          "label": "t:general.product.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.shop-the-feed.presets.name",
+      "blocks": [
+        {
+          "type": "feed"
+        },
+        {
+          "type": "feed"
+        },
+        {
+          "type": "feed"
+        },
+        {
+          "type": "feed"
+        },
+        {
+          "type": "feed"
+        },
+        {
+          "type": "feed"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

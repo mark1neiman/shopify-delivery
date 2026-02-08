@@ -1,0 +1,10 @@
+.section--lookbook-banner .lookbook-icon__card {
+  --card-w: 29.4rem;
+  --card-p: 1.6rem;
+}
+@media (max-width: 767.98px) {
+  .section--lookbook-banner .lookbook-icon__card {
+    --card-w: 20.4rem;
+    --card-p: 1.2rem;
+  }
+}

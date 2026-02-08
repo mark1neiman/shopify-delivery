@@ -1,0 +1,43 @@
+{%- if gift_wrapping != null -%}
+  <gift-wrapping
+    data-gift-wrap-id="{{ gift_wrap_id }}"
+    data-gift-wrapping="{{ cart.attributes.gift-wrapping | escape }}"
+    cart-items-size="{{ cart.items.size }}"
+    gift-wraps-in-cart="{{ gift_wraps_in_cart }}"
+    items-in-cart="{{ items_in_cart }}"
+    data-section-id="{{ section_id }}"
+    class="flex flex-col gap-3{% if class %} {{ class }}{% endif %} no-js-hidden"
+  >
+    <div class="flex items-center gap-2">
+      <div class="relative flex loader">
+        <input
+          type="checkbox"
+          id="GiftWrap-{{ section_id }}"
+          name="attributes[gift-wrapping]"
+          value="yes"
+          {%- if cart.attributes['gift-wrapping'] %}
+            checked
+          {% endif -%}
+        >
+        {%- render 'loading-spinner' -%}
+      </div>
+      <label for="GiftWrap-{{ section.id }}" class="cursor-pointer">
+        {%- liquid
+          assign gift_price = gift_wrapping.object.price | money
+          echo 'general.cart.gift_wrapping.message_html' | t: price: gift_price
+        -%}
+      </label>
+    </div>
+    {%- if cart.attributes['gift-wrapping'] -%}
+      <gift-note class="field">
+        <textarea
+          class="form-control form-control--textarea"
+          rows="3"
+          id="GiftNote-{{ section_id }}"
+          name="attributes[gift-note]"
+          placeholder="{{- 'general.cart.gift_wrapping.note_placeholder' | t -}}"
+        >{{ cart.attributes.gift-note }}</textarea>
+      </gift-note>
+    {%- endif -%}
+  </gift-wrapping>
+{%- endif -%}

@@ -1,0 +1,327 @@
+{
+  "name": "Overlay group",
+  "type": "custom.overlay",
+  "sections": {
+    "cart-drawer": {
+      "type": "cart-drawer",
+      "settings": {
+        "show_cart_note": true,
+        "show_shipping_rates_calculator": true,
+        "show_cart_coupon": true,
+        "show_free_shipping_goal": true,
+        "enable_cart_recommendations": true,
+        "cart_recommendations_color_scheme": "scheme-1",
+        "cart_recommendations_heading": "Pair Well With",
+        "cart_recommendations_limit": 3,
+        "cart_recommendations_products": [],
+        "cart_recommendations_layout": "grid",
+        "cart_mess_color_scheme": "scheme-2",
+        "cart_message": "✌🏼 Free Express Shipping on orders $120!",
+        "cart_message_alignment": "center"
+      }
+    },
+    "product-compare": {
+      "type": "product-compare",
+      "blocks": {
+        "info_BQEhkg": {
+          "type": "info",
+          "settings": {
+            "show_view_details_button": true
+          }
+        },
+        "description_HnwTqC": {
+          "type": "description",
+          "settings": {
+            "text_line_limit": "3-lines",
+            "show_view_more_button": false
+          }
+        },
+        "price_BbVPd4": {
+          "type": "price",
+          "settings": {}
+        },
+        "vendor_DzTLqc": {
+          "type": "vendor",
+          "settings": {}
+        },
+        "type_AzgBQT": {
+          "type": "type",
+          "settings": {}
+        },
+        "variants_RYYmjz": {
+          "type": "variants",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "info_BQEhkg",
+        "description_HnwTqC",
+        "price_BbVPd4",
+        "vendor_DzTLqc",
+        "type_AzgBQT",
+        "variants_RYYmjz"
+      ],
+      "settings": {}
+    },
+    "quick-view": {
+      "type": "quick-view",
+      "blocks": {
+        "badges": {
+          "type": "badges",
+          "settings": {
+            "show_soldout_badge": true,
+            "show_sale_badge": true,
+            "sale_badge_type": "text"
+          }
+        },
+        "title": {
+          "type": "title",
+          "settings": {
+            "heading_size": "h1"
+          }
+        },
+        "meta": {
+          "type": "meta",
+          "settings": {
+            "link_color": "#000000",
+            "show_vendor": true,
+            "show_product_type": true,
+            "show_sku": true,
+            "show_barcode": false
+          }
+        },
+        "price": {
+          "type": "price",
+          "settings": {}
+        },
+        "icon_with_text_dNbmeH": {
+          "type": "icon-with-text",
+          "settings": {
+            "layout": "horizontal",
+            "title_font": "body-bolder",
+            "title_size": "text-base",
+            "icon_1": "check",
+            "heading_1": "Modern",
+            "icon_2": "check",
+            "heading_2": "Eco-certified",
+            "icon_3": "check",
+            "heading_3": "Warranty"
+          }
+        },
+        "inventory": {
+          "type": "inventory",
+          "settings": {
+            "text_style": "body",
+            "inventory_threshold": 20,
+            "show_inventory_quantity": true
+          }
+        },
+        "description": {
+          "type": "description",
+          "settings": {}
+        },
+        "variant_picker": {
+          "type": "variant_picker",
+          "settings": {
+            "picker_type": "button",
+            "swatch_type": "color_swatch",
+            "swatch_style": "square",
+            "swatch_size": 32,
+            "button_style": "circle",
+            "size_title": "Size",
+            "size_chart_from_page": "product-size-chart"
+          }
+        },
+        "buy_buttons": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_quantity_selector": true,
+            "show_dynamic_checkout": true,
+            "show_gift_card_recipient": true
+          }
+        }
+      },
+      "block_order": [
+        "badges",
+        "title",
+        "meta",
+        "price",
+        "icon_with_text_dNbmeH",
+        "inventory",
+        "description",
+        "variant_picker",
+        "buy_buttons"
+      ],
+      "settings": {
+        "show_image_border": false,
+        "enable_sticky_info": true,
+        "enable_video_looping": true
+      }
+    },
+    "popup": {
+      "type": "popup",
+      "blocks": {
+        "image": {
+          "type": "image",
+          "settings": {
+            "image_position": "left"
+          }
+        },
+        "heading": {
+          "type": "heading",
+          "settings": {
+            "heading": "Sign up to get 10% OFF <br>your first order",
+            "text_size": "h2"
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Sexy and sustainable goodies? Sign me up</p>",
+            "text_size": "text-base"
+          }
+        },
+        "form": {
+          "type": "form",
+          "settings": {
+            "button_label": "Get 10% OFF",
+            "button_icon": "none"
+          }
+        },
+        "socials": {
+          "type": "socials",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "image",
+        "heading",
+        "text",
+        "form",
+        "socials"
+      ],
+      "settings": {
+        "enable": true,
+        "show_for_homepage_only": true,
+        "show_for_visitors_only": true,
+        "trigger_open": "delay",
+        "repeat_open": "every_day",
+        "alignment": "center",
+        "width": 880,
+        "show_teaser": false,
+        "teaser_button_text": "Newsletter",
+        "teaser_popup_bg": "#d63a2f",
+        "teaser_popup_text": "#ffffff"
+      }
+    },
+    "spotlight-picks": {
+      "type": "spotlight-picks",
+      "blocks": {
+        "discount_1": {
+          "type": "discount",
+          "settings": {
+            "color_scheme": "scheme-11",
+            "icon": "tag",
+            "icon_size": "large",
+            "heading": "Save an extra 10%",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "description": "<p>Use promo code MASON10</p>",
+            "discount_code": "MASON10",
+            "button_label": "Copy",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "item_Nn9kW6": {
+          "type": "item",
+          "settings": {
+            "color_scheme": "scheme-11",
+            "icon": "tag",
+            "icon_size": "large",
+            "heading": "Select lamp from $20",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "description": "<p>Valid for filter </p>",
+            "button_label": "Shop",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "item_dQn9tr": {
+          "type": "item",
+          "settings": {
+            "color_scheme": "scheme-11",
+            "icon": "tag",
+            "icon_size": "large",
+            "heading": "This week’s hot deals",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "description": "<p>Online exclusive</p>",
+            "button_label": "Shop",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "item_xfLhK8": {
+          "type": "item",
+          "settings": {
+            "color_scheme": "scheme-11",
+            "icon": "tag",
+            "icon_size": "large",
+            "heading": "Free Delivery",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "description": "<p>on all major items $120+</p>",
+            "button_label": "Shop",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "discount_1",
+        "item_Nn9kW6",
+        "item_dQn9tr",
+        "item_xfLhK8"
+      ],
+      "custom_css": [
+        ".spotlight__item-content {max-width: 22rem;}"
+      ],
+      "settings": {
+        "header_color_scheme": "scheme-2",
+        "header_message": "✌🏼 Free Express Shipping on orders $120!",
+        "header_message_alignment": "center",
+        "heading": "Special Offers",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h4",
+        "teaser_button_label": "Special offers for you",
+        "teaser_button_background": "#c4301c",
+        "teaser_button_text_color": "#ffffff",
+        "show_close_teaser_button": true
+      }
+    }
+  },
+  "order": [
+    "cart-drawer",
+    "product-compare",
+    "quick-view",
+    "popup",
+    "spotlight-picks"
+  ]
+}

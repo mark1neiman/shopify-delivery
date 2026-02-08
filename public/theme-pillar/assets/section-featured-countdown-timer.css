@@ -1,0 +1,36 @@
+.countdown-with-multi .countdown-timer__block {
+  margin: 0 1.6rem;
+}
+@media (max-width: 767.98px) {
+  .countdown-with-multi .countdown-timer__block {
+    margin: 0 1.2rem;
+  }
+}
+.countdown-with-multi .countdown-timer__block div:after {
+  inset-inline-end: -1.8rem;
+}
+@media (max-width: 767.98px) {
+  .countdown-with-multi .countdown-timer__block div:after {
+    inset-inline-end: -1.5rem;
+  }
+}
+.countdown-with-multi__timer .card-media__countdown-timer {
+  margin-top: var(--icon-margin-top);
+}
+@media (max-width: 767.98px) {
+  .countdown-with-multi__timer {
+    margin-block-end: calc(1.2rem - var(--f-column-gap-mobile));
+  }
+}
+.countdown-with-multi__items .card-media__content-wrapper {
+  width: 100%;
+}
+
+@media (min-width: 1280px) {
+  .card-media--height-custom .countdown-with-multi__timer {
+    height: 100%;
+  }
+}
+.card-media--height-custom .card-media {
+  height: 100%;
+}

@@ -1,0 +1,845 @@
+{{ 'section-countdown-timer.css' | asset_url | stylesheet_tag }}
+{%- liquid
+  assign container = section.settings.container
+  assign content_alignment = section.settings.content_alignment
+  assign text_alignment = section.settings.text_alignment
+  assign background_image = section.settings.background_image
+  assign image_overlay_opacity = section.settings.image_overlay_opacity
+
+  assign loading = 'lazy'
+  assign fetchpriority = 'low'
+  if section.index < 2
+    assign loading = 'eager'
+    assign fetchpriority = 'high'
+  endif
+
+  assign image_blocks = section.blocks | where: 'type', 'image'
+
+  assign motion_delay = 0
+-%}
+<style>
+  #shopify-section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    {%- if container == 'full' -%}
+    --padding-x: var(--page-padding);
+    {%- endif -%}
+  }
+</style>
+<div class="section section-{{ section.id }}{% unless container == 'full' %} page-width{% endunless %}">
+  <div
+    class="countdown relative z-0 overflow-hidden{% unless container == 'full' %} blocks-radius{% endunless %} color-{{ section.settings.color_schema }}"
+    data-section-type="countdown-timer"
+    data-section-id="{{ section.id }}"
+  >
+    <div class="countdown__wrapper section--padding flex flex-col relative">
+      {%- if background_image != blank -%}
+        <div class="bg-image" style="--aspect-ratio: {{ background_image.aspect_ratio }}">
+          {%- liquid
+            assign image_height = background_image.width | divided_by: background_image.aspect_ratio
+          -%}
+          {{
+            background_image
+            | image_url: width: background_image.width
+            | image_tag:
+              loading: loading,
+              fetchpriority: fetchpriority,
+              width: background_image.width,
+              height: image_height,
+              sizes: '100vw',
+              widths: '375, 550, 750, 1100, 1500, 1780, 2000, 3000, 3840',
+              is: 'image-lazy',
+              alt: background_image.alt
+            | escape
+          }}
+        </div>
+      {%- endif -%}
+      {%- if image_overlay_opacity > 0 -%}
+        <div class="countdown__overlay bg-overlay" style="--color-overlay-alpha: {{ image_overlay_opacity }}"></div>
+      {%- endif -%}
+      {%- if image_blocks.size > 0 -%}
+        <div class="countdown__images z-3 {% if image_blocks.size > 3 %}swipe-mobile swipe-mobile--3-cols{% endif %}">
+          <grid-list class="h-full f-grid f-grid-3-cols f-grid--gap-medium f-grid--row-gap-inherit {% if image_blocks.size > 3 %}swipe-mobile__inner{% endif %}">
+            {%- for block in section.blocks -%}
+              {%- if block.type == 'image' -%}
+                {%- liquid
+                  assign block_image = block.settings.image
+                  assign block_image_mobile = block.settings.image_mobile
+
+                  if block_image == blank
+                    assign image_ratio = '1/1'
+                  else
+                    assign image_ratio = block_image.aspect_ratio
+                  endif
+
+                  if block_image_mobile == blank
+                    assign image_mobile_ratio = image_ratio
+                  else
+                    assign image_mobile_ratio = block_image_mobile.aspect_ratio
+                  endif
+
+                  assign image_width = block.settings.image_width | append: 'px'
+                  assign vertical = block.settings.image_desktop_vertical | append: '%'
+                  assign horizontal = block.settings.image_desktop_horizontal | append: '%'
+                -%}
+                <div
+                  class="float__media block {{ block.settings.custom_classes }}"
+                  style="--image-width: {{ image_width }}; --top: {{ vertical }}; --left: {{ horizontal }}"
+                >
+                  <motion-element class="block" data-motion="zoom-out-sm" data-motion-delay="{{ motion_delay }}">
+                    <picture
+                      class="media-wrapper blocks-radius overflow-hidden{% if block_image == blank %} bg-none{% endif %}"
+                      style="--aspect-ratio: {{ image_ratio }};{% if image_mobile_ratio %}--aspect-ratio-mobile: {{ image_mobile_ratio }};{% endif %}"
+                    >
+                      {%- if block_image != blank -%}
+                        {%- if block_image_mobile -%}
+                          <source
+                            media="(max-width: 767px)"
+                            srcset="{{ block_image_mobile | image_url: width: '400x' }} 400w, {{ block_image_mobile | image_url: width: '600x' }} 600w, {{ block_image_mobile | image_url: width: '800x' }} 800w, {{ block_image_mobile | image_url: width: '1000x' }} 1000w"
+                            width="{{ block_image_mobile.width }}"
+                            height="{{ block_image_mobile.height }}"
+                          >
+                        {%- endif -%}
+                        {% assign alt_image = block_image.alt | escape %}
+                        {{
+                          block_image
+                          | image_url: width: 1100
+                          | image_tag:
+                            loading: 'lazy',
+                            class: 'motion-reduce',
+                            sizes: image_width,
+                            widths: '165, 360, 535, 750, 940, 1100',
+                            is: 'image-lazy',
+                            class: 'absolute inset-0 w-full h-full',
+                            alt: alt_image
+                        }}
+                      {%- else -%}
+                        {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+                      {%- endif -%}
+                    </picture>
+                  </motion-element>
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+          </grid-list>
+        </div>
+      {%- endif -%}
+      <div class="countdown__content relative z-4 w-full flex justify-{{ content_alignment }}">
+        <div class="countdown__inner rich-text text-{{ text_alignment }}">
+          {%- for block in section.blocks -%}
+            {%- case block.type -%}
+              {%- when 'heading' -%}
+                <h2
+                  class="rich-text__heading inline-richtext {{ block.settings.heading_size }}"
+                  {{ block.shopify_attributes }}
+                >
+                  <motion-element class="block" data-motion-delay="{{ motion_delay }}" data-motion="fade-up">
+                    {% render 'highlight-text',
+                      hl_text: block.settings.heading,
+                      hl_style: block.settings.highlight_style,
+                      hl_font_style: block.settings.highlight_font_style,
+                      hl_style_color: block.settings.highlight_style_color,
+                      hl_text_color: block.settings.highlight_text_color
+                    %}
+                  </motion-element>
+                  {%- assign motion_delay = motion_delay | plus: 50 -%}
+                </h2>
+              {%- when 'subheading' -%}
+                <motion-element
+                  class="block rich-text__subheading text-subheading"
+                  {{ block.shopify_attributes }}
+                  data-motion-delay="{{ motion_delay }}"
+                  data-motion="fade-up"
+                >
+                  {{ block.settings.subheading }}
+                </motion-element>
+                {%- assign motion_delay = motion_delay | plus: 50 -%}
+              {%- when 'text' -%}
+                <motion-element
+                  class="block rich-text__text rte {{ block.settings.text_size }}"
+                  {{ block.shopify_attributes }}
+                  data-motion-delay="{{ motion_delay }}"
+                  data-motion="fade-up"
+                >
+                  {{ block.settings.text }}
+                </motion-element>
+                {%- assign motion_delay = motion_delay | plus: 50 -%}
+              {%- when 'button' -%}
+                {%- if block.settings.button_label != blank -%}
+                  <motion-element
+                    class="block"
+                    data-motion-delay="{{ motion_delay }}"
+                    data-motion="fade-up"
+                    {{ block.shopify_attributes }}
+                  >
+                    {% render 'button',
+                      button_style: block.settings.button_style,
+                      button_link: block.settings.button_link,
+                      button_label: block.settings.button_label,
+                      button_icon: block.settings.button_icon
+                    %}
+                  </motion-element>
+                  {%- assign motion_delay = motion_delay | plus: 50 -%}
+                {%- endif -%}
+              {%- when 'timer' -%}
+                {%- if block.settings.type == 'evergreen' or block.settings.time != blank -%}
+                  <motion-element
+                    class="block"
+                    data-motion-delay="{{ motion_delay }}"
+                    data-motion="fade-up"
+                    {{ block.shopify_attributes }}
+                  >
+                    {% render 'countdown-timer',
+                      id: block.id,
+                      type: block.settings.type,
+                      duration: block.settings.duration,
+                      time: block.settings.time,
+                      style: block.settings.style,
+                      number_size: block.settings.number_size,
+                      motion_delay: motion_delay,
+                      custom_class: 'block'
+                    %}
+                  </motion-element>
+                  {%- assign motion_delay = motion_delay | plus: 50 -%}
+                {%- endif -%}
+            {%- endcase -%}
+          {%- endfor -%}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:sections.countdown-timer.name",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "full",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_schema",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "image_picker",
+      "id": "background_image",
+      "label": "t:general.background_image.label"
+    },
+    {
+      "type": "range",
+      "id": "image_overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "unit": "%",
+      "label": "t:general.image_overlay_opacity.label",
+      "default": 0
+    },
+    {
+      "type": "header",
+      "content": "t:general.header__content_settings.content"
+    },
+    {
+      "type": "select",
+      "id": "content_alignment",
+      "options": [
+        {
+          "value": "start",
+          "label": "t:general.content_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.content_alignment.options__2.label"
+        },
+        {
+          "value": "end",
+          "label": "t:general.content_alignment.options__3.label"
+        }
+      ],
+      "default": "center",
+      "label": "t:general.content_alignment.label"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ],
+      "default": "center",
+      "label": "t:general.text_alignment.label"
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "t:general.padding.top.label",
+      "default": 50,
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "t:general.padding.bottom.label",
+      "default": 50,
+      "min": 0,
+      "max": 200,
+      "step": 2,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "t:general.divider.section_heading.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:general.divider.show_divider.label"
+    },
+    {
+      "type": "select",
+      "id": "divider_width",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "heading",
+      "name": "t:general.heading.label",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "inline_richtext",
+          "id": "heading",
+          "default": "Sale ends in",
+          "label": "t:general.heading.label",
+          "info": "t:general.heading.info"
+        },
+        {
+          "type": "select",
+          "id": "highlight_style",
+          "label": "t:general.highlight_text.highlight_style.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+            },
+            {
+              "value": "hand_drawn_circle",
+              "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+            },
+            {
+              "value": "thick_underline",
+              "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+            },
+            {
+              "value": "wave_underline",
+              "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+            }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "highlight_font_style",
+          "label": "t:general.highlight_text.highlight_font_style.label",
+          "options": [
+            {
+              "value": "italic",
+              "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+            },
+            {
+              "value": "normal",
+              "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+            }
+          ]
+        },
+        {
+          "type": "color",
+          "id": "highlight_style_color",
+          "label": "t:general.highlight_text.highlight_style_color.label"
+        },
+        {
+          "type": "color",
+          "id": "highlight_text_color",
+          "label": "t:general.highlight_text.highlight_text_color.label"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:general.text_size.heading.label",
+          "default": "hd2",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "subheading",
+      "name": "t:general.subheading.label",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "inline_richtext",
+          "id": "subheading",
+          "label": "t:general.subheading.label",
+          "default": "Add a tagline"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:general.text.label",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "text",
+          "default": "<p>Insert the time limit or an encouraging messge of your marketing campaign to create a sense of urgency for your customers.</p>",
+          "label": "t:general.text.label"
+        },
+        {
+          "type": "select",
+          "id": "text_size",
+          "label": "t:general.text_size.text.label",
+          "default": "text-base",
+          "options": [
+            {
+              "value": "text-sm",
+              "label": "t:general.text_size.options__small.label"
+            },
+            {
+              "value": "text-base",
+              "label": "t:general.text_size.options__base.label"
+            },
+            {
+              "value": "text-lg",
+              "label": "t:general.text_size.options__large.label"
+            },
+            {
+              "value": "text-inherit",
+              "label": "t:general.text_size.options__inherit.label"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "t:general.button.label",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:general.button.button_link.label"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:general.button.button_style.label",
+          "options": [
+            {
+              "value": "btn--primary",
+              "label": "t:general.button.button_style.options__1.label"
+            },
+            {
+              "value": "btn--secondary",
+              "label": "t:general.button.button_style.options__2.label"
+            },
+            {
+              "value": "btn--underline",
+              "label": "t:general.button.button_style.options__4.label"
+            },
+            {
+              "value": "btn--plain",
+              "label": "t:general.button.button_style.options__7.label"
+            }
+          ],
+          "default": "btn--primary"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    },
+    {
+      "type": "timer",
+      "name": "t:general.timer.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "type",
+          "label": "t:general.timer.type.label",
+          "options": [
+            {
+              "value": "evergreen",
+              "label": "t:general.timer.type.options__1.label"
+            },
+            {
+              "value": "fixed_time",
+              "label": "t:general.timer.type.options__2.label"
+            }
+          ],
+          "default": "evergreen"
+        },
+        {
+          "type": "select",
+          "id": "style",
+          "label": "t:general.timer.style.label",
+          "options": [
+            {
+              "value": "number",
+              "label": "t:general.timer.style.options__1.label"
+            },
+            {
+              "value": "with_text",
+              "label": "t:general.timer.style.options__2.label"
+            }
+          ],
+          "default": "number"
+        },
+        {
+          "type": "select",
+          "id": "number_size",
+          "label": "t:general.timer.number_size.label",
+          "default": "h1",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        },
+        {
+          "type": "header",
+          "content": "t:general.timer.header__evergreen.content"
+        },
+        {
+          "type": "select",
+          "id": "duration",
+          "label": "t:general.timer.evergreen_duration.label",
+          "options": [
+            {
+              "value": "every_2_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_2_hrs.label"
+            },
+            {
+              "value": "every_6_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_6_hrs.label"
+            },
+            {
+              "value": "every_12_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_12_hrs.label"
+            },
+            {
+              "value": "every_24_hrs",
+              "label": "t:general.timer.evergreen_duration.options__every_24_hrs.label"
+            },
+            {
+              "value": "every_week",
+              "label": "t:general.timer.evergreen_duration.options__every_week.label"
+            },
+            {
+              "value": "every_month",
+              "label": "t:general.timer.evergreen_duration.options__every_month.label"
+            }
+          ],
+          "default": "every_month"
+        },
+        {
+          "type": "header",
+          "content": "t:general.timer.header__fixed_time.content"
+        },
+        {
+          "type": "text",
+          "id": "time",
+          "default": "2025/08/20 03:45 PM",
+          "label": "t:general.timer.time.label",
+          "info": "t:general.timer.time.info"
+        },
+        {
+          "type": "paragraph",
+          "content": "t:general.timer.time.paragraph"
+        }
+      ]
+    },
+    {
+      "type": "image",
+      "name": "t:general.image.label",
+      "limit": 3,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:general.image.label"
+        },
+        {
+          "type": "range",
+          "id": "image_width",
+          "min": 150,
+          "max": 350,
+          "step": 2,
+          "unit": "px",
+          "label": "t:sections.countdown-timer.blocks.image.settings.image_desktop_width.label",
+          "default": 150
+        },
+        {
+          "type": "range",
+          "id": "image_desktop_vertical",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "label": "t:sections.countdown-timer.blocks.image.settings.image_desktop_vertical.label",
+          "default": 50
+        },
+        {
+          "type": "range",
+          "id": "image_desktop_horizontal",
+          "min": 0,
+          "max": 100,
+          "step": 1,
+          "unit": "%",
+          "label": "t:sections.countdown-timer.blocks.image.settings.image_desktop_horizontal.label",
+          "default": 50
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "t:general.image_mobile.label"
+        },
+        {
+          "type": "text",
+          "id": "custom_classes",
+          "label": "t:general.custom_classes.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.countdown-timer.name",
+      "blocks": [
+        {
+          "type": "heading"
+        },
+        {
+          "type": "text"
+        },
+        {
+          "type": "timer"
+        },
+        {
+          "type": "button"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

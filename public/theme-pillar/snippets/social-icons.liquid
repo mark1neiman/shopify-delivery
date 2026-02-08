@@ -1,0 +1,143 @@
+{% comment %}
+  Renders social icons.
+  Accepts:
+  - class: {String} a class to be added to the <ul> element (optional).
+
+  Usage:
+  {% render 'social-icons',
+    class: 'my-class'
+  %}
+{% endcomment %}
+{% liquid
+  if show_facebook == null
+    assign show_facebook = true
+  endif
+  if show_twitter == null
+    assign show_twitter = true
+  endif
+  if show_instagram == null
+    assign show_instagram = true
+  endif
+  if show_tiktok == null
+    assign show_tiktok = true
+  endif
+  if show_pinterest == null
+    assign show_pinterest = true
+  endif
+  if show_snapchat == null
+    assign show_snapchat = true
+  endif
+  if show_tumblr == null
+    assign show_tumblr = true
+  endif
+  if show_youtube == null
+    assign show_youtube = true
+  endif
+  if show_vimeo == null
+    assign show_vimeo = true
+  endif
+%}
+<ul
+  class="list-unstyled flex flex-wrap gap-x-3 gap-y-2 items-center socials--{{ icon_type | default: 'bordered' }}{% if class %} {{ class }}{% endif %}"
+  role="list"
+>
+  {%- if settings.social_facebook_link != blank and show_facebook -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_facebook_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-facebook', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.facebook' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_twitter_link != blank and show_twitter -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_twitter_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-twitter', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.twitter' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_instagram_link != blank and show_instagram -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_instagram_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-instagram', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.instagram' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_tiktok_link != blank and show_tiktok -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_tiktok_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-tiktok', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.tiktok' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_pinterest_link != blank and show_pinterest -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_pinterest_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-pinterest', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.pinterest' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_snapchat_link != blank and show_snapchat -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_snapchat_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-snapchat', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.snapchat' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_tumblr_link != blank and show_tumblr -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_tumblr_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-tumblr', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.tumblr' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_youtube_link != blank and show_youtube -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_youtube_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-youtube', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.youtube' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+  {%- if settings.social_vimeo_link != blank and show_vimeo -%}
+    <li class="social__item inline-flex">
+      <a
+        href="{{ settings.social_vimeo_link }}"
+        class="social__link inline-flex{% if item_class %} {{ item_class }}{% endif %}"
+      >
+        {%- render 'icon-vimeo', size: size -%}
+        <span class="visually-hidden">{{ 'general.social.links.vimeo' | t }}</span>
+      </a>
+    </li>
+  {%- endif -%}
+</ul>

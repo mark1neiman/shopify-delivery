@@ -1,0 +1,159 @@
+<script src="{{ 'product-recommendations.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'complementary-product-slider.js' | asset_url }}" defer="defer"></script>
+{%- if block.settings.enable_quick_add -%}
+  <script src="{{ 'quick-view.js' | asset_url }}" defer="defer"></script>
+{%- endif -%}
+<product-recommendations
+  class="complementary-products complementary-products--{{ block.settings.layout }}"
+  data-url="{{ routes.product_recommendations_url }}?section_id={{ section_id }}&product_id={{ product_id }}&limit={{ block.settings.product_list_limit }}&intent=complementary"
+>
+  {%- if recommendations.performed and recommendations.products_count > 0 -%}
+    {%- liquid
+      assign heading_size = block.settings.heading_size | default: 'h4'
+      assign columns_desktop = block.settings.columns
+      assign columns_mobile = 2
+
+      assign is_list_layout = false
+      if block.settings.layout == 'horizontal-list'
+        assign is_list_layout = true
+        assign columns_desktop = 1
+        assign columns_mobile = 1
+      endif
+
+      assign enable_slider_desktop = false
+      assign enable_slider_mobile = false
+      if recommendations.products_count > columns_desktop
+        assign enable_slider_desktop = true
+      endif
+
+      if recommendations.products_count > columns_mobile and is_list_layout
+        assign enable_slider_mobile = true
+      endif
+    -%}
+    <aside aria-label="{{ 'accessibility.complementary_products' | t }}">
+      <div class="complementary-products__container relative">
+        {%- if block.settings.make_collapsible_row -%}
+          <details
+            id="Details-{{ block.id }}-{{ section_id }}"
+            class="accordion-details"
+            is="accordion-group"
+            open
+          >
+            <summary class="accordion-details__summary flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                {% render 'icons', icon: block.settings.icon %}
+                <h2 class="{{ heading_size }}">{{ block.settings.block_heading }}</h2>
+              </div>
+              {%- render 'icon-plus-toggle' -%}
+            </summary>
+            <div class="accordion-details__content">
+        {%- else -%}
+          <h2 class="{{ heading_size }} complementary-products__heading">{{ block.settings.block_heading }}</h2>
+        {%- endif -%}
+        <complementary-product-slider
+          class="block{% unless is_list_layout %} relative swiper-show-nav-on-hover{% endunless %}"
+          data-enable-slider-desktop="{{ enable_slider_desktop }}"
+          data-enable-slider-mobile="{{ enable_slider_mobile }}"
+          data-columns-desktop="{% if is_list_layout %}auto{% else %}{{ columns_desktop }}{% endif %}"
+          data-columns-mobile="{{ columns_mobile }}"
+          data-calc-button-position="true"
+        >
+          <div class="products-wrap swiper{% unless is_list_layout %} swipe-mobile swipe-mobile--2-cols{% endunless %}">
+            <div
+              class="products{% if enable_slider %} swiper-wrapper{% endif %} f-grid f-grid--gap-2xs{% unless is_list_layout %} swipe-mobile__inner{% endunless %}"
+              style="--f-columns-mobile: {{ columns_mobile }}; --f-columns-md: {{ columns_desktop }};"
+            >
+              {%- if is_list_layout -%}
+                {%- for product in recommendations.products -%}
+                  <div class="f-column swiper-slide">
+                    {% render 'card-product-horizontal',
+                      section_index: 1,
+                      index: forloop.index,
+                      product: product,
+                      parent_color_scheme: section.settings.color_scheme,
+                      title_line_limit: '1-line',
+                      image_ratio: block.settings.image_ratio,
+                      show_vendor: false,
+                      show_type: false,
+                      enable_quick_add: block.settings.enable_quick_add,
+                      button_type: 'text',
+                      context: 'complementary'
+                    %}
+                  </div>
+                {%- endfor -%}
+              {%- else -%}
+                {%- for product in recommendations.products -%}
+                  <div class="f-column swiper-slide">
+                    {% render 'card-product-list',
+                      section_index: 1,
+                      index: forloop.index,
+                      product: product,
+                      parent_color_scheme: section.settings.color_scheme,
+                      image_ratio: block.settings.image_ratio,
+                      show_vendor: false,
+                      show_type: false,
+                      enable_quick_add: block.settings.enable_quick_add
+                    %}
+                  </div>
+                {%- endfor -%}
+              {% endif %}
+            </div>
+          </div>
+          {%- if enable_slider_desktop or enable_slider_mobile -%}
+            {%- if is_list_layout -%}
+              <div class="swiper-controls swiper-controls--grouped swiper-controls--pagination-fraction justify-center{% if enable_slider_desktop == false %} md:hidden{% endif %}">
+                <div class="line-height-placeholder hidden {{ heading_size }}" style="width: 0;" aria-hidden="true">
+                  &nbsp;
+                </div>
+                <button
+                  class="swiper-button swiper-button-prev swiper-button--blank"
+                  name="previous"
+                  aria-label="{{ 'general.slider.previous_slide' | t }}"
+                >
+                  <span class="btn__text">
+                    {% render 'icon-caret-left', size: 'small' %}
+                  </span>
+                </button>
+                <div class="swiper-pagination"></div>
+                <button
+                  class="swiper-button swiper-button-next swiper-button--blank"
+                  name="next"
+                  aria-label="{{ 'general.slider.next_slide' | t }}"
+                >
+                  <span class="btn__text">
+                    {% render 'icon-caret-right', size: 'small' %}
+                  </span>
+                </button>
+              </div>
+            {%- else -%}
+              <div class="swiper-controls swiper-controls--nav-floating hidden{% if enable_slider_desktop == true %} md:flex{% endif %}">
+                <button
+                  class="swiper-button swiper-button--drop-shadow swiper-button-prev btn"
+                  name="previous"
+                  aria-label="{{ 'general.slider.previous_slide' | t }}"
+                >
+                  <span class="btn__text">
+                    {% render 'icon-caret-left', size: 'small' %}
+                  </span>
+                </button>
+                <button
+                  class="swiper-button swiper-button--drop-shadow swiper-button-next btn"
+                  name="next"
+                  aria-label="{{ 'general.slider.next_slide' | t }}"
+                >
+                  <span class="btn__text">
+                    {% render 'icon-caret-right', size: 'small' %}
+                  </span>
+                </button>
+              </div>
+            {%- endif -%}
+          {%- endif -%}
+        </complementary-product-slider>
+        {%- if block.settings.make_collapsible_row -%}
+          </div>
+          </details>
+        {%- endif -%}
+      </div>
+    </aside>
+  {%- endif -%}
+</product-recommendations>

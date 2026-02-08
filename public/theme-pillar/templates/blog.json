@@ -1,0 +1,114 @@
+{
+  "sections": {
+    "breadcrumbs_F4iNAA": {
+      "type": "breadcrumbs",
+      "settings": {
+        "text_alignment": "start"
+      }
+    },
+    "main": {
+      "type": "main-blog",
+      "blocks": {
+        "featured_post_fgVGy7": {
+          "type": "featured_post",
+          "settings": {
+            "featured_image_ratio": "adapt",
+            "heading_size": "h1",
+            "show_section_divider": true
+          }
+        },
+        "heading_U7FQUU": {
+          "type": "heading",
+          "settings": {
+            "heading_size": "h1",
+            "content_alignment": "left"
+          }
+        },
+        "tags_cTH8Uh": {
+          "type": "tags",
+          "settings": {
+            "limit": 4,
+            "alignment": "left"
+          }
+        }
+      },
+      "block_order": [
+        "featured_post_fgVGy7",
+        "heading_U7FQUU",
+        "tags_cTH8Uh"
+      ],
+      "settings": {
+        "post_limit": 12,
+        "columns_desktop": 3,
+        "column_gap": "medium",
+        "row_gap": "large",
+        "card_title_size": "h4",
+        "show_tags": true,
+        "show_excerpt": false,
+        "show_date": true,
+        "show_author": true,
+        "show_button": false,
+        "padding_top": 0,
+        "padding_bottom": 80
+      }
+    },
+    "scrolling_promotion_4mF6aJ": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "text_Baq7tE": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Welcome to our store",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_zVehDj": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Welcome to our store",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_tgDxH3": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Welcome to our store",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        }
+      },
+      "block_order": [
+        "text_Baq7tE",
+        "text_zVehDj",
+        "text_tgDxH3"
+      ],
+      "settings": {
+        "color_scheme": "scheme-3",
+        "direction": "left",
+        "pause_on_hover": true,
+        "speed": 0.3,
+        "h_spacing": 80,
+        "show_section_divider": false,
+        "padding_top": 22,
+        "padding_bottom": 22
+      }
+    }
+  },
+  "order": [
+    "breadcrumbs_F4iNAA",
+    "main",
+    "scrolling_promotion_4mF6aJ"
+  ]
+}

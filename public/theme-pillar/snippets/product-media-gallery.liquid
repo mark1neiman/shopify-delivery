@@ -1,0 +1,177 @@
+{% comment %}
+  Renders a product media gallery. Should be used with 'media-gallery.js'
+
+  Accepts:
+  - product: {Object} Product liquid object
+  - variant_images: {Array} Product images associated with a variant
+
+  Usage:
+  {% render 'product-media-gallery' %}
+{% endcomment %}
+
+{%- liquid
+  assign media_count = product.media.size
+
+  assign has_only_once_media = false
+  if media_count < 2
+    assign has_only_once_media = true
+  endif
+
+  assign media_item_gap = 8
+  assign media_item_gap_mobile = 12
+
+  if section.settings.media_size == 'large'
+    assign media_width = 0.585
+  elsif section.settings.media_size == 'medium'
+    assign media_width = 0.5
+  elsif section.settings.media_size == 'small'
+    assign media_width = 0.45
+  endif
+
+  assign enable_mobile_thumbnails = false
+  if mobile_thumbnails == 'show'
+    assign enable_mobile_thumbnails = true
+  endif
+
+  assign enable_desktop_slider = false
+  assign slider_css_class = ''
+  if has_only_once_media == false
+    if media_layout contains 'carousel'
+      assign enable_desktop_slider = true
+    endif
+
+    assign slider_css_class = slider_css_class | append: ' swiper-show-nav-on-hover'
+  endif
+-%}
+<media-gallery
+  id="MediaGallery-{{ section.id }}"
+  role="region"
+  class="product__media-gallery block relative"
+  aria-label="{{ 'products.product.media.gallery_viewer' | t }}"
+  data-media-layout="{{ media_layout }}"
+  data-only-image="{{ has_only_once_media }}"
+  data-enable-image-zoom="{{ enable_image_zoom }}"
+  data-enable-desktop-slider="{{ enable_desktop_slider }}"
+  data-enable-mobile-thumbnails="{{ enable_mobile_thumbnails }}"
+  data-media-item-gap="{{ media_item_gap }}"
+  data-media-item-gap-mobile="{{ media_item_gap_mobile }}"
+  data-context="{{ context | default: 'product' }}"
+  style="--media-item-gap: {{ media_item_gap }}px; --media-item-gap-mobile: {{ media_item_gap_mobile }}px"
+>
+  <div id="GalleryStatus-{{ section.id }}" class="visually-hidden" role="status"></div>
+  <div class="product__media-gallery-viewer-wrap relative{{ slider_css_class }}">
+    <div
+      id="GalleryViewer-{{ section.id }}"
+      class="product__media-gallery-viewer blocks-radius swiper"
+    >
+      <div
+        id="Slider-Gallery-{{ section.id }}"
+        class="product__media-list flex swiper-wrapper"
+      >
+        {%- for media in product.media -%}
+          {% render 'product-thumbnail',
+            media: media,
+            media_count: media_count,
+            position: forloop.index0,
+            desktop_layout: media_layout,
+            mobile_layout: mobile_thumbnails,
+            enable_image_zoom: enable_image_zoom,
+            loop: section.settings.enable_video_looping,
+            modal_id: section.id,
+            xr_button: true,
+            media_width: media_width
+          %}
+        {%- endfor -%}
+      </div>
+    </div>
+    {%- if media_count > 1 -%}
+      <div class="swiper-controls swiper-controls--nav-floating swiper-controls--grouped-mobile swiper-controls--pagination-fraction justify-center{% if mobile_thumbnails == 'show' %} hidden{% endif %}{% if enable_desktop_slider == false %} md:hidden{% else %} md:flex{% endif %}">
+        <button
+          type="button"
+          class="btn swiper-button swiper-button--drop-shadow swiper-button--blank-mobile swiper-button-prev"
+          name="previous"
+          aria-label="{{ 'general.slider.previous_slide' | t }}"
+        >
+          <span class="btn__text">{%- render 'icon-slider-prev' -%}</span>
+        </button>
+        {%- unless enable_mobile_thumbnails -%}
+          <div class="swiper-pagination flex md:hidden"></div>
+        {%- endunless -%}
+        <button
+          type="button"
+          class="btn swiper-button swiper-button--drop-shadow swiper-button--blank-mobile swiper-button-next"
+          name="next"
+          aria-label="{{ 'general.slider.next_slide' | t }}"
+        >
+          <span class="btn__text">{%- render 'icon-slider-next' -%}</span>
+        </button>
+      </div>
+    {%- endif -%}
+  </div>
+  {%- if media_count > 1 and media_layout contains 'carousel' or mobile_thumbnails == 'show' -%}
+    {%- liquid
+      assign thumbnail_class = ''
+      if enable_desktop_slider and mobile_thumbnails != 'show'
+        assign thumbnail_class = ' hidden md:block'
+      elsif enable_desktop_slider == false and mobile_thumbnails == 'show'
+        assign thumbnail_class = ' block md:hidden'
+      endif
+    -%}
+    {%- capture thumbnail_sizes -%}(max-width: 460px) calc((100vw - 30px) / 4), (max-width: 767px) calc((100vw - 30px) / 5), {%- if media_layout == 'vertical-carousel' -%}(max-width: 1023px) 70px, 84px{%- else -%}(max-width: 1023px) calc(min( {{ settings.page_width }}px, 100vw ) * {{ media_width }} / 5), calc(min( {{ settings.page_width }}px, 100vw ) * {{ media_width }} / 7){% endif %}{%- endcapture -%}
+    <div
+      id="GalleryThumbnails-{{ section.id }}"
+      class="product__media-gallery-thumbails swiper{{ thumbnail_class }}"
+    >
+      <div
+        id="Slider-Thumbnails-{{ section.id }}"
+        class="thumbnail-list swiper-wrapper"
+      >
+        {%- for media in product.media -%}
+          {%- liquid
+            capture media_index
+              if media.media_type == 'model'
+                increment model_index
+              elsif media.media_type == 'video' or media.media_type == 'external_video'
+                increment video_index
+              elsif media.media_type == 'image'
+                increment image_index
+              endif
+            endcapture
+            assign media_index = media_index | plus: 1
+          -%}
+          <div
+            class="product__thumbs-item swiper-slide"
+            data-target="{{ media.id }}"
+            data-media-position="{{ media_index }}"
+          >
+            <div class="product__thumbs-container relative blocks-radius-md media-wrapper cursor-pointer">
+              <div class="product__thumbs-inner" style="--aspect-ratio: 1">
+                {{
+                  media.preview_image
+                  | image_url: width: media.preview_image.width
+                  | image_tag:
+                    loading: 'lazy',
+                    widths: '70, 84, 100, 140, 168, 200, 300, 400',
+                    sizes: thumbnail_sizes,
+                    id: thumbnail_id,
+                    is: 'image-lazy',
+                    alt: media.alt
+                  | escape
+                }}
+              </div>
+              {%- if media.media_type == 'model' -%}
+                <span class="product__thumbs-badge" aria-hidden="true">
+                  {%- render 'icon-3d-model', size: 'extra-small', thickness: 'regular', stroke_scalable: true -%}
+                </span>
+              {%- elsif media.media_type == 'video' or media.media_type == 'external_video' -%}
+                <span class="product__thumbs-badge" aria-hidden="true">
+                  {%- render 'icon-video', size: 'extra-small', thickness: 'regular', stroke_scalable: true -%}
+                </span>
+              {%- endif -%}
+            </div>
+          </div>
+        {%- endfor -%}
+      </div>
+    </div>
+  {%- endif -%}
+</media-gallery>

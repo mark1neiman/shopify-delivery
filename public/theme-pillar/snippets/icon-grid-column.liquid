@@ -1,0 +1,23 @@
+{%- case layout -%}
+  {%- when 1 -%}
+    <svg
+      class="icon icon-view-list icon--{{ size | default: 'medium' }} {{ classes }}"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="3" y="15.5" width="1.5" height="14" transform="rotate(-90 3 15.5)" fill="currentColor"/>
+      <rect x="3" y="10" width="1.5" height="14" transform="rotate(-90 3 10)" fill="currentColor"/>
+      <rect x="3" y="4.5" width="1.5" height="14" transform="rotate(-90 3 4.5)" fill="currentColor"/>
+    </svg>
+  {%- when 2 -%}
+    <svg
+      class="icon icon-view-col icon--{{ size | default: 'medium' }} {{ classes }}"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="7" y="3" width="1.5" height="14" fill="currentColor"/>
+      <rect x="12.5" y="3" width="1.5" height="14" fill="currentColor"/>
+    </svg>
+{%- endcase -%}

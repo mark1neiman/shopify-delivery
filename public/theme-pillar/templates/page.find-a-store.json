@@ -1,0 +1,360 @@
+{
+  "sections": {
+    "breadcrumbs_RzgTi9": {
+      "type": "breadcrumbs",
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "start",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "main": {
+      "type": "main-page",
+      "custom_css": [],
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "left",
+        "padding_top": 0,
+        "padding_bottom": 40
+      }
+    },
+    "image_with_text_HyVdFB": {
+      "type": "image-with-text",
+      "blocks": {
+        "heading_dfVT6f": {
+          "type": "heading",
+          "settings": {
+            "heading": "Valencia, San Francisco",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3"
+          }
+        },
+        "icon_with_text_zrqnWA": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "map-pin",
+            "icon_width": 32,
+            "color": "#000000",
+            "heading": "General Office",
+            "heading_size": "h5",
+            "text": "<p>382 NE 191st St # 87394 Miami</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "icon_with_text_bkLifn": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "phone",
+            "icon_width": 28,
+            "color": "#000000",
+            "heading": "Call Us",
+            "heading_size": "h5",
+            "text": "<p>+1 888-234-1234 (tool-free)</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "icon_with_text_mWGXjN": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "clock",
+            "icon_width": 28,
+            "color": "#000000",
+            "heading": "Working Hour",
+            "heading_size": "h5",
+            "text": "<p>Mon – Fri, 7:30 AM – 4:00 PM PT<br/>Sat, 8:00 AM – 1:00 PM PT<br/>Sun, Closed</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "button_3zjipx": {
+          "type": "button",
+          "settings": {
+            "button_label": "Get Direction",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "heading_dfVT6f",
+        "icon_with_text_zrqnWA",
+        "icon_with_text_bkLifn",
+        "icon_with_text_mWGXjN",
+        "button_3zjipx"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "image_position": "left",
+        "image_width": 55,
+        "desktop_content_position": "center",
+        "desktop_content_alignment": "left",
+        "mobile_content_alignment": "inherit",
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 0,
+        "padding_bottom": 0
+      }
+    },
+    "image_with_text_RT3DHK": {
+      "type": "image-with-text",
+      "blocks": {
+        "heading_6VNDw4": {
+          "type": "heading",
+          "settings": {
+            "heading": "Prince Street, New York",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3"
+          }
+        },
+        "icon_with_text_TN3kGk": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "map-pin",
+            "icon_width": 32,
+            "color": "#000000",
+            "heading": "General Office",
+            "heading_size": "h5",
+            "text": "<p>382 NE 191st St # 87394 Miami</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "icon_with_text_GB4ArJ": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "phone",
+            "icon_width": 28,
+            "color": "#000000",
+            "heading": "Call Us",
+            "heading_size": "h5",
+            "text": "<p>+1 888-234-1234 (tool-free)</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "icon_with_text_dF9FXQ": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "clock",
+            "icon_width": 28,
+            "color": "#000000",
+            "heading": "Working Hour",
+            "heading_size": "h5",
+            "text": "<p>Mon – Fri, 7:30 AM – 4:00 PM PT<br/>Sat, 8:00 AM – 1:00 PM PT<br/>Sun, Closed</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "button_XBW9k3": {
+          "type": "button",
+          "settings": {
+            "button_label": "Get Direction",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "heading_6VNDw4",
+        "icon_with_text_TN3kGk",
+        "icon_with_text_GB4ArJ",
+        "icon_with_text_dF9FXQ",
+        "button_XBW9k3"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "image_position": "left",
+        "image_width": 55,
+        "desktop_content_position": "center",
+        "desktop_content_alignment": "left",
+        "mobile_content_alignment": "inherit",
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 0
+      }
+    },
+    "image_with_text_AMzJKf": {
+      "type": "image-with-text",
+      "blocks": {
+        "heading_WaHB6Q": {
+          "type": "heading",
+          "settings": {
+            "heading": "Williamsburg",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3"
+          }
+        },
+        "icon_with_text_4pbQCw": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "map-pin",
+            "icon_width": 32,
+            "color": "#000000",
+            "heading": "General Office",
+            "heading_size": "h5",
+            "text": "<p>382 NE 191st St # 87394 Miami</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "icon_with_text_BtNQdb": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "phone",
+            "icon_width": 28,
+            "color": "#000000",
+            "heading": "Call Us",
+            "heading_size": "h5",
+            "text": "<p>+1 888-234-1234 (tool-free)</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "icon_with_text_KRd8Xd": {
+          "type": "icon_with_text",
+          "settings": {
+            "icon": "clock",
+            "icon_width": 28,
+            "color": "#000000",
+            "heading": "Working Hour",
+            "heading_size": "h5",
+            "text": "<p>Mon – Fri, 7:30 AM – 4:00 PM PT<br/>Sat, 8:00 AM – 1:00 PM PT<br/>Sun, Closed</p>",
+            "vertical_alignment": "start"
+          }
+        },
+        "button_tUM7Qc": {
+          "type": "button",
+          "settings": {
+            "button_label": "Get Direction",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "heading_WaHB6Q",
+        "icon_with_text_4pbQCw",
+        "icon_with_text_BtNQdb",
+        "icon_with_text_KRd8Xd",
+        "button_tUM7Qc"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "image_position": "left",
+        "image_width": 55,
+        "desktop_content_position": "center",
+        "desktop_content_alignment": "left",
+        "mobile_content_alignment": "inherit",
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 60
+      }
+    },
+    "scrolling_promotion_WYK9dW": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "text_C9ggPC": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_ekt8f8": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_Gpww7m": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_XkMekG": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_pfrUTB": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_UFeeDC": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        }
+      },
+      "block_order": [
+        "text_C9ggPC",
+        "text_ekt8f8",
+        "text_Gpww7m",
+        "text_XkMekG",
+        "text_pfrUTB",
+        "text_UFeeDC"
+      ],
+      "settings": {
+        "color_scheme": "scheme-3",
+        "direction": "left",
+        "pause_on_hover": true,
+        "speed": 0.2,
+        "h_spacing": 80,
+        "show_section_divider": false,
+        "padding_top": 16,
+        "padding_bottom": 16
+      }
+    }
+  },
+  "order": [
+    "breadcrumbs_RzgTi9",
+    "main",
+    "image_with_text_HyVdFB",
+    "image_with_text_RT3DHK",
+    "image_with_text_AMzJKf",
+    "scrolling_promotion_WYK9dW"
+  ]
+}

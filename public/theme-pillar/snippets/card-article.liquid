@@ -1,0 +1,124 @@
+{% comment %}
+  Renders an article card for a given blog with settings to either show the image or not.
+
+  Accepts:
+  - article: {Object} Article object
+  - show_tags: {String} The setting either show the article date or not.
+  - show_excerpt: {String} The setting either show the article date or not.
+  - show_date: {String} The setting either show the article date or not.
+  - show_author: {String} The setting either show the article author or not.
+  - show_button: {String} The setting either show the learn more button or not.
+  - title_size: {String} Example: h1,h2,h3,h4,h5,h6
+
+  Usage:
+  {% render 'card-article' article: article %}
+{% endcomment %}
+{%- liquid
+  assign layout = layout
+  assign button_style = button_style
+  assign meta_size = meta_size
+
+  if layout == null
+    assign layout = 'standard'
+  endif
+
+  if button_style == null
+    assign layout = 'btn--underline'
+  endif
+
+  if meta_size == null
+    assign meta_size = 'text-sm'
+  endif
+
+  if image_ratio == null
+    assign image_ratio = settings.blog_cards_image_ratio
+  endif
+  if image_ratio == 'adapt'
+    if article.image != blank
+      assign image_ratio = article.image.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+-%}
+{%- if article and article != empty -%}
+  <div class="article-card article-card--{{ layout }}">
+    <div class="article-card__media blocks-radius">
+      <a href="{{ article.url }}" class="block media-wrapper hover-wrapper">
+        <motion-element class="block" data-motion="zoom-out-sm" style="--aspect-ratio: {{ image_ratio }};">
+          {% if article.image != blank %}
+            {%- liquid
+              assign alt = article.image.alt | default: article.title | escape
+            -%}
+            {%- capture sizes -%}(min-width: {{ settings.page_width }}px) {{ settings.page_width | minus: 100 }}px, (min-width: 750px) calc(100vw - 10rem), 100vw{%- endcapture -%}
+            {{
+              article.image
+              | image_url: width: 1500
+              | image_tag:
+                width: article.image.width,
+                height: article.image.height,
+                loading: 'lazy',
+                fetchpriority: 'auto',
+                class: 'motion-reduce hover-scale-up',
+                widths: '165, 360, 535, 750, 1000, 1500',
+                sizes: sizes,
+                alt: alt,
+                is: 'image-lazy'
+            }}
+          {%- else -%}
+            {{- 'image' | placeholder_svg_tag: 'placeholder-svg' -}}
+          {%- endif -%}
+        </motion-element>
+      </a>
+    </div>
+    <div class="article-card__content{% if layout == 'horizontal' %} md:flex{% if article.image != blank %} justify-center{% endif %}{% endif %}">
+      <div class="article-card__content-inner">
+        {%- if article.tags.size > 0 and show_tags -%}
+          <span class="article-card__tags text-upper font-body-bolder text-subtext block">
+            {%- for tag in article.tags limit: 1 -%}
+              {{ tag }}
+            {%- endfor -%}
+          </span>
+        {%- endif -%}
+
+        <h3 class="article-card__title{% if title_size %} {{ title_size }}{% endif %}">
+          <a class="reversed-link" href="{{ article.url }}">{{ article.title }}</a>
+        </h3>
+
+        {% if show_date or show_author %}
+          <div class="article-card__metas {{ meta_size }} flex gap-2 text-subtext">
+            {% if show_date %}
+              <span class="article-card__meta article-card__date">
+                {{- article.published_at | time_tag: format: 'abbreviated_date' -}}
+              </span>
+            {% endif %}
+            {% if show_date and show_author %}
+              <span class="article-card__separator no-empty rounded self-center"></span>
+            {% endif %}
+            {% if show_author %}
+              <span class="article-card__meta article-card__author">{{ article.author }}</span>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {%- if show_excerpt and article.excerpt.size > 0 or article.content.size > 0 -%}
+          <p class="article-card__excerpt text-limit-2-lines text-subtext">
+            {%- if article.excerpt.size > 0 -%}
+              {{ article.excerpt | strip_html }}
+            {%- else -%}
+              {{ article.content | strip_html }}
+            {%- endif -%}
+          </p>
+        {%- endif -%}
+
+        {% if show_button %}
+          <a href="{{ article.url }}" class="btn {{ button_style }} article-card__button">
+            <span class="btn__text">
+              {{- 'blogs.article.article_button_label' | t -}}
+            </span>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{%- endif -%}

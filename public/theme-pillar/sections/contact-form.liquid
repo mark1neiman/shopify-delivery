@@ -1,0 +1,1455 @@
+{%- liquid
+  assign color_inherit = false
+  if section.settings.color_scheme == section.settings.section_color_scheme
+    assign color_inherit = true
+  endif
+
+  assign custom_field_blocks = section.blocks | where: 'type', 'custom_field'
+  assign sidebar = section.blocks | where: 'type', 'sidebar' | first
+
+  assign form_id = 'ContactForm-' | append: section.id
+  assign phone_field_index = 1
+-%}
+{{ 'section-contact-form.css' | asset_url | stylesheet_tag }}
+{%- if sidebar -%}
+  {{ 'component-help-sidebar.css' | asset_url | stylesheet_tag }}
+{%- endif -%}
+{% render 'divider',
+  show_divider: section.settings.show_section_divider,
+  divider_width: section.settings.divider_width
+%}
+<div
+  class="contact-form{% if color_inherit %} color-inherit{% endif %} section section--padding page-width page-width--{{ section.settings.container }} color-{{ section.settings.section_color_scheme }}"
+  style="--section-padding-top: {{ section.settings.padding_top }}px;--section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+>
+  <div class="contact-form__wrapper flex flex-col md:flex-row{% if sidebar != blank %} help-sidebar__wrapper help-sidebar--{{ sidebar.settings.position }}{% endif %}">
+    <div class="contact-form__form flex-1">
+      {%- if section.settings.heading != blank -%}
+        <h2 class="contact__title inline-richtext {{ section.settings.heading_size }} text-center">
+          <motion-element data-motion="fade-up" class="block">
+            {% render 'highlight-text',
+              hl_text: section.settings.heading,
+              hl_style: section.settings.highlight_style,
+              hl_font_style: section.settings.highlight_font_style,
+              hl_style_color: section.settings.highlight_style_color,
+              hl_text_color: section.settings.highlight_text_color
+            %}
+          </motion-element>
+        </h2>
+      {%- else -%}
+        <h2 class="visually-hidden">{{ 'templates.contact.form.title' | t }}</h2>
+      {%- endif -%}
+      {%- form 'contact', id: form_id, class: 'w-full' -%}
+        {%- if form.posted_successfully? -%}
+          <div class="form-status-list" role="status">
+            <h3 class="form-message alert alert--success h6 blocks-radius" tabindex="-1" autofocus>
+              {% render 'icon-success', size: 'small' %}
+              {{ 'templates.contact.form.post_success' | t }}
+            </h3>
+          </div>
+        {%- elsif form.errors -%}
+          <div class="form-error alert alert--error blocks-radius">
+            <h3 class="form-message form-message--error h6 m-0" role="alert" tabindex="-1" autofocus>
+              {% render 'icon-error', size: 'small' %}
+              {{ 'templates.contact.form.error_heading' | t }}
+            </h3>
+
+            <ul role="list">
+              <li>
+                <a href="#ContactForm-email" class="reversed-link">
+                  {{ form.errors.translated_fields.email | capitalize }}
+                  {{ form.errors.messages.email }}
+                </a>
+              </li>
+            </ul>
+          </div>
+        {%- endif -%}
+        <div class="contact__fields f-grid f-grid-1-cols md:f-grid-2-cols">
+          <div class="form-field form-field--name">
+            <label class="form-label" for="ContactForm-name-{{ section.id }}">
+              {{- 'templates.contact.form.name' | t -}}
+            </label>
+            <input
+              class="form-control"
+              autocomplete="name"
+              type="text"
+              id="ContactForm-name-{{ section.id }}"
+              name="contact[{{ 'templates.contact.form.name' | t }}]"
+              value="{% if form.name %}{{ form.name }}{% elsif customer %}{{ customer.name }}{% endif %}"
+              placeholder="{{ 'templates.contact.form.name' | t }}"
+            >
+          </div>
+          <div class="form-field form-field--email">
+            <label class="form-label" for="ContactForm-email-{{ section.id }}">
+              {{- 'templates.contact.form.email' | t }}
+              <span aria-hidden="true">*</span>
+            </label>
+            <input
+              autocomplete="email"
+              type="email"
+              id="ContactForm-email-{{ section.id }}"
+              class="form-control"
+              name="contact[email]"
+              spellcheck="false"
+              autocapitalize="off"
+              value="{% if form.email %}{{ form.email }}{% elsif customer %}{{ customer.email }}{% endif %}"
+              required
+              {% if form.errors contains 'email' %}
+                aria-invalid="true"
+                aria-describedby="ContactForm-email-error-{{ section.id }}"
+              {% endif %}
+              placeholder="{{ 'templates.contact.form.email' | t }}"
+            >
+            {%- if form.errors contains 'email' -%}
+              <span
+                class="form-message form-message--small form-message--error"
+                id="ContactForm-email-error-{{ section.id }}"
+              >
+                {% render 'icon-error', size: 'small' %}
+                {{- form.errors.translated_fields.email | capitalize }}
+                {{ form.errors.messages.email -}}
+              </span>
+            {%- endif -%}
+          </div>
+
+          {%- for block in custom_field_blocks -%}
+            {%- liquid
+              assign field_name_default = 'Custom field ' | append: forloop.index
+              assign field_name = block.settings.heading | default: field_name_default
+            -%}
+            {%- if block.settings.field_type == 'phone' -%}
+              {%- liquid
+                assign placeholder = 'templates.contact.form.phone' | t
+                if block.settings.placeholder != blank
+                  assign placeholder = block.settings.placeholder
+                endif
+
+                if phone_field_index > 1
+                  continue
+                endif
+              -%}
+              <div
+                class="form-field form-field--{{ block.settings.field_type }}{% if block.settings.full_width %} form-field--full{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {%- if block.settings.heading != blank -%}
+                  <label class="form-label" for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}">
+                    {{- block.settings.heading -}}
+                    {% if block.settings.required %}
+                      <span aria-hidden="true">*</span>
+                    {% endif %}
+                  </label>
+                {%- endif -%}
+                <input
+                  type="tel"
+                  id="ContactForm-{{ block.settings.field_type }}-{{ block.id }}"
+                  class="form-control"
+                  autocomplete="tel"
+                  name="contact[{{ 'templates.contact.form.phone' | t }}]"
+                  pattern="[0-9\-]*"
+                  value="{% if form.phone %}{{ form.phone }}{% elsif customer %}{{ customer.phone }}{% endif %}"
+                  placeholder="{{ placeholder }}"
+                  {% if block.settings.required %}
+                    aria-invalid="true"
+                    required
+                  {% endif %}
+                >
+              </div>
+              {% assign phone_field_index = phone_field_index | plus: 1 %}
+            {%- elsif block.settings.field_type == 'text' -%}
+              <div
+                class="form-field form-field--{{ block.settings.field_type }}{% if block.settings.full_width %} form-field--full{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {%- if block.settings.heading != blank -%}
+                  <label class="form-label" for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}">
+                    {{- block.settings.heading -}}
+                    {% if block.settings.required %}
+                      <span aria-hidden="true">*</span>
+                    {% endif %}
+                  </label>
+                {%- endif -%}
+                <input
+                  type="text"
+                  id="ContactForm-{{ block.settings.field_type }}-{{ block.id }}"
+                  class="form-control"
+                  name="contact[{{- field_name -}}]"
+                  value=""
+                  {% if block.settings.placeholder != blank %}
+                    placeholder="{{ block.settings.placeholder }}"
+                  {% endif %}
+                  {% if block.settings.required %}
+                    aria-invalid="true"
+                    required
+                  {% endif %}
+                >
+              </div>
+            {%- elsif block.settings.field_type == 'textarea' -%}
+              <div
+                class="form-field form-field--{{ block.settings.field_type }}{% if block.settings.full_width %} form-field--full{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {%- if block.settings.heading != blank -%}
+                  <label class="form-label" for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}">
+                    {{- block.settings.heading -}}
+                    {% if block.settings.required %}
+                      <span aria-hidden="true">*</span>
+                    {% endif %}
+                  </label>
+                {%- endif -%}
+                <textarea
+                  rows="5"
+                  id="ContactForm-{{ block.settings.field_type }}-{{ block.id }}"
+                  class="form-control form-control--textarea"
+                  name="contact[{{- field_name -}}]"
+                  {% if block.settings.placeholder != blank %}
+                    placeholder="{{ block.settings.placeholder }}"
+                  {% endif %}
+                  {% if block.settings.required %}
+                    aria-invalid="true"
+                    required
+                  {% endif %}
+                >
+                    {{- form[field_name] -}}
+                  </textarea>
+              </div>
+            {%- elsif block.settings.field_type == 'select' -%}
+              {% assign options = block.settings.select_options | split: ',' %}
+              <div
+                class="form-field form-field--{{ block.settings.field_type }}{% if block.settings.full_width %} form-field--full{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {%- if block.settings.heading != blank -%}
+                  <label class="form-label" for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}">
+                    {{- block.settings.heading -}}
+                    {% if block.settings.required %}
+                      <span aria-hidden="true">*</span>
+                    {% endif %}
+                  </label>
+                {%- endif -%}
+                <div class="select">
+                  <select
+                    id="ContactForm-{{ block.settings.field_type }}-{{ block.id }}"
+                    name="contact[{{- field_name -}}]"
+                    class="form-control form-control--select"
+                    {% if block.settings.required %}
+                      aria-invalid="true"
+                      required
+                    {% endif %}
+                  >
+                    {%- if block.settings.placeholder != blank -%}
+                      <option value="">{{ block.settings.placeholder }}</option>
+                    {%- endif -%}
+                    {%- for option in options -%}
+                      <option value="{{ option }}" label="{{ option }}">{{ option }}</option>
+                    {%- endfor -%}
+                  </select>
+                  {%- render 'icon-caret-down', size: '2xs' -%}
+                </div>
+              </div>
+            {%- elsif block.settings.field_type == 'checkbox' -%}
+              <div
+                class="form-field form-field--{{ block.type }}{% if block.settings.full_width %} form-field--full{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                <div class="flex items-center gap-x-3">
+                  <input
+                    type="hidden"
+                    name="contact[{{- field_name -}}]"
+                    value="{{ block.settings.checkbox_uncheck_value }}"
+                  >
+                  <input
+                    type="checkbox"
+                    name="contact[{{- field_name -}}]"
+                    id="ContactForm-{{ block.settings.field_type }}-{{ block.id }}"
+                    value="{{ block.settings.checkbox_checked_value }}"
+                    {% if block.settings.required %}
+                      aria-invalid="true"
+                      required
+                    {% endif %}
+                  >
+                  {%- if block.settings.heading != blank -%}
+                    <label class="flex-1" for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}">
+                      {{- block.settings.heading -}}
+                      {% if block.settings.required %}
+                        <span aria-hidden="true">*</span>
+                      {% endif %}
+                    </label>
+                  {%- endif -%}
+                </div>
+              </div>
+            {%- elsif block.settings.field_type == 'radio' -%}
+              {% assign options = block.settings.radio_options | split: ',' %}
+              <div
+                class="form-field form-field--{{ block.settings.field_type }}{% if block.settings.full_width %} form-field--full{% endif %}"
+                {{ block.shopify_attributes }}
+              >
+                {%- if block.settings.heading != blank -%}
+                  <label class="form-label" for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}">
+                    {{- block.settings.heading -}}
+                    {% if block.settings.required %}
+                      <span aria-hidden="true">*</span>
+                    {% endif %}
+                  </label>
+                {%- endif -%}
+                <ul>
+                  {%- for option in options -%}
+                    <li class="flex items-center gap-x-3">
+                      <input
+                        type="radio"
+                        name="contact[{{- field_name -}}]"
+                        id="ContactForm-{{ block.settings.field_type }}-{{ block.id }}-{{ forloop.index }}"
+                        value="{{ option }}"
+                        {% if block.settings.required %}
+                          aria-invalid="true"
+                          required
+                        {% endif %}
+                      >
+                      <label
+                        class="flex-1"
+                        for="ContactForm-{{ block.settings.field_type }}-{{ block.id }}-{{ forloop.index }}"
+                      >
+                        {{- option -}}
+                      </label>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              </div>
+            {%- endif -%}
+          {%- endfor -%}
+          <div class="form-field form-field--full form-field--body">
+            <label class="form-label" for="ContactForm-body-{{ section.id }}">
+              {{- 'templates.contact.form.comment' | t -}}
+            </label>
+            <textarea
+              rows="5"
+              id="ContactForm-body-{{ section.id }}"
+              class="form-control form-control--textarea"
+              name="contact[{{ 'templates.contact.form.comment' | t }}]"
+              placeholder="{{ 'templates.contact.form.comment' | t }}"
+            >
+              {{- form.body -}}
+            </textarea>
+          </div>
+          <div class="contact__button form-footer form-field--full">
+            <button type="submit" class="btn btn--primary">
+              <span class="btn__text">{{ 'templates.contact.form.send' | t }}</span>
+            </button>
+          </div>
+        </div>
+      {%- endform -%}
+    </div>
+    {%- if sidebar != blank -%}
+      {% render 'help-sidebar', sidebar: sidebar %}
+    {%- endif -%}
+  </div>
+</div>
+{% schema %}
+{
+  "name": "t:sections.contact-form.name",
+  "tag": "section",
+  "class": "section",
+  "disabled_on": {
+    "groups": ["footer", "header", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        },
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "section_color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:general.section_header.content"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "Contact form",
+      "label": "t:general.heading.label",
+      "info": "t:general.heading.info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "label": "t:general.highlight_text.highlight_style.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+        },
+        {
+          "value": "hand_drawn_circle",
+          "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+        },
+        {
+          "value": "thick_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+        },
+        {
+          "value": "wave_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "highlight_font_style",
+      "label": "t:general.highlight_text.highlight_font_style.label",
+      "options": [
+        {
+          "value": "italic",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+        },
+        {
+          "value": "normal",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "highlight_style_color",
+      "label": "t:general.highlight_text.highlight_style_color.label"
+    },
+    {
+      "type": "color",
+      "id": "highlight_text_color",
+      "label": "t:general.highlight_text.highlight_text_color.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:general.text_size.heading.label",
+      "default": "h1",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:general.text_size.options__h5.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:general.text_size.options__h4.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:general.text_size.options__h3.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:general.text_size.options__h2.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:general.text_size.options__h1.label"
+        },
+        {
+          "value": "hd2",
+          "label": "t:general.text_size.options__hd2.label"
+        },
+        {
+          "value": "hd1",
+          "label": "t:general.text_size.options__hd1.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.top.label",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.bottom.label",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "t:general.divider.section_heading.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:general.divider.show_divider.label"
+    },
+    {
+      "type": "select",
+      "id": "divider_width",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "custom_field",
+      "name": "t:sections.contact-form.blocks.custom_field.name",
+      "settings": [
+        {
+          "type": "paragraph",
+          "content": "t:sections.contact-form.blocks.custom_field.paragraph"
+        },
+        {
+          "type": "select",
+          "id": "field_type",
+          "label": "t:sections.contact-form.blocks.custom_field.settings.field_type.label",
+          "default": "text",
+          "info": "t:sections.contact-form.blocks.custom_field.settings.field_type.info",
+          "options": [
+            {
+              "value": "text",
+              "label": "t:general.form.text.name"
+            },
+            {
+              "value": "textarea",
+              "label": "t:general.form.textarea.name"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.form.phone.name"
+            },
+            {
+              "value": "select",
+              "label": "t:general.form.select.name"
+            },
+            {
+              "value": "checkbox",
+              "label": "t:general.form.checkbox.name"
+            },
+            {
+              "value": "radio",
+              "label": "t:general.form.radio.name"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:general.form.label.label"
+        },
+        {
+          "type": "text",
+          "id": "placeholder",
+          "label": "t:general.form.placeholder.label"
+        },
+        {
+          "type": "checkbox",
+          "id": "required",
+          "label": "t:general.form.required.label",
+          "default": false
+        },
+        {
+          "type": "checkbox",
+          "id": "full_width",
+          "label": "t:sections.contact-form.blocks.custom_field.settings.full_width.label",
+          "default": false
+        },
+        {
+          "type": "header",
+          "content": "t:sections.contact-form.blocks.custom_field.select_header.content",
+          "info": "t:sections.contact-form.blocks.custom_field.select_header.info"
+        },
+        {
+          "type": "text",
+          "id": "select_options",
+          "label": "t:sections.contact-form.blocks.custom_field.settings.select_options.label",
+          "info": "t:sections.contact-form.blocks.custom_field.settings.select_options.info"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.contact-form.blocks.custom_field.checkbox_header.content",
+          "info": "t:sections.contact-form.blocks.custom_field.checkbox_header.info"
+        },
+        {
+          "type": "text",
+          "id": "checkbox_checked_value",
+          "label": "t:sections.contact-form.blocks.custom_field.settings.checkbox_checked_value.label",
+          "default": "Yes"
+        },
+        {
+          "type": "text",
+          "id": "checkbox_uncheck_value",
+          "label": "t:sections.contact-form.blocks.custom_field.settings.checkbox_uncheck_value.label",
+          "default": "No"
+        },
+        {
+          "type": "header",
+          "content": "t:sections.contact-form.blocks.custom_field.radio_header.content",
+          "info": "t:sections.contact-form.blocks.custom_field.radio_header.info"
+        },
+        {
+          "type": "text",
+          "id": "radio_options",
+          "label": "t:sections.contact-form.blocks.custom_field.settings.radio_options.label",
+          "info": "t:sections.contact-form.blocks.custom_field.settings.radio_options.info"
+        }
+      ]
+    },
+    {
+      "type": "sidebar",
+      "name": "t:general.help_sidebar.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "header",
+          "content": "t:general.general.name"
+        },
+        {
+          "type": "select",
+          "id": "position",
+          "label": "t:general.help_sidebar.position.label",
+          "options": [
+            {
+              "value": "right",
+              "label": "t:general.content_alignment.options__3.label"
+            },
+            {
+              "value": "left",
+              "label": "t:general.content_alignment.options__1.label"
+            }
+          ],
+          "default": "right"
+        },
+        {
+          "type": "header",
+          "content": "t:general.content.label"
+        },
+        {
+          "type": "inline_richtext",
+          "id": "heading",
+          "default": "Sidebar",
+          "label": "t:general.heading.label"
+        },
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:general.text_size.heading.label",
+          "default": "h2",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "t:general.text.label"
+        },
+        {
+          "type": "select",
+          "id": "text_size",
+          "label": "t:general.text_size.text.label",
+          "default": "text-base",
+          "options": [
+            {
+              "value": "text-sm",
+              "label": "t:general.text_size.options__small.label"
+            },
+            {
+              "value": "text-base",
+              "label": "t:general.text_size.options__base.label"
+            },
+            {
+              "value": "text-lg",
+              "label": "t:general.text_size.options__large.label"
+            },
+            {
+              "value": "text-inherit",
+              "label": "t:general.text_size.options__inherit.label"
+            }
+          ]
+        },
+        {
+          "type": "header",
+          "content": "t:general.help_sidebar.header__item_1.content"
+        },
+        {
+          "type": "select",
+          "id": "icon_1",
+          "label": "t:general.icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.icon.options__1.label"
+            },
+            {
+              "value": "car-simple",
+              "label": "t:general.icon.options__2.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:general.icon.options__3.label"
+            },
+            {
+              "value": "package",
+              "label": "t:general.icon.options__4.label"
+            },
+            {
+              "value": "currency-circle-dollar",
+              "label": "t:general.icon.options__5.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:general.icon.options__6.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.icon.options__7.label"
+            },
+            {
+              "value": "globe",
+              "label": "t:general.icon.options__8.label"
+            },
+            {
+              "value": "check",
+              "label": "t:general.icon.options__9.label"
+            },
+            {
+              "value": "arrow-up-left",
+              "label": "t:general.icon.options__10.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:general.icon.options__11.label"
+            },
+            {
+              "value": "calendar-blank",
+              "label": "t:general.icon.options__12.label"
+            },
+            {
+              "value": "bell-ringing",
+              "label": "t:general.icon.options__13.label"
+            },
+            {
+              "value": "location",
+              "label": "t:general.icon.options__14.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:general.icon.options__15.label"
+            },
+            {
+              "value": "map-pin",
+              "label": "t:general.icon.options__16.label"
+            },
+            {
+              "value": "smiley",
+              "label": "t:general.icon.options__17.label"
+            },
+            {
+              "value": "stool",
+              "label": "t:general.icon.options__18.label"
+            },
+            {
+              "value": "clock",
+              "label": "t:general.icon.options__19.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.icon.options__20.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.icon.options__21.label"
+            },
+            {
+              "value": "paperplane",
+              "label": "t:general.icon.options__22.label"
+            }
+          ],
+          "default": "heart"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon_custom_1",
+          "label": "t:general.custom_image.label"
+        },
+        {
+          "type": "range",
+          "id": "icon_width_1",
+          "label": "t:general.help_sidebar.icon_width.label",
+          "min": 10,
+          "max": 50,
+          "step": 2,
+          "unit": "px",
+          "default": 24
+        },
+        {
+          "type": "color",
+          "id": "icon_color_1",
+          "label": "t:general.help_sidebar.icon_color.label",
+          "default": "#000000"
+        },
+        {
+          "type": "text",
+          "id": "icon_heading_1",
+          "label": "t:general.heading.label",
+          "default": "Icon with text"
+        },
+        {
+          "type": "select",
+          "id": "icon_heading_size_1",
+          "label": "t:general.text_size.heading.label",
+          "default": "h5",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        },
+        {
+          "type": "richtext",
+          "id": "icon_text_1",
+          "label": "t:general.text.label"
+        },
+        {
+          "type": "select",
+          "id": "icon_vertical_alignment_1",
+          "label": "t:general.vertical_alignment.label",
+          "default": "start",
+          "options": [
+            {
+              "value": "start",
+              "label": "t:general.vertical_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.vertical_alignment.options__2.label"
+            },
+            {
+              "value": "end",
+              "label": "t:general.vertical_alignment.options__3.label"
+            }
+          ]
+        },
+        {
+          "type": "header",
+          "content": "t:general.help_sidebar.header__item_2.content"
+        },
+        {
+          "type": "select",
+          "id": "icon_2",
+          "label": "t:general.icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.icon.options__1.label"
+            },
+            {
+              "value": "car-simple",
+              "label": "t:general.icon.options__2.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:general.icon.options__3.label"
+            },
+            {
+              "value": "package",
+              "label": "t:general.icon.options__4.label"
+            },
+            {
+              "value": "currency-circle-dollar",
+              "label": "t:general.icon.options__5.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:general.icon.options__6.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.icon.options__7.label"
+            },
+            {
+              "value": "globe",
+              "label": "t:general.icon.options__8.label"
+            },
+            {
+              "value": "check",
+              "label": "t:general.icon.options__9.label"
+            },
+            {
+              "value": "arrow-up-left",
+              "label": "t:general.icon.options__10.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:general.icon.options__11.label"
+            },
+            {
+              "value": "calendar-blank",
+              "label": "t:general.icon.options__12.label"
+            },
+            {
+              "value": "bell-ringing",
+              "label": "t:general.icon.options__13.label"
+            },
+            {
+              "value": "location",
+              "label": "t:general.icon.options__14.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:general.icon.options__15.label"
+            },
+            {
+              "value": "map-pin",
+              "label": "t:general.icon.options__16.label"
+            },
+            {
+              "value": "smiley",
+              "label": "t:general.icon.options__17.label"
+            },
+            {
+              "value": "stool",
+              "label": "t:general.icon.options__18.label"
+            },
+            {
+              "value": "clock",
+              "label": "t:general.icon.options__19.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.icon.options__20.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.icon.options__21.label"
+            },
+            {
+              "value": "paperplane",
+              "label": "t:general.icon.options__22.label"
+            }
+          ],
+          "default": "heart"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon_custom_2",
+          "label": "t:general.custom_image.label"
+        },
+        {
+          "type": "range",
+          "id": "icon_width_2",
+          "label": "t:general.help_sidebar.icon_width.label",
+          "min": 10,
+          "max": 50,
+          "step": 2,
+          "unit": "px",
+          "default": 24
+        },
+        {
+          "type": "color",
+          "id": "icon_color_2",
+          "label": "t:general.help_sidebar.icon_color.label",
+          "default": "#000000"
+        },
+        {
+          "type": "text",
+          "id": "icon_heading_2",
+          "label": "t:general.heading.label",
+          "default": "Icon with text"
+        },
+        {
+          "type": "select",
+          "id": "icon_heading_size_2",
+          "label": "t:general.text_size.heading.label",
+          "default": "h5",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        },
+        {
+          "type": "richtext",
+          "id": "icon_text_2",
+          "label": "t:general.text.label"
+        },
+        {
+          "type": "select",
+          "id": "icon_vertical_alignment_2",
+          "label": "t:general.vertical_alignment.label",
+          "default": "start",
+          "options": [
+            {
+              "value": "start",
+              "label": "t:general.vertical_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.vertical_alignment.options__2.label"
+            },
+            {
+              "value": "end",
+              "label": "t:general.vertical_alignment.options__3.label"
+            }
+          ]
+        },
+        {
+          "type": "header",
+          "content": "t:general.help_sidebar.header__item_3.content"
+        },
+        {
+          "type": "select",
+          "id": "icon_3",
+          "label": "t:general.icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.icon.options__1.label"
+            },
+            {
+              "value": "car-simple",
+              "label": "t:general.icon.options__2.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:general.icon.options__3.label"
+            },
+            {
+              "value": "package",
+              "label": "t:general.icon.options__4.label"
+            },
+            {
+              "value": "currency-circle-dollar",
+              "label": "t:general.icon.options__5.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:general.icon.options__6.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.icon.options__7.label"
+            },
+            {
+              "value": "globe",
+              "label": "t:general.icon.options__8.label"
+            },
+            {
+              "value": "check",
+              "label": "t:general.icon.options__9.label"
+            },
+            {
+              "value": "arrow-up-left",
+              "label": "t:general.icon.options__10.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:general.icon.options__11.label"
+            },
+            {
+              "value": "calendar-blank",
+              "label": "t:general.icon.options__12.label"
+            },
+            {
+              "value": "bell-ringing",
+              "label": "t:general.icon.options__13.label"
+            },
+            {
+              "value": "location",
+              "label": "t:general.icon.options__14.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:general.icon.options__15.label"
+            },
+            {
+              "value": "map-pin",
+              "label": "t:general.icon.options__16.label"
+            },
+            {
+              "value": "smiley",
+              "label": "t:general.icon.options__17.label"
+            },
+            {
+              "value": "stool",
+              "label": "t:general.icon.options__18.label"
+            },
+            {
+              "value": "clock",
+              "label": "t:general.icon.options__19.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.icon.options__20.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.icon.options__21.label"
+            },
+            {
+              "value": "paperplane",
+              "label": "t:general.icon.options__22.label"
+            }
+          ],
+          "default": "heart"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon_custom_3",
+          "label": "t:general.custom_image.label"
+        },
+        {
+          "type": "range",
+          "id": "icon_width_3",
+          "label": "t:general.help_sidebar.icon_width.label",
+          "min": 10,
+          "max": 50,
+          "step": 2,
+          "unit": "px",
+          "default": 24
+        },
+        {
+          "type": "color",
+          "id": "icon_color_3",
+          "label": "t:general.help_sidebar.icon_color.label",
+          "default": "#000000"
+        },
+        {
+          "type": "text",
+          "id": "icon_heading_3",
+          "label": "t:general.heading.label",
+          "default": "Icon with text"
+        },
+        {
+          "type": "select",
+          "id": "icon_heading_size_3",
+          "label": "t:general.text_size.heading.label",
+          "default": "h5",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        },
+        {
+          "type": "richtext",
+          "id": "icon_text_3",
+          "label": "t:general.text.label"
+        },
+        {
+          "type": "select",
+          "id": "icon_vertical_alignment_3",
+          "label": "t:general.vertical_alignment.label",
+          "default": "start",
+          "options": [
+            {
+              "value": "start",
+              "label": "t:general.vertical_alignment.options__1.label"
+            },
+            {
+              "value": "center",
+              "label": "t:general.vertical_alignment.options__2.label"
+            },
+            {
+              "value": "end",
+              "label": "t:general.vertical_alignment.options__3.label"
+            }
+          ]
+        },
+        {
+          "type": "header",
+          "content": "t:general.button.header.content"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:general.button.button_link.label"
+        },
+        {
+          "type": "select",
+          "id": "button_style",
+          "label": "t:general.button.button_style.label",
+          "options": [
+            {
+              "value": "btn--primary",
+              "label": "t:general.button.button_style.options__1.label"
+            },
+            {
+              "value": "btn--secondary",
+              "label": "t:general.button.button_style.options__2.label"
+            },
+            {
+              "value": "btn--underline",
+              "label": "t:general.button.button_style.options__4.label"
+            },
+            {
+              "value": "btn--plain",
+              "label": "t:general.button.button_style.options__7.label"
+            }
+          ],
+          "default": "btn--primary"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.contact-form.name",
+      "blocks": [
+        {
+          "type": "custom_field",
+          "settings": {
+            "field_type": "phone",
+            "full_width": true,
+            "heading": "Phone"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

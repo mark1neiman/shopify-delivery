@@ -1,0 +1,986 @@
+{{ 'section-products-bundle-selection.css' | asset_url | stylesheet_tag }}
+
+{%- liquid
+  assign columns_desktop = section.settings.columns
+
+  assign columns_tablet = 3
+  if columns_desktop < 3
+    assign columns_tablet = columns_desktop
+  endif
+
+  assign columns_mobile = section.settings.columns_mobile | plus: 0
+
+  assign block_size = section.blocks.size
+
+  assign header_alignment = section.settings.section_header_alignment
+  assign header_alignment_mobile = section.settings.section_header_alignment_mobile
+  if header_alignment_mobile == 'inherit'
+    assign header_alignment_mobile = header_alignment
+  endif
+
+  assign motion_delay = 50
+
+  assign prevent_duplicate_products = section.settings.prevent_duplicate_products
+  assign number_tiers = section.settings.discount_tiers | plus: 0
+  assign discount_min_items = section.settings.discount_tier_min_items_1 | default: 3
+  assign discount_max_items = section.settings.discount_max_items
+  for i in (1..number_tiers)
+    assign discount_tier_min_items_key = 'discount_tier_min_items_' | append: i
+    assign discount_tier_min_items = section.settings[discount_tier_min_items_key]
+    assign discount_tier_percent_key = 'discount_tier_percent_' | append: i
+    assign discount_tier_percent = section.settings[discount_tier_percent_key]
+
+    if discount_tier_percent == blank or discount_tier_percent < 1
+      continue
+    endif
+
+    assign discount_min_items = discount_min_items | at_most: discount_tier_min_items
+    assign discount_max_items = discount_max_items | at_least: discount_tier_min_items
+  endfor
+-%}
+{%- capture image_sizes -%}
+(max-width: 767px) calc((100vw - 30px) / {{ columns_mobile }}),
+(max-width: 1023px) calc((100vw - 30px) / {{ columns_tablet }}),
+calc(100vw / {{ columns_desktop }})
+{%- endcapture -%}
+
+{% style %}
+  .section-{{ section.id }} {
+    --section-padding-top: {{ section.settings.padding_top }}px;
+    --section-padding-bottom: {{ section.settings.padding_bottom }}px;
+    --f-columns-mobile: {{ columns_mobile }};
+    --f-columns-md: {{ columns_tablet }};
+    --f-columns-xl: {{ columns_desktop }};
+  }
+{% endstyle %}
+
+{% render 'divider',
+  show_divider: section.settings.show_section_divider,
+  divider_width: section.settings.divider_width
+%}
+<div
+  class="section section-{{ section.id }} section-products-bundle-selection section--padding color-{{ section.settings.color_scheme }}"
+  data-id="{{ section.id }}"
+>
+  <div class="section__container page-width page-width--{{ section.settings.container }}">
+    <div
+      class="section__wrapper"
+      {% if block_size > 1 %}
+        is="product-tabs"
+      {% endif %}
+      data-section-id="{{ section.id }}"
+    >
+      <div class="section__header s__header md:text-{{ header_alignment }} text-{{ header_alignment_mobile }} flex flex-col gap-6 md:gap-8">
+        <div class="section__header--text s__header--text rich-text rich-text--tight flex-1">
+          {% if section.settings.subheading != blank %}
+            <motion-element
+              class="block rich-text__subheading text-subheading"
+              data-motion="fade-up"
+              data-motion-delay="{{ motion_delay }}"
+            >
+              {{- section.settings.subheading -}}
+            </motion-element>
+            {%- assign motion_delay = motion_delay | plus: 50 -%}
+          {% endif %}
+          {% if section.settings.heading != blank %}
+            <h2 class="rich-text__heading inline-richtext {{ section.settings.heading_size }}">
+              <motion-element data-motion="fade-up" data-motion-delay="{{ motion_delay }}" class="block">
+                {% render 'highlight-text',
+                  hl_text: section.settings.heading,
+                  hl_style: section.settings.highlight_style,
+                  hl_font_style: section.settings.highlight_font_style,
+                  hl_style_color: section.settings.highlight_style_color,
+                  hl_text_color: section.settings.highlight_text_color
+                %}
+              </motion-element>
+            </h2>
+            {%- assign motion_delay = motion_delay | plus: 50 -%}
+          {% endif %}
+          {% if section.settings.description != blank %}
+            <motion-element
+              data-motion="fade-up"
+              data-motion-delay="{{ motion_delay }}"
+              class="block rich-text__text rte {{ section.settings.text_size }} text-subtext"
+            >
+              {{- section.settings.description -}}
+            </motion-element>
+            {%- assign motion_delay = motion_delay | plus: 50 -%}
+          {% endif %}
+          <motion-element
+            class="rich-text__button block"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+          >
+            <div class="swipe-mobile swipe-mobile--auto-cols">
+              <div class="inline-flex items-center flex-wrap gap-2 swipe-mobile__inner">
+                {%- for i in (1..number_tiers) -%}
+                  {%- liquid
+                    assign discount_tier_percent_key = 'discount_tier_percent_' | append: i
+                    assign discount_tier_label_key = 'discount_tier_label_' | append: i
+                    assign discount_tier_percent = section.settings[discount_tier_percent_key]
+                    assign discount_tier_label = section.settings[discount_tier_label_key]
+
+                    if discount_tier_label == blank or discount_tier_percent == blank
+                      continue
+                    endif
+                  -%}
+                  <div class="btn__item">
+                    <div class="btn btn--secondary">
+                      <span class="btn__text flex items-center gap-x-2">
+                        <span class="button-item__icon flex shrink-0 rounded">
+                          {% render 'icons', icon: 'check' %}
+                        </span>
+                        <span class="button-item__text flex-1">{{- discount_tier_label -}}</span>
+                      </span>
+                    </div>
+                  </div>
+                {%- endfor -%}
+              </div>
+            </div>
+          </motion-element>
+        </div>
+        {%- if block_size > 1 -%}
+          <motion-element
+            class="section__header--tabs-nav flex-1 block"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+          >
+            <div class="tabs-nav swipe-mobile swipe-mobile--auto-cols no-js-hidden">
+              <div
+                class="tabs-nav__inner flex flex-wrap md:justify-{{ header_alignment | replace: 'left','start' | replace: 'right','end' }} swipe-mobile__inner gap-3 gap-x-6 md:gap-x-8"
+                role="tablist"
+              >
+                {%- for block in section.blocks -%}
+                  {%- liquid
+                    assign collection = block.settings.collection
+                    if block.settings.title != blank
+                      assign tab_name = block.settings.title
+                    else
+                      if collection != blank
+                        assign tab_name = collection.title
+                      else
+                        assign tab_name = 'Tab ' | append: forloop.index
+                      endif
+                    endif
+                  -%}
+                  <button
+                    class="tabs__btn focus-inset btn btn--inherit{% if forloop.first %} active{% endif %}"
+                    role="tab"
+                    data-index="{{ forloop.index0 }}"
+                    {{ block.shopify_attributes }}
+                  >
+                    <span class="h3 text-inherit">{{- tab_name -}}</span>
+                  </button>
+                {%- endfor -%}
+              </div>
+            </div>
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+      </div>
+      <products-bundle-selection
+        class="section__content relative f-flex products-bundle-selection"
+        data-section-id="{{ section.id }}"
+        data-prevent-duplicate-items="{{ prevent_duplicate_products }}"
+        data-min-items="{{ discount_min_items }}"
+        data-max-items="{{ discount_max_items }}"
+        data-add-one-more="{{ 'sections.products-bundle-selection.add_one_more' | t }}"
+        data-add-few-more="{{ 'sections.products-bundle-selection.add_few_more' | t }}"
+        data-add-to-cart="{{ 'sections.products-bundle-selection.add' | t }}"
+        data-limit-message="{{ 'sections.products-bundle-selection.limit_message' | t: maximum: discount_max_items }}"
+        data-duplicate-message="{{ 'sections.products-bundle-selection.duplicate_message' | t }}"
+      >
+        <div class="f-column w-full flex-1 tabs__panels">
+          {%- for block in section.blocks -%}
+            {%- liquid
+              assign collection = collections[block.settings.collection]
+              assign products_to_display = section.settings.limit
+              if collection != blank and collection.all_products_count < products_to_display
+                assign products_to_display = collection.all_products_count
+              endif
+
+              assign enable_swipe_mobile = false
+              if section.settings.swipe_on_mobile and products_to_display > columns_mobile
+                assign enable_swipe_mobile = true
+              endif
+
+              assign pagination_type = 'progressbar'
+            -%}
+            {%- unless forloop.first -%}
+              <template data-index="{{ forloop.index0 }}">
+            {%- endunless -%}
+            <div
+              class="tabs__panel"
+              data-index="{{ forloop.index0 }}"
+              data-id="{{ block.id }}"
+              {{ block.shopify_attributes }}
+            >
+              <featured-collection
+                class="block relative{% if enable_swipe_mobile %} swipe-mobile swipe-mobile--{{ columns_mobile }}-cols{% endif %}"
+                data-block-id="{{ block.id }}"
+                id="product-list-{{ block.id }}"
+              >
+                <div class="featured-collection__items products-list f-grid f-grid--gap-{{ section.settings.column_gap }} f-grid--row-gap-{{ section.settings.row_gap }}{% if enable_swipe_mobile %} swipe-mobile__inner{% endif %}">
+                  {%- for product in collection.products limit: products_to_display -%}
+                    <div class="f-column">
+                      {%- render 'card-product-with-selection',
+                        product: product,
+                        parent_color_scheme: section.settings.color_scheme,
+                        image_sizes: image_sizes,
+                        image_ratio: section.settings.pcard_image_ratio,
+                        title_line_limit: section.settings.pcard_title_line_limit,
+                        section_index: section.index,
+                        block_id: block.id,
+                        index: forloop.index
+                      -%}
+                    </div>
+                  {%- else -%}
+                    {%- for i in (1..products_to_display) -%}
+                      <div class="f-column">
+                        {% render 'card-product-placeholder',
+                          image_ratio: section.settings.pcard_image_ratio,
+                          parent_color_scheme: section.settings.color_scheme
+                        %}
+                      </div>
+                    {%- endfor -%}
+                  {%- endfor -%}
+                </div>
+              </featured-collection>
+              {%- if pagination_type == 'progressbar' and enable_swipe_mobile and section.settings.show_progress_bar -%}
+                <scroll-progress-bar class="md:hidden" target="product-list-{{ block.id }}">
+                  <div class="progress-container">
+                    <div class="progress-bar no-empty"></div>
+                  </div>
+                </scroll-progress-bar>
+              {%- endif -%}
+            </div>
+            {%- unless forloop.first -%}
+              </template>
+            {%- endunless -%}
+          {%- endfor -%}
+        </div>
+        <div class="f-column w-full products-bundle-selection__bar-column">
+          <details
+            class="sticky-element products-bundle-selection__bar accordion-details color-{{ section.settings.bundle_bar_color_scheme }} blocks-radius"
+            is="products-bundle-selection-bar-toggle"
+            open
+            aria-expanded="true"
+          >
+            <summary class="accordion-details__summary flex items-center justify-between focus-inset">
+              <div class="flex items-center gap-2">
+                <h3 class="h3">{{- 'sections.products-bundle-selection.heading' | t -}}</h3>
+                <span class="products-bundle-selection__count rounded text-center font-body-bolder">0</span>
+              </div>
+              {%- render 'icon-caret-down', custom_class: 'block lg:hidden' -%}
+            </summary>
+            <div class="accordion-details__content flex flex-col gap-y-5">
+              {%- if section.settings.bundle_bar_description != blank -%}
+                <div class="products-bundle-selection__bar-desc rte">
+                  {{ section.settings.bundle_bar_description }}
+                </div>
+              {%- endif -%}
+              <div is="swipe-wrapper" class="products-bundle-selection__bar-list-wrap swipe--with-shadow">
+                <div class="swipe__element swipe-mobile swipe-mobile--auto-cols swipe-tablet swipe-tablet--auto-cols">
+                  <div class="products-bundle-selection__bar-list swipe-mobile__inner swipe-tablet__inner grid gap-2">
+                    {%- for i in (1..discount_max_items) -%}
+                      {%- liquid
+                        assign is_discount_item = false
+                        assign discount_tier_number = 0
+
+                        for tier_number in (1..number_tiers)
+                          assign discount_tier_min_items_key = 'discount_tier_min_items_' | append: tier_number
+                          assign discount_tier_min_items = section.settings[discount_tier_min_items_key]
+
+                          if discount_tier_min_items == i
+                            assign is_discount_item = true
+                            assign discount_tier_number = tier_number
+                          endif
+
+                          assign discount_tier_label_key = 'discount_tier_label_' | append: i
+                          assign discount_tier_percent = section.settings[discount_tier_percent_key]
+                          assign discount_tier_label = section.settings[discount_tier_label_key]
+                        endfor
+                      -%}
+                      <div class="products-bundle-selection__bar-item relative is-placeholder">
+                        <div
+                          class="products-bundle-selection__bar-item-content no-empty rounded media-wrapper bg-none"
+                          style="--aspect-ratio: 1;"
+                        >
+                          {%- if is_discount_item -%}
+                            {%- liquid
+                              assign discount_tier_percent_key = 'discount_tier_percent_' | append: discount_tier_number
+                              assign discount_tier_label_key = 'discount_tier_label_' | append: discount_tier_number
+                              assign discount_tier_percent = section.settings[discount_tier_percent_key]
+                              assign discount_tier_label = section.settings[discount_tier_label_key]
+                            -%}
+                            {%- if discount_tier_label != blank and discount_tier_percent != blank -%}
+                              <div class="flex items-center justify-center">
+                                <span class="h5">-{{ discount_tier_percent }}%</span>
+                              </div>
+                            {%- endif -%}
+                          {%- endif -%}
+                        </div>
+                        <button
+                          class="products-bundle-selection__bar-item-remove btn btn--white absolute z-2"
+                          aria-label="{{ 'sections.products-bundle-selection.remove' | t }}"
+                        >
+                          <span class="btn__text flex items-center">
+                            {%- render 'icon-close', size: 'extra-small' -%}
+                          </span>
+                        </button>
+                      </div>
+                    {%- endfor -%}
+                  </div>
+                </div>
+              </div>
+              <div class="products-bundle-selection__bar-total-row flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3 h4">
+                  <div>{{- 'sections.products-bundle-selection.total' | t | append: ':' -}}</div>
+                  <div class="products-bundle-selection__bar-total">
+                    {%- liquid
+                      if settings.currency_code_enabled
+                        echo 0 | money_with_currency
+                      else
+                        echo 0 | money
+                      endif
+                    -%}
+                  </div>
+                </div>
+                <div class="product-form__error-message blocks-radius-md alert alert--error" role="alert" hidden></div>
+                <button
+                  class="products-bundle-selection__bar-add btn btn--primary w-full"
+                  disabled="true"
+                >
+                  <span class="btn__text">{{- 'sections.products-bundle-selection.add' | t -}}</span>
+                  {% render 'loading-spinner' %}
+                </button>
+                <div class="products-bundle-selection__bar-help text-center hidden">
+                  {{- 'sections.products-bundle-selection.help' | t -}}
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+        <div class="products-bundle-selection-bar-trigger no-empty"></div>
+      </products-bundle-selection>
+    </div>
+  </div>
+</div>
+<script src="{{ 'product-tabs.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'products-bundle-selection.js' | asset_url }}" defer="defer"></script>
+{% schema %}
+{
+  "name": "t:sections.products-bundle-selection.name",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        },
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:general.section_header.content"
+    },
+    {
+      "id": "section_header_alignment",
+      "type": "select",
+      "label": "t:general.text_alignment.label",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "id": "section_header_alignment_mobile",
+      "type": "select",
+      "label": "t:general.text_alignment.mobile.label",
+      "default": "inherit",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.text_alignment.options__4.label"
+        },
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "t:general.subheading.label"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "Products bundle selection",
+      "label": "t:general.heading.label",
+      "info": "t:general.heading.info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "label": "t:general.highlight_text.highlight_style.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+        },
+        {
+          "value": "hand_drawn_circle",
+          "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+        },
+        {
+          "value": "thick_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+        },
+        {
+          "value": "wave_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "highlight_font_style",
+      "label": "t:general.highlight_text.highlight_font_style.label",
+      "options": [
+        {
+          "value": "italic",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+        },
+        {
+          "value": "normal",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "highlight_style_color",
+      "label": "t:general.highlight_text.highlight_style_color.label"
+    },
+    {
+      "type": "color",
+      "id": "highlight_text_color",
+      "label": "t:general.highlight_text.highlight_text_color.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:general.text_size.heading.label",
+      "default": "h1",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:general.text_size.options__h5.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:general.text_size.options__h4.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:general.text_size.options__h3.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:general.text_size.options__h2.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:general.text_size.options__h1.label"
+        },
+        {
+          "value": "hd2",
+          "label": "t:general.text_size.options__hd2.label"
+        },
+        {
+          "value": "hd1",
+          "label": "t:general.text_size.options__hd1.label"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "t:general.text.label"
+    },
+    {
+      "type": "select",
+      "id": "text_size",
+      "label": "t:general.text_size.text.label",
+      "default": "text-base",
+      "options": [
+        {
+          "value": "text-sm",
+          "label": "t:general.text_size.options__small.label"
+        },
+        {
+          "value": "text-base",
+          "label": "t:general.text_size.options__base.label"
+        },
+        {
+          "value": "text-lg",
+          "label": "t:general.text_size.options__large.label"
+        },
+        {
+          "value": "text-inherit",
+          "label": "t:general.text_size.options__inherit.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:sections.products-bundle-selection.settings.header__bundle_bar.content"
+    },
+    {
+      "type": "color_scheme",
+      "id": "bundle_bar_color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "richtext",
+      "id": "bundle_bar_description",
+      "label": "t:general.description.label",
+      "default": "<p>Select up to 3 products, then add bundle to cart to get the discounts</p>"
+    },
+    {
+      "type": "range",
+      "id": "discount_max_items",
+      "label": "t:sections.products-bundle-selection.settings.discount_max_items.label",
+      "min": 2,
+      "max": 12,
+      "default": 6
+    },
+    {
+      "type": "checkbox",
+      "id": "prevent_duplicate_products",
+      "default": false,
+      "label": "t:sections.products-bundle-selection.settings.prevent_duplicate_products.label"
+    },
+    {
+      "type": "select",
+      "id": "discount_tiers",
+      "label": "t:sections.products-bundle-selection.settings.discount_tiers.label",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:sections.products-bundle-selection.settings.discount_tiers.options__1.label"
+        },
+        {
+          "value": "2",
+          "label": "t:sections.products-bundle-selection.settings.discount_tiers.options__2.label"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.products-bundle-selection.settings.discount_tiers.options__3.label"
+        }
+      ],
+      "default": "1"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.products-bundle-selection.settings.header__tier_1.content",
+      "visible_if": "{{ section.settings.discount_tiers >= '1'  }}"
+    },
+    {
+      "type": "range",
+      "id": "discount_tier_min_items_1",
+      "label": "t:sections.products-bundle-selection.settings.discount_min_items.label",
+      "min": 2,
+      "max": 12,
+      "default": 3,
+      "visible_if": "{{ section.settings.discount_tiers >= '1'  }}"
+    },
+    {
+      "type": "number",
+      "id": "discount_tier_percent_1",
+      "label": "t:sections.products-bundle-selection.settings.discount_percent.label",
+      "default": 10,
+      "visible_if": "{{ section.settings.discount_tiers >= '1'  }}"
+    },
+    {
+      "type": "text",
+      "id": "discount_tier_label_1",
+      "label": "t:sections.products-bundle-selection.settings.discount_label.label",
+      "default": "Add 3 items get 10% OFF",
+      "visible_if": "{{ section.settings.discount_tiers >= '1'  }}"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.products-bundle-selection.settings.header__tier_2.content",
+      "visible_if": "{{ section.settings.discount_tiers >= '2'  }}"
+    },
+    {
+      "type": "range",
+      "id": "discount_tier_min_items_2",
+      "label": "t:sections.products-bundle-selection.settings.discount_min_items.label",
+      "min": 2,
+      "max": 12,
+      "default": 4,
+      "visible_if": "{{ section.settings.discount_tiers >= '2'  }}"
+    },
+    {
+      "type": "number",
+      "id": "discount_tier_percent_2",
+      "label": "t:sections.products-bundle-selection.settings.discount_percent.label",
+      "default": 15,
+      "visible_if": "{{ section.settings.discount_tiers >= '2'  }}"
+    },
+    {
+      "type": "text",
+      "id": "discount_tier_label_2",
+      "label": "t:sections.products-bundle-selection.settings.discount_label.label",
+      "default": "Add 4 items get 15% OFF",
+      "visible_if": "{{ section.settings.discount_tiers >= '2'  }}"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.products-bundle-selection.settings.header__tier_3.content",
+      "visible_if": "{{ section.settings.discount_tiers >= '3'  }}"
+    },
+    {
+      "type": "range",
+      "id": "discount_tier_min_items_3",
+      "label": "t:sections.products-bundle-selection.settings.discount_min_items.label",
+      "min": 2,
+      "max": 12,
+      "default": 5,
+      "visible_if": "{{ section.settings.discount_tiers >= '3'  }}"
+    },
+    {
+      "type": "number",
+      "id": "discount_tier_percent_3",
+      "label": "t:sections.products-bundle-selection.settings.discount_percent.label",
+      "default": 20,
+      "visible_if": "{{ section.settings.discount_tiers >= '3'  }}"
+    },
+    {
+      "type": "text",
+      "id": "discount_tier_label_3",
+      "label": "t:sections.products-bundle-selection.settings.discount_label.label",
+      "default": "Add 5 items get 20% OFF",
+      "visible_if": "{{ section.settings.discount_tiers >= '3'  }}"
+    },
+    {
+      "type": "header",
+      "content": "t:general.grid.name"
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "t:general.grid.product_limit.label",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "range",
+      "id": "columns",
+      "label": "t:general.grid.columns_desktop.label",
+      "min": 2,
+      "max": 6,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "select",
+      "id": "column_gap",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.grid.gap.options__none.label"
+        },
+        {
+          "value": "2xs",
+          "label": "t:general.grid.gap.options__2xs.label"
+        },
+        {
+          "value": "extra-small",
+          "label": "t:general.grid.gap.options__xs.label"
+        },
+        {
+          "value": "small",
+          "label": "t:general.grid.gap.options__sm.label"
+        },
+        {
+          "value": "medium",
+          "label": "t:general.grid.gap.options__md.label"
+        },
+        {
+          "value": "large",
+          "label": "t:general.grid.gap.options__lg.label"
+        },
+        {
+          "value": "extra-large",
+          "label": "t:general.grid.gap.options__xl.label"
+        }
+      ],
+      "default": "medium",
+      "label": "t:general.grid.column_gap.label"
+    },
+    {
+      "type": "select",
+      "id": "row_gap",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.grid.gap.options__inherit.label"
+        },
+        {
+          "value": "none",
+          "label": "t:general.grid.gap.options__none.label"
+        },
+        {
+          "value": "extra-small",
+          "label": "t:general.grid.gap.options__xs.label"
+        },
+        {
+          "value": "small",
+          "label": "t:general.grid.gap.options__sm.label"
+        },
+        {
+          "value": "medium",
+          "label": "t:general.grid.gap.options__md.label"
+        },
+        {
+          "value": "large",
+          "label": "t:general.grid.gap.options__lg.label"
+        },
+        {
+          "value": "extra-large",
+          "label": "t:general.grid.gap.options__xl.label"
+        }
+      ],
+      "default": "inherit",
+      "label": "t:general.grid.row_gap.label"
+    },
+    {
+      "type": "header",
+      "content": "t:general.header__product_cards.content"
+    },
+    {
+      "type": "select",
+      "id": "pcard_image_ratio",
+      "label": "t:general.image_ratio.label",
+      "default": "",
+      "options": [
+        {
+          "value": "",
+          "label": "t:general.image_ratio.options__inherit.label"
+        },
+        {
+          "value": "adapt",
+          "label": "t:general.image_ratio.options__1.label"
+        },
+        {
+          "value": "1/1",
+          "label": "t:general.image_ratio.options__2.label"
+        },
+        {
+          "value": "3/4",
+          "label": "t:general.image_ratio.options__3.label"
+        },
+        {
+          "value": "4/3",
+          "label": "t:general.image_ratio.options__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "pcard_title_line_limit",
+      "label": "t:general.text_line_limit.label",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.text_line_limit.options__inherit.label"
+        },
+        {
+          "value": "none",
+          "label": "t:general.text_line_limit.options__none.label"
+        },
+        {
+          "value": "1-line",
+          "label": "t:general.text_line_limit.options__1.label"
+        },
+        {
+          "value": "2-lines",
+          "label": "t:general.text_line_limit.options__2.label"
+        },
+        {
+          "value": "3-lines",
+          "label": "t:general.text_line_limit.options__3.label"
+        }
+      ],
+      "default": "1-line"
+    },
+    {
+      "type": "header",
+      "content": "t:general.mobile.name"
+    },
+    {
+      "type": "select",
+      "id": "columns_mobile",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:general.mobile.columns_mobile.options__1.label"
+        },
+        {
+          "value": "2",
+          "label": "t:general.mobile.columns_mobile.options__2.label"
+        }
+      ],
+      "default": "1",
+      "label": "t:general.mobile.columns_mobile.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "swipe_on_mobile",
+      "default": true,
+      "label": "t:general.mobile.swipe_on_mobile.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress_bar",
+      "label": "t:general.carousel.show_progress_bar.label",
+      "default": true,
+      "visible_if": "{{ section.settings.swipe_on_mobile == true }}"
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "t:general.padding.top.label",
+      "default": 50,
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "t:general.padding.bottom.label",
+      "default": 50,
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px"
+    },
+    {
+      "type": "header",
+      "content": "t:general.divider.section_heading.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:general.divider.show_divider.label"
+    },
+    {
+      "type": "select",
+      "id": "divider_width",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection",
+      "limit": 8,
+      "name": "t:general.collection.label",
+      "settings": [
+        {
+          "type": "collection",
+          "id": "collection",
+          "label": "t:general.collection.label"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:general.collection.title.label",
+          "info": "t:general.collection.title.info"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.products-bundle-selection.name",
+      "blocks": [
+        {
+          "type": "collection"
+        },
+        {
+          "type": "collection"
+        },
+        {
+          "type": "collection"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

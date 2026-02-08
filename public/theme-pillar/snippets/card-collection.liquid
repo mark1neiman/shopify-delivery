@@ -1,0 +1,129 @@
+{% comment %}
+  Renders a collection card
+
+  Accepts:
+  - collection: {Object} Collection Liquid object
+  - featured_image: {Object} Collection featured image (optional)
+  - title: {String} Collection title (optional)
+
+  Usage:
+  {% render 'card-collection' %}
+{% endcomment %}
+{%- liquid
+  assign collection_title = title | default: collection.title
+  assign default_label = 'onboarding.collection_title' | t
+  assign collection_title_default = collection_title | default: default_label
+
+  unless featured_image
+    if collection.image
+      assign featured_image = collection.image
+    else
+      assign featured_image = collection.products.first.featured_media.preview_image
+    endif
+  endunless
+
+  assign image_ratio = image_ratio | default: 'adapt'
+  if image_ratio == 'adapt'
+    if featured_image != blank
+      assign image_ratio = featured_image.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+
+  assign image_width = image_width | default: 'full'
+  assign card_style = card_style | default: 'standard'
+
+  assign card_boxed = false
+  if show_border or has_bg
+    assign card_boxed = true
+  endif
+
+  assign image_radius = true
+  if rounded_image
+    assign image_radius = false
+  endif
+  if has_bg
+    assign image_radius = false
+    if show_border
+      assign image_radius = true
+    endif
+    if card_style == 'standard'
+      assign image_radius = true
+    endif
+  endif
+
+  if image_sizes == blank
+    if image_width == 'medium'
+      assign image_sizes = '(max-width:767px) 60px, 80px'
+    elsif image_width == 'large'
+      assign image_sizes = '(max-width:767px) 70px, 110px'
+    else
+      assign image_sizes = '450px'
+    endif
+  endif
+
+  assign heading_size = heading_size | default: 'text-base'
+  if heading_size == 'text-base'
+    assign heading_size = heading_size | append: ' font-body'
+  endif
+
+  assign corner_radius = corner_radius | default: 'blocks-radius'
+-%}
+<div class="collection-card collection-card--style-{{ card_style }} collection-card--mobile-layout-{{ mobile_layout }} collection-card--image-{{ image_width }} collection-card--image-padding-{{ image_padding }}{% if show_border %} collection-card--boxed{% endif %}{% if has_bg %} collection-card--has-bg{% endif %}{% if card_boxed %} {{ corner_radius }}{% endif %} color-{{ color_scheme }} h-full {{ classes }}">
+  <a
+    {% if collection != blank %}
+      href="{{ collection.url }}"
+    {% else %}
+      role="link" aria-disabled="true"
+    {% endif %}
+    class="collection-card__wrapper relative flex flex-col items-center justify-start{% if card_style == 'standard' %} text-center{% endif %} focus-inset btn-hover-wrapper"
+    {% unless featured_image != blank %}
+      aria-label="{{ collection_title_default }}"
+    {% endunless %}
+  >
+    <div class="collection-card__image media-wrapper{% if image_width == 'full' and card_style == 'card' %} hover-wrapper{% endif %}{% if rounded_image %} rounded{% endif %}{% if image_radius %} {{ corner_radius }}{% endif %}">
+      <motion-element data-motion="zoom-out-sm" class="block" style="--aspect-ratio: {{ image_ratio }};">
+        {%- if featured_image != blank -%}
+          {%- liquid
+            assign image_widths = '60, 70, 80, 100, 120, 140, 160, 240, 320, 450, 535, 710, 800, 900,' | append: featured_image.width
+            assign alt_image = featured_image.alt | default: collection_title_default | escape
+          -%}
+          {{
+            featured_image
+            | image_url: width: featured_image.width
+            | image_tag:
+              loading: 'lazy',
+              class: 'motion-reduce hover-scale-up',
+              widths: image_widths,
+              sizes: image_sizes,
+              is: 'image-lazy',
+              alt: alt_image
+          }}
+        {%- else -%}
+          <div class="collection-card__placeholder hover-scale-up">
+            {% capture current %}{% cycle 1, 2, 3 %}{% endcapture %}
+            {{ 'collection-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
+          </div>
+        {%- endif -%}
+      </motion-element>
+    </div>
+    <div class="collection-card__inner w-full pointer-events-none{% if card_style == 'card' %} flex items-center gap-x-2{% endif %}">
+      <h3 class="collection-card__title {{ heading_size }} flex-1 text-limit-{{ card_text_line_limit }}-line">
+        <span>
+          {{- collection_title_default -}}
+          {% if card_style == 'standard' %}{% render 'icon-caret-right', classes: 'hidden md:block' %}{% endif %}
+        </span>
+      </h3>
+      {% if card_style == 'card' %}
+        <button
+          class="collection-card__btn btn btn--icon-circle btn--icon focus-none {{ button_icon_classes }}"
+          aria-label="{{ collection_title_default }}"
+          tabindex="-1"
+        >
+          <span class="btn__text flex">{% render 'icon-caret-right', size: 'extra-small' %}</span>
+        </button>
+      {% endif %}
+    </div>
+  </a>
+</div>

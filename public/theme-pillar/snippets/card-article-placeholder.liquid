@@ -1,0 +1,41 @@
+<div class="article-card">
+  <div class="article-card__media blocks-radius">
+    <div class="block media-wrapper" style="--aspect-ratio: 4/3;">
+      {% capture current %}{% cycle 1, 2, 3 %}{% endcapture %}
+      {{ 'collection-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
+    </div>
+  </div>
+  <div class="article-card__content">
+    <div class="article-card__content-inner">
+      {%- if show_tags -%}
+        <span class="article-card__tags font-heading text-upper text-subtext block">Tag</span>
+      {%- endif -%}
+      <h3 class="article-card__title{% if title_size %} {{ title_size }}{% endif %}">
+        {{ 'onboarding.article_title' | t }}
+      </h3>
+      {%- if show_excerpt -%}
+        <p class="article-card__excerpt text-limit-2-lines text-subtext">
+          {{ 'onboarding.article_content' | t }}
+        </p>
+      {%- endif -%}
+      {% if show_date or show_author %}
+        <div class="article-card__metas text-sm flex gap-2 text-subtext">
+          {% if show_date %}
+            <span class="article-card__meta article-card__date">{{ 'onboarding.article_date' | t }}</span>
+          {% endif %}
+          {% if show_date and show_author %}
+            <span class="article-card__separator no-empty rounded self-center"></span>
+          {% endif %}
+          {% if show_author %}
+            <span class="article-card__meta article-card__author">Author</span>
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if show_button %}
+        <button class="btn btn--underline article-card__button">
+          {{- 'blogs.article.article_button_label' | t -}}
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>

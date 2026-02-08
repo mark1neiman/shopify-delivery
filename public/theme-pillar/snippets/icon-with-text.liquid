@@ -1,0 +1,100 @@
+{% comment %}
+  Renders icon or image with text list up to 3 items
+
+  Accepts:
+  - layout: {String} List layout to display. Accepts: horizontal or vertical.
+  - title_font: {String} Font family for headings. Accepts: heading or body.
+  - title_size: {String} Font size for headings.
+  - heading_1: {String} Text of heading to display
+  - image_1: {String} Image to show
+  - icon_1: {String} Icon to show if the given image blank
+
+  Usage:
+  {% render 'icon-with-text',
+    heading_1: 'Icon with text',
+    icon_1: 'check',
+  %}
+{% endcomment %}
+{%- liquid
+  assign title_font = title_font | default: 'heading'
+  assign layout = layout | default: 'horizontal'
+
+  assign heading_css_class = title_size | default: 'h5'
+  if title_font == 'body'
+    assign heading_css_class = heading_css_class | append: ' font-body'
+  elsif title_font == 'body-bolder'
+    assign heading_css_class = heading_css_class | append: ' font-body-bolder'
+  else
+    assign heading_css_class = heading_css_class | append: ' font-heading'
+  endif
+-%}
+<ul
+  class="list-unstyled icon-with-text icon-with-text--{{ layout }} {{ class }}"
+>
+  {%- if heading_1 != blank -%}
+    <li class="icon-with-text__item">
+      {%- if image_1 != blank -%}
+        <img
+          src="{{ image_1 | image_url }}"
+          {% if image_1.alt != blank %}
+            alt="{{ image_1.alt | escape }}"
+          {% else %}
+            role="presentation"
+          {% endif %}
+          height="auto"
+          width="auto"
+          loading="lazy"
+        >
+      {%- else -%}
+        {%- render 'icons', icon: icon_1 -%}
+      {%- endif -%}
+      <span class="inline-richtext {{ heading_css_class }}">
+        {{- heading_1 -}}
+      </span>
+    </li>
+  {%- endif -%}
+  {%- if heading_2 != blank -%}
+    <li class="icon-with-text__item">
+      {%- if image_2 != blank -%}
+        <img
+          src="{{ image_2 | image_url }}"
+          {% if image_2.alt != blank %}
+            alt="{{ image_2.alt | escape }}"
+          {% else %}
+            role="presentation"
+          {% endif %}
+          height="auto"
+          width="auto"
+          loading="lazy"
+        >
+      {%- else -%}
+        {%- render 'icons', icon: icon_2 -%}
+      {%- endif -%}
+      <span class="inline-richtext {{ heading_css_class }}">
+        {{- heading_2 -}}
+      </span>
+    </li>
+  {%- endif -%}
+  {%- if heading_3 != blank -%}
+    <li class="icon-with-text__item">
+      {%- if image_3 != blank -%}
+        <img
+          src="{{ image_3 | image_url }}"
+          {% if image_3.alt != blank %}
+            alt="{{ image_3.alt | escape }}"
+          {% else %}
+            role="presentation"
+          {% endif %}
+          height="auto"
+          width="auto"
+          loading="lazy"
+        >
+      {%- else -%}
+        {%- render 'icons', icon: icon_3 -%}
+      {%- endif -%}
+      <span class="inline-richtext {{ heading_css_class }}">
+        {{- heading_3 -}}
+      </span>
+    </li>
+  {%- endif -%}
+</ul>

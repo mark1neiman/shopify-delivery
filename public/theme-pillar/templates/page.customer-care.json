@@ -1,0 +1,223 @@
+{
+  "sections": {
+    "breadcrumbs_xLtFgr": {
+      "type": "breadcrumbs",
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "start",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "main": {
+      "type": "main-page",
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "left",
+        "padding_top": 0,
+        "padding_bottom": 40
+      }
+    },
+    "tabs_content_3RkBGB": {
+      "type": "tabs-content",
+      "blocks": {
+        "tab_bFL4fU": {
+          "type": "tab",
+          "settings": {
+            "navigation_title": "Shipping",
+            "content": "",
+            "custom_liquid": "",
+            "page": "shipping"
+          }
+        },
+        "tab_UUKcw4": {
+          "type": "tab",
+          "settings": {
+            "navigation_title": "Returns & Refunds",
+            "content": "",
+            "custom_liquid": "",
+            "page": "returns-refunds"
+          }
+        },
+        "tab_nAyqCd": {
+          "type": "tab",
+          "settings": {
+            "navigation_title": "Secure Payment",
+            "content": "",
+            "custom_liquid": "",
+            "page": "secure-payment"
+          }
+        },
+        "tab_Jk99bp": {
+          "type": "tab",
+          "settings": {
+            "navigation_title": "Warranty",
+            "content": "",
+            "custom_liquid": "",
+            "page": "warranty"
+          }
+        },
+        "tab_iLnPRH": {
+          "type": "tab",
+          "settings": {
+            "navigation_title": "Track Order",
+            "content": "",
+            "custom_liquid": "",
+            "page": "track-order"
+          }
+        },
+        "sidebar_kqiR33": {
+          "type": "sidebar",
+          "settings": {
+            "position": "right",
+            "heading": "Need Help?",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "text": "<p>To us, design has a broader purpose and as you can read about on this website, we are on a mission. </p>",
+            "text_size": "text-base",
+            "icon_1": "map-pin",
+            "icon_width_1": 32,
+            "icon_color_1": "#000000",
+            "icon_heading_1": "General Office",
+            "icon_heading_size_1": "h5",
+            "icon_text_1": "<p>382 NE 191st St # 87394 Miami</p>",
+            "icon_vertical_alignment_1": "start",
+            "icon_2": "phone",
+            "icon_width_2": 28,
+            "icon_color_2": "#000000",
+            "icon_heading_2": "Call Us",
+            "icon_heading_size_2": "h5",
+            "icon_text_2": "<p>+1 888-234-1234 (tool-free)</p>",
+            "icon_vertical_alignment_2": "start",
+            "icon_3": "clock",
+            "icon_width_3": 28,
+            "icon_color_3": "#000000",
+            "icon_heading_3": "Working Hour",
+            "icon_heading_size_3": "h5",
+            "icon_text_3": "<p>Mon – Fri, 7:30 AM – 4:00 PM PT<br/>Sat, 8:00 AM – 1:00 PM PT<br/>Sun, Closed</p>",
+            "icon_vertical_alignment_3": "start",
+            "button_label": "Find a Store",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "tab_bFL4fU",
+        "tab_UUKcw4",
+        "tab_nAyqCd",
+        "tab_Jk99bp",
+        "tab_iLnPRH",
+        "sidebar_kqiR33"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "navigation_style": "buttons",
+        "navigation_alignment": "start",
+        "padding_top": 0,
+        "padding_bottom": 60,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "scrolling_promotion_4mRbrp": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "text_3G4Lg6": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_qAnF9t": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_H6L3UD": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_66cPHH": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_4bqMdL": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_qKtjQp": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        }
+      },
+      "block_order": [
+        "text_3G4Lg6",
+        "text_qAnF9t",
+        "text_H6L3UD",
+        "text_66cPHH",
+        "text_4bqMdL",
+        "text_qKtjQp"
+      ],
+      "settings": {
+        "color_scheme": "scheme-3",
+        "direction": "left",
+        "pause_on_hover": true,
+        "speed": 0.2,
+        "h_spacing": 80,
+        "show_section_divider": false,
+        "padding_top": 16,
+        "padding_bottom": 16
+      }
+    }
+  },
+  "order": [
+    "breadcrumbs_xLtFgr",
+    "main",
+    "tabs_content_3RkBGB",
+    "scrolling_promotion_4mRbrp"
+  ]
+}

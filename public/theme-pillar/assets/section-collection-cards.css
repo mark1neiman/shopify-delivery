@@ -1,0 +1,40 @@
+.collection-cards__container .swiper-slide {
+  padding-bottom: 2px;
+}
+
+.collection-item {
+  --thumb-image-width: 24%;
+  --spacing: 0.4rem;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(var(--color-border), var(--color-border-alpha, 1));
+  transition: all var(--animation-default);
+}
+.collection-item:hover {
+  border-color: rgb(var(--color-foreground));
+}
+.collection-item__wrapper {
+  padding: 1.2rem;
+}
+.collection-item--gallery {
+  position: relative;
+}
+.collection-item--main {
+  padding-inline-end: calc(var(--thumb-image-width) + var(--spacing));
+}
+.collection-item--thumb {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  width: var(--thumb-image-width);
+  height: 100%;
+  grid-template-rows: repeat(3, 1fr);
+  gap: var(--spacing);
+}
+.collection-item--thumb img,
+.collection-item--thumb .collection-item__placeholder {
+  object-fit: cover;
+  object-position: center center;
+  width: 100%;
+  height: 100%;
+}

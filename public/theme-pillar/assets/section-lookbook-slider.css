@@ -1,0 +1,56 @@
+.lookbook-slider {
+  margin: calc(var(--f-column-gap) / -2);
+}
+.lookbook-slider .swiper-wrapper {
+  box-sizing: border-box;
+}
+.lookbook-slider__items {
+  gap: 0;
+  margin-inline: 0;
+  height: var(--slider-height, auto);
+}
+.lookbook-slider__items:not(.swiper-wrapper) {
+  flex-wrap: wrap;
+}
+.lookbook-slider__items > .f-column {
+  padding: calc(var(--f-column-gap) / 2);
+  width: var(--item-width, 100%);
+  height: auto;
+}
+@media (max-width: 767.98px) {
+  .lookbook-slider__items > .f-column {
+    width: var(--item-width-mobile, var(--item-width, 100%));
+  }
+}
+@media (min-width: 1280px) {
+  .lookbook-slider-height--small {
+    --slider-height: 41.6rem;
+  }
+  .lookbook-slider-height--medium {
+    --slider-height: 51.6rem;
+  }
+  .lookbook-slider-height--large {
+    --slider-height: 66.6rem;
+  }
+}
+@media (max-width: 767.98px) {
+  .lookbook-slider[data-swipe-mobile=true] {
+    margin-inline: calc(var(--f-column-gap) / -2);
+  }
+  .lookbook-slider[data-swipe-mobile=true] .lookbook-slider__items {
+    flex-wrap: nowrap;
+    overflow-y: hidden !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--page-padding);
+    padding-inline: var(--page-padding);
+    margin-inline: calc(var(--page-padding) * -1);
+    scrollbar-width: none;
+  }
+  .lookbook-slider[data-swipe-mobile=true] .lookbook-slider__items > .f-column {
+    scroll-snap-align: start;
+  }
+  .lookbook-slider[data-swipe-mobile=true] .lookbook-slider__items::-webkit-scrollbar {
+    display: none;
+  }
+}

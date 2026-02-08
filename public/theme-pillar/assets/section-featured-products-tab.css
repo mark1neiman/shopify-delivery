@@ -1,0 +1,91 @@
+.featured-products-tab .tabs__tab {
+  color: rgba(var(--color-foreground), 0.7);
+}
+.featured-products-tab .tabs__tab:hover, .featured-products-tab .tabs__tab[aria-selected=true] {
+  color: rgb(var(--color-foreground));
+}
+.featured-products-tab .tabs__tab[aria-selected=true]:before {
+  opacity: 1;
+}
+@media (min-width: 1024px) {
+  .featured-products-tab .section__header--buttons {
+    order: 3;
+    margin-top: 3.2rem;
+  }
+  .featured-products-tab .tabs {
+    display: flex;
+  }
+  .featured-products-tab .tabs__header {
+    width: 35%;
+    flex-shrink: 0;
+    padding-inline-end: 5rem;
+  }
+  .featured-products-tab .tabs__nav {
+    position: relative;
+    gap: 0;
+  }
+  .featured-products-tab .tabs__nav:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    width: 0.2rem;
+    height: 100%;
+    background: rgba(var(--color-foreground), 0.1);
+  }
+  .featured-products-tab .tabs__tab {
+    text-align: start;
+    justify-content: flex-start;
+    text-transform: inherit;
+    border: none;
+    height: auto !important;
+    width: 100%;
+    padding: 0.8rem 1.2rem !important;
+    color: rgba(var(--color-foreground), 0.6);
+  }
+  .featured-products-tab .tabs__tab:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    width: 0.2rem;
+    height: 100%;
+    background: rgb(var(--color-foreground));
+    opacity: 0;
+    transition: all 0.3s;
+  }
+  .featured-products-tab .tabs__tab:after {
+    display: none;
+  }
+}
+@media (min-width: 1280px) {
+  .featured-products-tab .tabs__header {
+    margin-top: 3.3rem;
+    padding-inline-end: 10rem;
+  }
+}
+@media (max-width: 1023.98px) {
+  .featured-products-tab .section__header--buttons {
+    margin-top: 0;
+    margin-bottom: 2.4rem;
+  }
+  .featured-products-tab .tabs__header {
+    margin-bottom: 2.4rem;
+  }
+  .featured-products-tab .tabs__nav-inner {
+    display: flex;
+    gap: 1.6rem;
+  }
+  .featured-products-tab .tabs__tab.btn--underline:after {
+    width: 0;
+    transform: none;
+    transition: all 0.5s;
+  }
+  .featured-products-tab .tabs__tab.btn--underline[aria-selected=true]:after {
+    width: 100%;
+  }
+}
+
+.no-js .tabs__content {
+  display: block;
+}

@@ -1,0 +1,92 @@
+.quick-order-list__table th {
+  padding: 2rem;
+  background: rgba(var(--color-foreground), 0.04);
+}
+.quick-order-list__table td {
+  padding-block: 1.6rem;
+  padding-inline: 2rem;
+  border-block-end: 0.1rem solid rgba(var(--color-border), var(--color-border-alpha, 1));
+}
+@media (max-width: 767.98px) {
+  .quick-order-list__table td {
+    padding-inline: 1.2rem;
+  }
+}
+.quick-order-list__table tr th:first-child {
+  border-start-start-radius: var(--medium-blocks-radius);
+  border-end-start-radius: var(--medium-blocks-radius);
+}
+.quick-order-list__table tr th:last-child {
+  border-start-end-radius: var(--medium-blocks-radius);
+  border-end-end-radius: var(--medium-blocks-radius);
+}
+.quick-order-list__table tbody tr:last-child td {
+  border-block-end: 0;
+}
+.quick-order-list__total {
+  flex: 0 0 30%;
+}
+@media (min-width: 768px) {
+  .quick-order-list__total {
+    position: sticky;
+    bottom: 0;
+    background-color: rgb(var(--color-background));
+    z-index: 1;
+  }
+}
+@media (min-width: 1024px) {
+  .quick-order-list__container {
+    padding-inline-end: 3rem;
+    margin-inline-end: 3rem;
+    border-inline-end: 0.1rem solid rgba(var(--color-border), var(--color-border-alpha, 1));
+  }
+  .quick-order-list__container.has-only-default-variant {
+    padding: 0;
+    margin: 0;
+    border: 0;
+  }
+}
+.quick-order-list-total__info, .quick-order-list-total__confirmation {
+  background-color: rgba(var(--color-foreground), 0.04);
+  padding: 2.4rem;
+  border-radius: var(--medium-blocks-radius);
+}
+.quick-order-list-total__info[hidden], .quick-order-list-total__confirmation[hidden] {
+  display: none;
+}
+.quick-order-list__loader {
+  width: 1.6rem;
+  height: 1.6rem;
+  --loading-size: 1.6rem;
+}
+.quick-order-list__loader.btn--loading + .quick-order-list__remove {
+  display: none;
+}
+.quick-order-list__loader[hidden] {
+  display: none;
+}
+
+.quick-order-list-quantity {
+  --buttons-height: 3.8rem;
+  --quantity-button-width: 3.5rem;
+  width: 10rem;
+}
+
+.variant-item {
+  --item-media-width: 7.5rem;
+}
+.variant-item__media {
+  width: var(--item-media-width);
+}
+.variant-item__title {
+  line-height: 1.25;
+}
+@media (max-width: 767.98px) {
+  .variant-item {
+    --item-media-width: 5rem;
+  }
+}
+
+.price-per-item--price_compare {
+  color: var(--color-product-price-regular, var(--color-foreground-lighten-60));
+}

@@ -1,0 +1,86 @@
+.scrolling-banner {
+  --gutter-y: 1.5rem;
+}
+.scrolling-banner .slide {
+  position: sticky;
+  top: 0;
+  transition: all var(--animation-default);
+  vertical-align: baseline;
+  padding-block: var(--gutter-y);
+  margin-block-end: calc(var(--gutter-y) * -1);
+}
+.scrolling-banner .slide .media {
+  will-change: transform;
+}
+.scrolling-banner .slide__card {
+  transform-origin: center top;
+  will-change: transform;
+}
+.scrolling-banner .slide__product {
+  position: absolute;
+  inset: auto 3rem 3rem;
+}
+.scrolling-banner .slide .product-card {
+  width: var(--product-card-width, 384px);
+  max-width: 100%;
+  padding: 1.6rem;
+}
+.scrolling-banner .slide .product-card__image {
+  width: 7rem;
+}
+.scrolling-banner .slide .product-card__info {
+  padding-top: 0;
+}
+.scrolling-banner .slide .product-card__btn {
+  --buttons-padding: 2rem;
+  --buttons-height: 3.8rem;
+}
+@media (max-width: 767.98px) {
+  .scrolling-banner .slide__text {
+    width: 100%;
+  }
+  .scrolling-banner .slide__product {
+    inset: auto 2rem 2rem;
+  }
+  .scrolling-banner .slide .product-card {
+    padding: 1.2rem;
+  }
+  .scrolling-banner .slide .product-card__image {
+    width: 5rem;
+  }
+}
+.scrolling-banner:not(.scrolling-banner--adapt) .slide {
+  height: var(--slide-height, 0);
+}
+.scrolling-banner .content-overlay {
+  --padding-y: 2rem;
+  --padding-x: 2rem;
+}
+.scrolling-banner--small {
+  --slide-height: 40rem;
+}
+.scrolling-banner--medium {
+  --slide-height: 48rem;
+}
+.scrolling-banner--large {
+  --slide-height: 56rem;
+}
+@media (min-width: 768px) {
+  .scrolling-banner .content-overlay {
+    --padding-y: 4rem;
+    --padding-x: 5rem;
+  }
+  .scrolling-banner--small {
+    --slide-height: 56rem;
+  }
+  .scrolling-banner--medium {
+    --slide-height: 66rem;
+  }
+  .scrolling-banner--large {
+    --slide-height: 76rem;
+  }
+}
+
+body:has([data-sticky-type=always]) .scrolling-banner .slide {
+  top: var(--header-height);
+}
