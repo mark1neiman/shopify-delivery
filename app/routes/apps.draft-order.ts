@@ -15,8 +15,28 @@ function json(data: any, init?: ResponseInit) {
 
 type DraftOrderPayload = {
   draftOrderId?: string;
+
+  // optional: if you want the draft to match preview totals,
+  // pass pricing from /apps/checkout/prepare response
+  pricing?: {
+    lines?: { variantId: string; quantity: number }[];
+    breakdown?: {
+      baseSubtotal?: number;
+      finalSubtotal?: number;
+      memberDiscount?: number;
+      campaignDiscount?: number;
+      promoDiscount?: number;
+    };
+    currencyCode?: string;
+  };
+
+  promoCode?: string | null;
+
   email?: string;
+
+  // fallback if pricing not provided
   lineItems?: { variantId: string | number; quantity: number }[];
+
   shippingAddress?: {
     name?: string;
     firstName?: string;
@@ -30,6 +50,7 @@ type DraftOrderPayload = {
     phone?: string;
     company?: string;
   };
+
   delivery?: {
     title?: string;
     price?: string;
@@ -40,6 +61,7 @@ type DraftOrderPayload = {
     pickupAddress?: string;
     country?: string;
   };
+
   attributes?: Record<string, string>;
 };
 
@@ -90,6 +112,73 @@ function maskPhone(phone: string) {
   return `${p.slice(0, 4)}***`;
 }
 
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function clampMoney(n: number) {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, roundMoney(n));
+}
+
+/**
+ * Prefer pricing.lines (so freebies are included).
+ * Fallback to payload.lineItems.
+ */
+function buildLineItemsFromPayload(payload: DraftOrderPayload) {
+  const fromPricing = (payload.pricing?.lines ?? [])
+    .map((l) => ({
+      variantId: safeTrim(l.variantId),
+      quantity: Number(l.quantity || 0),
+    }))
+    .filter((x) => x.variantId && Number.isFinite(x.quantity) && x.quantity > 0);
+
+  if (fromPricing.length) {
+    return fromPricing.map((x) => ({
+      variantId: toGid(x.variantId),
+      quantity: x.quantity,
+    }));
+  }
+
+  const fromLineItems = (payload.lineItems ?? [])
+    .filter((item) => item.variantId && item.quantity)
+    .map((item) => ({
+      variantId: toGid(item.variantId),
+      quantity: Number(item.quantity),
+    }))
+    .filter((x) => Number.isFinite(x.quantity) && x.quantity > 0);
+
+  return fromLineItems;
+}
+
+/**
+ * Apply order-level appliedDiscount so draft total matches preview.
+ * We use: baseSubtotal - finalSubtotal.
+ */
+function computeAppliedDiscount(payload: DraftOrderPayload) {
+  const b = payload.pricing?.breakdown;
+  if (!b) return null;
+
+  const baseSubtotal = Number(b.baseSubtotal ?? NaN);
+  const finalSubtotal = Number(b.finalSubtotal ?? NaN);
+
+  if (!Number.isFinite(baseSubtotal) || !Number.isFinite(finalSubtotal)) return null;
+
+  const diff = clampMoney(baseSubtotal - finalSubtotal);
+  if (diff <= 0) return null;
+
+  const currencyCode = safeTrim(payload.pricing?.currencyCode) || safeTrim(payload.delivery?.currency) || "EUR";
+
+  return {
+    title: "Discount",
+    description: "Auto pricing engine",
+    valueType: "FIXED_AMOUNT" as const,
+    value: diff,
+    amount: diff,
+    currencyCode,
+  };
+}
+
 export async function loader() {
   return json({ error: "Method not allowed" }, { status: 405 });
 }
@@ -122,6 +211,8 @@ export async function action({ request }: ActionFunctionArgs) {
     console.log("[draft-order] incoming payload (masked)", {
       draftOrderId: safeTrim(payload.draftOrderId),
       email: maskEmail(safeTrim(payload.email)),
+      hasPricing: !!payload.pricing,
+      pricingLinesCount: payload.pricing?.lines?.length || 0,
       lineItemsCount: payload.lineItems?.length || 0,
       shippingAddress: {
         name: safeTrim(payload.shippingAddress?.name),
@@ -132,19 +223,14 @@ export async function action({ request }: ActionFunctionArgs) {
         phone: maskPhone(safeTrim(payload.shippingAddress?.phone)),
       },
       delivery: payload.delivery,
+      promoCode: payload.promoCode ? "***" : null,
       attributesKeys: Object.keys(payload.attributes || {}),
     });
   } catch {
     // ignore logging errors
   }
 
-  const lineItemsInput = (payload.lineItems ?? [])
-    .filter((item) => item.variantId && item.quantity)
-    .map((item) => ({
-      variantId: toGid(item.variantId),
-      quantity: Number(item.quantity),
-    }))
-    .filter((x) => x.quantity > 0);
+  const lineItemsInput = buildLineItemsFromPayload(payload);
 
   if (lineItemsInput.length === 0) {
     return json({ error: "No line items" }, { status: 400 });
@@ -152,13 +238,17 @@ export async function action({ request }: ActionFunctionArgs) {
 
   // customAttributes (order attributes in Shopify draft)
   const customAttributes: { key: string; value: string }[] = [];
-  if (payload.attributes) {
-    for (const [key, value] of Object.entries(payload.attributes)) {
-      if (value === null || value === undefined) continue;
-      const v = String(value).trim();
-      if (!v) continue;
-      customAttributes.push({ key, value: v });
-    }
+  const attrs = payload.attributes || {};
+
+  // optionally keep promoCode visible in draft attributes
+  const promo = safeTrim(payload.promoCode);
+  if (promo) attrs["promo_code"] = promo;
+
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === null || value === undefined) continue;
+    const v = String(value).trim();
+    if (!v) continue;
+    customAttributes.push({ key, value: v });
   }
 
   // shippingAddress
@@ -204,6 +294,18 @@ export async function action({ request }: ActionFunctionArgs) {
     input.customAttributes = customAttributes;
   }
 
+  // appliedDiscount to match pricing preview totals
+  const appliedDiscount = computeAppliedDiscount(payload);
+  if (appliedDiscount) {
+    input.appliedDiscount = {
+      title: appliedDiscount.title,
+      description: appliedDiscount.description,
+      valueType: appliedDiscount.valueType,
+      value: appliedDiscount.value,
+      amount: appliedDiscount.amount,
+    };
+  }
+
   // --- update if draftOrderId exists
   const rawDraftOrderId = safeTrim(payload.draftOrderId);
   const draftOrderId = isDraftOrderGid(rawDraftOrderId) ? rawDraftOrderId : "";
@@ -221,6 +323,7 @@ export async function action({ request }: ActionFunctionArgs) {
           }
         : null,
       shippingLine: input.shippingLine || null,
+      appliedDiscount: input.appliedDiscount ? { ...input.appliedDiscount, description: "***" } : null,
       customAttributesCount: input.customAttributes?.length || 0,
     });
   } catch {}
@@ -268,5 +371,3 @@ export async function action({ request }: ActionFunctionArgs) {
 
   return json({ draftOrder: node?.draftOrder ?? null });
 }
-
-

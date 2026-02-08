@@ -1,23 +1,125 @@
 // shopify-delivery/extensions/delivery-extension/assets/itella-pickup.js
-// Cleaned + fixed:
-// - removed ReferenceError (attrs outside boot)
-// - promo is synced ONLY via syncPromoAttributes (no duplicates)
-// - promo is NOT part of recipient payload / recipient listeners
-// - removed double restore of promo in boot
-// - kept draft invalidation logic consistent
+// VERSION 2026-02-07 v9
+// Fix: cart qty +/- re-render -> block stuck in Loading forever
+// - Adds global re-init (MutationObserver) to init new roots after Shopify replaces cart HTML
+// - Keeps per-root state isolated
+// - Uses ONE global "click outside" handler (no leaks on re-renders)
+// - Keeps promo synced ONLY via syncPromoAttributes (no duplicates)
 
-(async function () {
-  console.log("[ITELLA PICKUP] VERSION 2026-02-07 v3 (clean promo + stable init)");
+(function () {
+  console.log("[ITELLA PICKUP] VERSION 2026-02-07 v9 (reinit after cart rerender)");
 
-  // Support multiple instances of the block (cart page + cart drawer, etc.)
-  const roots = document.querySelectorAll('[data-itella-pickup-root="1"]');
-  if (!roots.length) return;
+  // ---------- GLOBAL GUARDS ----------
+  if (window.__itellaPickupV9Booted) {
+    // Still expose manual init (safe) even if script is injected twice
+    if (typeof window.__itellaPickupManualInit !== "function") {
+      window.__itellaPickupManualInit = function () {};
+    }
+    return;
+  }
+  window.__itellaPickupV9Booted = true;
 
-  roots.forEach((root) => {
-    // Prevent double init on same DOM node (themes often re-render cart sections)
-    if (root.dataset.itellaInit === "1") return;
-    root.dataset.itellaInit = "1";
+  // ---------- GLOBAL HELPERS ----------
+  function debounce(fn, ms) {
+    let t = null;
+    return function () {
+      clearTimeout(t);
+      t = setTimeout(fn, ms);
+    };
+  }
 
+  function hasPickupRoot(node) {
+    if (!node || node.nodeType !== 1) return false;
+    if (node.matches?.('[data-itella-pickup-root="1"]')) return true;
+    return !!node.querySelector?.('[data-itella-pickup-root="1"]');
+  }
+
+  // One global "click outside" close for menus (prevents leaks on rerenders)
+  if (!window.__itellaPickupGlobalOutsideClickBound) {
+    window.__itellaPickupGlobalOutsideClickBound = true;
+
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      const roots = document.querySelectorAll('[data-itella-pickup-root="1"]');
+      roots.forEach((root) => {
+        const countryBtn = root.querySelector("#pickup-country-btn");
+        const countryMenu = root.querySelector("#pickup-country-menu");
+        const pointBtn = root.querySelector("#pickup-point-btn");
+        const pointMenu = root.querySelector("#pickup-point-menu");
+
+        if (countryMenu && countryBtn) {
+          if (!countryMenu.contains(t) && !countryBtn.contains(t)) countryMenu.hidden = true;
+        }
+        if (pointMenu && pointBtn) {
+          if (!pointMenu.contains(t) && !pointBtn.contains(t)) pointMenu.hidden = true;
+        }
+      });
+    });
+  }
+
+  // ---------- MAIN INIT (can be called again) ----------
+  function initAll() {
+    const roots = document.querySelectorAll('[data-itella-pickup-root="1"]');
+    if (!roots.length) return;
+
+    roots.forEach((root) => {
+      try {
+        // Prevent double init on same DOM node (themes re-render cart sections)
+        if (root.dataset.itellaInit === "1") return;
+        root.dataset.itellaInit = "1";
+
+        initRoot(root);
+      } catch (err) {
+        console.error("[itella] initRoot failed:", err);
+        try {
+          const fallbackNotice = root.querySelector("#pickup-fallback");
+          if (fallbackNotice) {
+            fallbackNotice.textContent =
+              "Pickup block failed to initialize. Please reload the page.";
+            fallbackNotice.hidden = false;
+          }
+          const countryLabel = root.querySelector("#pickup-country-label");
+          if (countryLabel) countryLabel.textContent = "Error";
+        } catch {}
+      }
+    });
+  }
+
+  // Expose manual init for debugging or external triggers
+  window.__itellaPickupManualInit = initAll;
+
+  // MutationObserver: when Shopify replaces cart HTML after qty +/-,
+  // new pickup roots appear -> init them.
+  if (!window.__itellaPickupGlobalObserverBound) {
+    window.__itellaPickupGlobalObserverBound = true;
+
+    const schedule = debounce(() => {
+      try {
+        initAll();
+      } catch (e) {
+        console.error("[itella] reinit failed:", e);
+      }
+    }, 80);
+
+    const mo = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const n of m.addedNodes || []) {
+          if (hasPickupRoot(n)) {
+            schedule();
+            return;
+          }
+        }
+      }
+    });
+
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  // Run once on initial load
+  initAll();
+
+  // ---------- PER-ROOT IMPLEMENTATION ----------
+  function initRoot(root) {
     // ----------- Scoped DOM queries (ONLY inside this root) -----------
     const checkoutBtn = root.querySelector("[data-itella-checkout-btn]");
 
@@ -44,7 +146,7 @@
     const phoneInput = root.querySelector("#pickup-phone");
     const emailInput = root.querySelector("#pickup-email");
 
-    // PROMO (optional, add <input id="pickup-promo"> in your liquid block)
+    // PROMO
     const promoInput = root.querySelector("#pickup-promo");
 
     const woltWrap = root.querySelector("#pickup-wolt");
@@ -168,10 +270,7 @@
     }
 
     function sanitizePhone(s) {
-      return (s || "")
-        .toString()
-        .replace(/[^\d+]/g, "")
-        .trim();
+      return (s || "").toString().replace(/[^\d+]/g, "").trim();
     }
 
     function combinePhone(code, phone) {
@@ -913,17 +1012,6 @@
       });
     }
 
-    // Click outside close
-    document.addEventListener("click", (e) => {
-      const t = e.target;
-      if (countryMenu && countryBtn) {
-        if (!countryMenu.contains(t) && !countryBtn.contains(t)) countryMenu.hidden = true;
-      }
-      if (pointMenu && pointBtn) {
-        if (!pointMenu.contains(t) && !pointBtn.contains(t)) pointMenu.hidden = true;
-      }
-    });
-
     if (search) {
       search.addEventListener("input", () => {
         const q = normalize(search.value);
@@ -1070,7 +1158,7 @@
     }
 
     // ------------------ Boot ------------------
-    (async function boot() {
+    async function boot() {
       const configResponse = await loadConfig();
       config = configResponse.config;
       const usedFallback = configResponse.usedFallback;
@@ -1159,6 +1247,18 @@
           await updateWoltVisibility();
         }
       }
-    })();
-  });
+    }
+
+    boot().catch((err) => {
+      console.error("[itella] boot failed:", err);
+      try {
+        if (fallbackNotice) {
+          fallbackNotice.textContent =
+            "Pickup block failed to load. Please reload the page.";
+          fallbackNotice.hidden = false;
+        }
+        if (countryLabel) countryLabel.textContent = "Error";
+      } catch {}
+    });
+  }
 })();

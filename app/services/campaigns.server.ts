@@ -108,7 +108,7 @@ export const DEFAULT_CAMPAIGNS: Campaign[] = [
   },
 ];
 
-const MF_NAMESPACE = "mk";
+const MF_NAMESPACE = "mkx";
 const MF_KEY = "campaigns";
 
 // Basic sanitizers so broken JSON from UI won’t brick pricing.

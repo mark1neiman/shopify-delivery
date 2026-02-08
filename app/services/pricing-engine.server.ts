@@ -1,8 +1,6 @@
 import { adminGraphql } from "../shipping.server";
 import { getCampaigns, type Campaign } from "./campaigns.server";
 
-import { listCampaigns } from "./campaigns-metaobjects.server";
-
 export type PricedLine = {
   variantId: string;
   quantity: number;
@@ -17,6 +15,10 @@ export type PricedLine = {
   appliedCampaignIds: string[];
   appliedCampaignLabels: string[];
   appliedPromoCode?: string;
+
+  // ✅ NEW: explicit gift line (so storefront can auto-add/remove gifts)
+  isGiftLine?: boolean;
+  giftCampaignId?: string;
 };
 
 export type PricingBreakdown = {
@@ -71,66 +73,189 @@ function toGid(rawId: string) {
 }
 
 type LineState = {
+  // ✅ NEW: unique key, so gift lines do not merge with regular lines
+  key: string;
+
   variantId: string;
   quantity: number;
   baseUnitPrice: number;
   memberUnitPrice: number;
 
-  discountTotal: number; // total discounts applied on this line (campaign + promo)
+  discountTotal: number;
   freeUnits: number;
 
   appliedCampaignIds: Set<string>;
   appliedCampaignLabels: Set<string>;
   appliedPromoCode?: string;
+
+  // ✅ NEW: gift marker
+  isGiftLine?: boolean;
+  giftCampaignId?: string;
 };
 
 type PriceMap = Map<string, { amount: number; currencyCode: string }>;
 
-async function fetchVariantPrices(admin: any, variantIds: string[]): Promise<PriceMap> {
-  if (!variantIds.length) return new Map();
+function safeNumber(n: any) {
+  const v = Number.parseFloat(String(n ?? 0).replace(",", "."));
+  return Number.isFinite(v) ? v : 0;
+}
 
-  const query = `#graphql
-    query VariantPrices($ids: [ID!]!) {
+function parseMoneyScalar(price: any) {
+  const amount = safeNumber(price);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+type RunResult = { ok: true; json: any } | { ok: false; error: any };
+
+/**
+ * Shopify Admin GraphQL schema differs by API version:
+ * - ProductVariant.price can be:
+ *   - MoneyV2 (object) -> price { amount currencyCode }
+ *   - Money (scalar)   -> price (string)
+ * - Or priceV2 exists: priceV2 { amount currencyCode }
+ *
+ * IMPORTANT:
+ * Shopify GraphQL client can THROW (GraphqlQueryError) when graphQLErrors exist.
+ * So we MUST try/catch and continue to the next query.
+ */
+async function fetchVariantPrices(admin: any, variantIds: string[]): Promise<PriceMap> {
+  const map: PriceMap = new Map();
+  if (!variantIds.length) return map;
+
+  const ids = variantIds;
+
+  const qPriceV2 = `#graphql
+    query VariantPricesV2($ids: [ID!]!) {
+      shop { currencyCode }
       nodes(ids: $ids) {
         ... on ProductVariant {
           id
-          price {
-            amount
-            currencyCode
-          }
+          priceV2 { amount currencyCode }
         }
       }
     }
   `;
 
-  const res = await adminGraphql(admin, query, { variables: { ids: variantIds } });
-  const json = await res.json();
+  const qPriceMoneyV2 = `#graphql
+    query VariantPricesMoneyV2($ids: [ID!]!) {
+      shop { currencyCode }
+      nodes(ids: $ids) {
+        ... on ProductVariant {
+          id
+          price { amount currencyCode }
+        }
+      }
+    }
+  `;
 
-  const nodes = json.data?.nodes ?? [];
-  const map: PriceMap = new Map();
+  const qPriceScalar = `#graphql
+    query VariantPricesScalar($ids: [ID!]!) {
+      shop { currencyCode }
+      nodes(ids: $ids) {
+        ... on ProductVariant {
+          id
+          price
+        }
+      }
+    }
+  `;
 
-  for (const node of nodes) {
-    if (!node?.id) continue;
-    const amount = Number.parseFloat(String(node.price?.amount ?? 0));
-    map.set(String(node.id), {
-      amount: Number.isFinite(amount) ? amount : 0,
-      currencyCode: node.price?.currencyCode ?? "USD",
-    });
+  async function run(query: string): Promise<RunResult> {
+    try {
+      const res = await adminGraphql(admin, query, { variables: { ids } });
+      const json = await res.json();
+      return { ok: true, json };
+    } catch (error: any) {
+      return { ok: false, error };
+    }
+  }
+
+  function hasGraphQLErrors(json: any) {
+    return Array.isArray(json?.errors) && json.errors.length > 0;
+  }
+
+  function storeCurrency(json: any) {
+    return String(json?.data?.shop?.currencyCode || "USD");
+  }
+
+  function buildMapFromNodes(
+    nodes: any[],
+    currencyFallback: string,
+    pick: (node: any, currencyFallback: string) => { amount: number; currencyCode: string } | null,
+  ) {
+    const out: PriceMap = new Map();
+    for (const node of nodes || []) {
+      if (!node?.id) continue;
+      const got = pick(node, currencyFallback);
+      if (!got) continue;
+      out.set(String(node.id), got);
+    }
+    return out;
+  }
+
+  // 1) Try priceV2
+  {
+    const r = await run(qPriceV2);
+    if (r.ok && !hasGraphQLErrors(r.json)) {
+      const nodes = r.json.data?.nodes ?? [];
+      const cur = storeCurrency(r.json);
+      const out = buildMapFromNodes(nodes, cur, (n) => {
+        if (n?.priceV2?.amount == null) return null;
+        const amt = safeNumber(n.priceV2.amount);
+        return { amount: amt, currencyCode: String(n.priceV2.currencyCode || cur) };
+      });
+      if (out.size) return out;
+    }
+  }
+
+  // 2) Try price as MoneyV2 object
+  {
+    const r = await run(qPriceMoneyV2);
+    if (r.ok && !hasGraphQLErrors(r.json)) {
+      const nodes = r.json.data?.nodes ?? [];
+      const cur = storeCurrency(r.json);
+      const out = buildMapFromNodes(nodes, cur, (n) => {
+        if (n?.price?.amount == null) return null;
+        const amt = safeNumber(n.price.amount);
+        return { amount: amt, currencyCode: String(n.price.currencyCode || cur) };
+      });
+      if (out.size) return out;
+    }
+  }
+
+  // 3) Try price as scalar
+  {
+    const r = await run(qPriceScalar);
+    if (r.ok && !hasGraphQLErrors(r.json)) {
+      const nodes = r.json.data?.nodes ?? [];
+      const cur = storeCurrency(r.json);
+      const out = buildMapFromNodes(nodes, cur, (n, currencyFallback) => {
+        if (n?.price == null) return null;
+        const amt = parseMoneyScalar(n.price);
+        return { amount: amt, currencyCode: currencyFallback };
+      });
+      if (out.size) return out;
+    }
   }
 
   return map;
 }
 
-function ensureLine(lines: Map<string, LineState>, variantId: string, priceMap: PriceMap, quantity: number) {
+// ✅ Regular line: key == variantId (GID)
+function ensureRegularLine(lines: Map<string, LineState>, variantId: string, priceMap: PriceMap, quantity: number) {
   const normalized = toGid(variantId);
-  const existing = lines.get(normalized);
+  const key = normalized;
+
+  const existing = lines.get(key);
   if (existing) {
     existing.quantity += quantity;
     return existing;
   }
 
   const price = priceMap.get(normalized) ?? { amount: 0, currencyCode: "USD" };
+
   const line: LineState = {
+    key,
     variantId: normalized,
     quantity,
     baseUnitPrice: price.amount,
@@ -140,13 +265,51 @@ function ensureLine(lines: Map<string, LineState>, variantId: string, priceMap: 
     appliedCampaignIds: new Set(),
     appliedCampaignLabels: new Set(),
   };
-  lines.set(normalized, line);
+
+  lines.set(key, line);
+  return line;
+}
+
+// ✅ Gift line: unique key (gift:campaignId:variantId) so it never merges with regular items
+function createGiftLine(
+  lines: Map<string, LineState>,
+  campaign: Campaign,
+  variantId: string,
+  priceMap: PriceMap,
+  quantity: number,
+) {
+  const normalized = toGid(variantId);
+  const key = `gift:${campaign.id}:${normalized}`;
+
+  const price = priceMap.get(normalized) ?? { amount: 0, currencyCode: "USD" };
+
+  const line: LineState = {
+    key,
+    variantId: normalized,
+    quantity,
+    baseUnitPrice: price.amount,
+    memberUnitPrice: price.amount,
+    discountTotal: 0,
+    freeUnits: 0,
+    appliedCampaignIds: new Set([campaign.id]),
+    appliedCampaignLabels: new Set([campaign.label]),
+    isGiftLine: true,
+    giftCampaignId: campaign.id,
+  };
+
+  // Make gift free:
+  line.discountTotal += line.memberUnitPrice * quantity;
+  line.freeUnits += quantity;
+
+  lines.set(key, line);
   return line;
 }
 
 function applyMemberDiscount(lines: Map<string, LineState>, hasMember: boolean) {
   if (!hasMember) return;
   for (const line of lines.values()) {
+    // ✅ do not apply member discount to gift line (cosmetic; gift is already free)
+    if (line.isGiftLine) continue;
     line.memberUnitPrice = roundMoney(line.baseUnitPrice * (1 - MEMBER_DISCOUNT_RATE));
   }
 }
@@ -154,19 +317,15 @@ function applyMemberDiscount(lines: Map<string, LineState>, hasMember: boolean) 
 function eligibleUnits(lines: LineState[], eligibleVariantIds: string[]) {
   if (!eligibleVariantIds.length) return [];
   const ids = new Set(eligibleVariantIds.map(toGid));
-  return lines.filter((line) => ids.has(line.variantId));
+
+  // ✅ gifts should never count as eligible units/triggers
+  return lines.filter((line) => !line.isGiftLine && ids.has(line.variantId));
 }
 
 function totalLineValue(line: LineState) {
   return line.memberUnitPrice * line.quantity - line.discountTotal;
 }
 
-/**
- * cheap-first freebies:
- * - мы собираем пул "единиц" с ценой memberUnitPrice
- * - сортируем по цене
- * - первые N делаем бесплатными (через discountTotal += unitPrice и freeUnits++)
- */
 function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaign) {
   if (freeCount <= 0) return;
 
@@ -191,15 +350,19 @@ function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaig
 
 function distributeDiscount(lines: LineState[], discountAmount: number, campaign?: Campaign) {
   if (discountAmount <= 0) return;
-  const subtotal = sum(lines.map((line) => totalLineValue(line)));
+
+  // ✅ only discount payable lines (exclude gifts)
+  const payable = lines.filter((l) => !l.isGiftLine);
+
+  const subtotal = sum(payable.map((line) => totalLineValue(line)));
   if (subtotal <= 0) return;
 
   let remaining = Math.min(discountAmount, subtotal);
 
-  lines.forEach((line, index) => {
+  payable.forEach((line, index) => {
     const weight = totalLineValue(line) / subtotal;
     const raw = roundMoney(discountAmount * weight);
-    const discount = index === lines.length - 1 ? remaining : raw;
+    const discount = index === payable.length - 1 ? remaining : raw;
 
     line.discountTotal += discount;
     remaining -= discount;
@@ -292,6 +455,10 @@ function buildLines(lines: LineState[]): PricedLine[] {
       appliedCampaignIds: Array.from(line.appliedCampaignIds),
       appliedCampaignLabels: Array.from(line.appliedCampaignLabels),
       appliedPromoCode: line.appliedPromoCode,
+
+      // ✅ NEW
+      isGiftLine: Boolean(line.isGiftLine),
+      giftCampaignId: line.giftCampaignId,
     };
   });
 }
@@ -302,7 +469,6 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     quantity: item.quantity,
   }));
 
-  // Чтобы подгрузить цены потенциальных "подарочных" вариантов (free/choice):
   const campaignsFromAdmin = await getCampaigns(admin);
 
   const campaignVariantIds = campaignsFromAdmin
@@ -314,40 +480,42 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     })
     .filter(Boolean);
 
-
   const extraVariantIds = [input.freeChoiceVariantId ?? "", ...campaignVariantIds].filter(Boolean);
 
   const variantIds = Array.from(new Set([...normalizedItems.map((i) => i.variantId), ...extraVariantIds]));
   const priceMap = await fetchVariantPrices(admin, variantIds);
-  const currencyCode = priceMap.values().next().value?.currencyCode ?? "USD";
+
+  const first = priceMap.values().next().value as { amount: number; currencyCode: string } | undefined;
+  const currencyCode = first?.currencyCode ?? "USD";
 
   const linesMap = new Map<string, LineState>();
+
+  // ✅ build regular lines first
   for (const item of normalizedItems) {
-    ensureLine(linesMap, item.variantId, priceMap, item.quantity);
+    ensureRegularLine(linesMap, item.variantId, priceMap, item.quantity);
   }
 
-  // 1) member -15%
   applyMemberDiscount(linesMap, Boolean(input.customerId));
 
-  // 2) campaigns (priority + stackable)
   const appliedCampaigns: { id: string; type: Campaign["type"]; label: string }[] = [];
   let needsFreeChoice = false;
   let choiceContext: PricingResult["choiceContext"];
 
   const campaigns = [...campaignsFromAdmin].sort((a, b) => a.priority - b.priority);
 
-
-
   let hasNonStackable = false;
 
   for (const campaign of campaigns) {
     if (hasNonStackable && !campaign.stackable) continue;
 
-    const lines = Array.from(linesMap.values());
-    const memberSubtotal = sum(lines.map((l) => l.memberUnitPrice * l.quantity));
+    const allLines = Array.from(linesMap.values());
+    const regularLines = allLines.filter((l) => !l.isGiftLine);
+
+    // ✅ thresholds use ONLY regular lines (exclude gifts)
+    const memberSubtotal = sum(regularLines.map((l) => l.memberUnitPrice * l.quantity));
 
     if (campaign.type === "BuyXGetOneFree") {
-      const eligible = eligibleUnits(lines, campaign.eligibleVariantIds);
+      const eligible = eligibleUnits(regularLines, campaign.eligibleVariantIds);
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity + 1) continue;
 
@@ -361,15 +529,11 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     if (campaign.type === "BuyXGetZFree") {
       if (!campaign.freeVariantId) continue;
 
-      const eligible = eligibleUnits(lines, campaign.triggerVariantIds);
+      const eligible = eligibleUnits(regularLines, campaign.triggerVariantIds);
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity) continue;
 
-      const freeLine = ensureLine(linesMap, campaign.freeVariantId, priceMap, 1);
-      freeLine.discountTotal += freeLine.memberUnitPrice;
-      freeLine.freeUnits += 1;
-      freeLine.appliedCampaignIds.add(campaign.id);
-      freeLine.appliedCampaignLabels.add(campaign.label);
+      createGiftLine(linesMap, campaign, campaign.freeVariantId, priceMap, 1);
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
@@ -377,7 +541,7 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     if (campaign.type === "BuyXGetZChoice") {
       if (!campaign.choiceVariantIds.length) continue;
 
-      const eligible = eligibleUnits(lines, campaign.triggerVariantIds);
+      const eligible = eligibleUnits(regularLines, campaign.triggerVariantIds);
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity) continue;
 
@@ -390,11 +554,7 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const chosen = toGid(input.freeChoiceVariantId);
       if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
 
-      const freeLine = ensureLine(linesMap, chosen, priceMap, 1);
-      freeLine.discountTotal += freeLine.memberUnitPrice;
-      freeLine.freeUnits += 1;
-      freeLine.appliedCampaignIds.add(campaign.id);
-      freeLine.appliedCampaignLabels.add(campaign.label);
+      createGiftLine(linesMap, campaign, chosen, priceMap, 1);
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
@@ -409,7 +569,9 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
         discountAmount = campaign.discount.value;
       }
 
-      distributeDiscount(lines, discountAmount, campaign);
+      // ✅ discount applies only to regular lines
+      distributeDiscount(regularLines, discountAmount, campaign);
+
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
@@ -426,11 +588,7 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const chosen = toGid(input.freeChoiceVariantId);
       if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
 
-      const freeLine = ensureLine(linesMap, chosen, priceMap, 1);
-      freeLine.discountTotal += freeLine.memberUnitPrice;
-      freeLine.freeUnits += 1;
-      freeLine.appliedCampaignIds.add(campaign.id);
-      freeLine.appliedCampaignLabels.add(campaign.label);
+      createGiftLine(linesMap, campaign, chosen, priceMap, 1);
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
@@ -438,15 +596,17 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     if (!campaign.stackable) hasNonStackable = true;
   }
 
-  const lines = Array.from(linesMap.values());
+  const allLines = Array.from(linesMap.values());
+  const regularLines = allLines.filter((l) => !l.isGiftLine);
 
-  // breakdown
-  const baseSubtotal = roundMoney(sum(lines.map((l) => l.baseUnitPrice * l.quantity)));
-  const memberSubtotal = roundMoney(sum(lines.map((l) => l.memberUnitPrice * l.quantity)));
+  // ✅ breakdown is for payable items only
+  const baseSubtotal = roundMoney(sum(regularLines.map((l) => l.baseUnitPrice * l.quantity)));
+  const memberSubtotal = roundMoney(sum(regularLines.map((l) => l.memberUnitPrice * l.quantity)));
   const memberDiscount = roundMoney(baseSubtotal - memberSubtotal);
-  const campaignDiscount = roundMoney(sum(lines.map((l) => l.discountTotal)));
 
-  // 3) promo code (после кампаний)
+  // ✅ campaignDiscount counts only discounts on regular lines (gifts excluded)
+  const campaignDiscount = roundMoney(sum(regularLines.map((l) => l.discountTotal)));
+
   let promoDiscount = 0;
 
   if (!needsFreeChoice && input.promoCode) {
@@ -460,16 +620,17 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
         promoDiscount = roundMoney(promo.value);
       }
 
-      // promo скидку распределяем пропорционально, но НЕ добавляем campaign labels (это промо)
-      distributeDiscount(lines, promoDiscount);
-      for (const line of lines) {
+      // ✅ promo applies only to regular lines
+      distributeDiscount(regularLines, promoDiscount);
+
+      for (const line of regularLines) {
         line.appliedPromoCode = promo.code;
       }
     }
   }
 
   const finalSubtotal = roundMoney(memberSubtotal - campaignDiscount - promoDiscount);
-  const pricedLines = buildLines(lines);
+  const pricedLines = buildLines(allLines);
 
   return {
     lines: pricedLines,

@@ -14,6 +14,7 @@ import {
   Banner,
 } from "@shopify/polaris";
 import * as React from "react";
+
 import { authenticate } from "../shopify.server";
 import { adminGraphql } from "../shipping.server";
 
@@ -84,15 +85,13 @@ type LoaderData = {
   shopId: string;
 };
 
-type ActionData =
-  | { ok: true }
-  | { ok: false; error: string };
+type ActionData = { ok: true } | { ok: false; error: string };
 
 /* =============================================================================
  * Storage (Shop metafield: mk.campaigns)
  * ========================================================================== */
 
-const META_NAMESPACE = "mk";
+const META_NAMESPACE = "mkx";
 const META_KEY = "campaigns";
 const META_TYPE = "json";
 
@@ -109,16 +108,38 @@ function toGidVariant(raw: string): string {
   const s = String(raw || "").trim();
   if (!s) return "";
   if (s.startsWith("gid://")) return s;
-  // allow "123456789"
   return `gid://shopify/ProductVariant/${s.replace(/[^\d]/g, "")}`;
+}
+
+function uniq(ids: string[]): string[] {
+  return Array.from(new Set(ids.filter(Boolean)));
 }
 
 function variantIdsToText(ids: string[]): string {
   return (ids || []).join("\n");
 }
 
+function toNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === "number" ? value : Number(String(value ?? "").replace(",", "."));
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function ensureId(id: string): string {
+  const s = String(id || "").trim();
+  if (s) return s;
+  return `cmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function clone<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T;
+}
+
+/* =============================================================================
+ * Variant search picker
+ * ========================================================================== */
+
 type VariantOption = {
-  id: string;
+  id: string; // expects gid
   title: string;
   sku?: string;
 };
@@ -129,12 +150,23 @@ type VariantPickerProps = {
   onChange: (next: string[]) => void;
   single?: boolean;
   helpText?: string;
+  placeholder?: string;
 };
 
-function VariantPicker({ label, selectedIds, onChange, single = false, helpText }: VariantPickerProps) {
+function VariantPicker({
+  label,
+  selectedIds,
+  onChange,
+  single = false,
+  helpText,
+  placeholder = "Start typing to search products",
+}: VariantPickerProps) {
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState<VariantOption[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // very small debounce to avoid spamming the server
+  const debounceRef = React.useRef<number | null>(null);
 
   async function runSearch(nextQuery: string) {
     const q = nextQuery.trim();
@@ -145,13 +177,20 @@ function VariantPicker({ label, selectedIds, onChange, single = false, helpText 
 
     setIsLoading(true);
     try {
-      const res = await fetch(`/app/api/variants?q=${encodeURIComponent(q)}`);
-      if (!res.ok) return;
+      const res = await fetch(`/app/api/variants?q=${encodeURIComponent(q)}`, {
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        setResults([]);
+        return;
+      }
+
       const data = await res.json();
       const items = Array.isArray(data?.items) ? data.items : [];
+
       setResults(
         items.map((item: any) => ({
-          id: String(item.id),
+          id: toGidVariant(String(item.id)),
           title: String(item.title || item.id),
           sku: item.sku ? String(item.sku) : undefined,
         })),
@@ -161,13 +200,24 @@ function VariantPicker({ label, selectedIds, onChange, single = false, helpText 
     }
   }
 
-  function addVariant(id: string) {
+  function scheduleSearch(next: string) {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    debounceRef.current = window.setTimeout(() => {
+      runSearch(next);
+    }, 150);
+  }
+
+  function addVariant(rawId: string) {
+    const id = toGidVariant(rawId);
+    if (!id) return;
+
     if (single) {
       onChange([id]);
       return;
     }
+
     if (selectedIds.includes(id)) return;
-    onChange([...selectedIds, id]);
+    onChange(uniq([...selectedIds, id]));
   }
 
   function removeVariant(id: string) {
@@ -181,11 +231,11 @@ function VariantPicker({ label, selectedIds, onChange, single = false, helpText 
         value={query}
         onChange={(value: string) => {
           setQuery(value);
-          runSearch(value);
+          scheduleSearch(value);
         }}
         autoComplete="off"
         helpText={helpText}
-        placeholder="Start typing to search products"
+        placeholder={placeholder}
       />
 
       {isLoading ? (
@@ -195,11 +245,12 @@ function VariantPicker({ label, selectedIds, onChange, single = false, helpText 
       ) : null}
 
       {results.length > 0 ? (
-        <Card padding="200" background="bg-surface-secondary">
+        <Card padding="200">
           <BlockStack gap="200">
             <Text as="h3" variant="headingSm">
               Results
             </Text>
+
             <BlockStack gap="150">
               {results.map((item) => (
                 <InlineStack key={item.id} align="space-between" blockAlign="center" gap="200">
@@ -211,6 +262,7 @@ function VariantPicker({ label, selectedIds, onChange, single = false, helpText 
                       {item.sku ? `${item.sku} • ${item.id}` : item.id}
                     </Text>
                   </BlockStack>
+
                   <Button size="slim" onClick={() => addVariant(item.id)}>
                     Add
                   </Button>
@@ -241,17 +293,6 @@ function VariantPicker({ label, selectedIds, onChange, single = false, helpText 
       </BlockStack>
     </BlockStack>
   );
-}
-
-function toNumber(value: unknown, fallback = 0): number {
-  const n = typeof value === "number" ? value : Number(String(value ?? "").replace(",", "."));
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function ensureId(id: string): string {
-  const s = String(id || "").trim();
-  if (s) return s;
-  return `cmp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
 /* =============================================================================
@@ -321,7 +362,7 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
-  // minimal sanitation
+  // sanitation + normalize ids
   const sanitized: Campaign[] = campaigns.map((c) => {
     const base: CampaignBase = {
       id: ensureId(c.id),
@@ -336,7 +377,7 @@ export async function action({ request }: ActionFunctionArgs) {
         ...base,
         type: "BuyXGetOneFree",
         buyQuantity: toNumber((c as any).buyQuantity, 2),
-        eligibleVariantIds: (c as any).eligibleVariantIds?.map(toGidVariant).filter(Boolean) ?? [],
+        eligibleVariantIds: uniq(((c as any).eligibleVariantIds ?? []).map(toGidVariant)),
       };
     }
 
@@ -345,7 +386,7 @@ export async function action({ request }: ActionFunctionArgs) {
         ...base,
         type: "BuyXGetZFree",
         buyQuantity: toNumber((c as any).buyQuantity, 2),
-        triggerVariantIds: (c as any).triggerVariantIds?.map(toGidVariant).filter(Boolean) ?? [],
+        triggerVariantIds: uniq(((c as any).triggerVariantIds ?? []).map(toGidVariant)),
         freeVariantId: toGidVariant((c as any).freeVariantId ?? ""),
       };
     }
@@ -355,8 +396,8 @@ export async function action({ request }: ActionFunctionArgs) {
         ...base,
         type: "BuyXGetZChoice",
         buyQuantity: toNumber((c as any).buyQuantity, 3),
-        triggerVariantIds: (c as any).triggerVariantIds?.map(toGidVariant).filter(Boolean) ?? [],
-        choiceVariantIds: (c as any).choiceVariantIds?.map(toGidVariant).filter(Boolean) ?? [],
+        triggerVariantIds: uniq(((c as any).triggerVariantIds ?? []).map(toGidVariant)),
+        choiceVariantIds: uniq(((c as any).choiceVariantIds ?? []).map(toGidVariant)),
       };
     }
 
@@ -378,7 +419,7 @@ export async function action({ request }: ActionFunctionArgs) {
       ...base,
       type: "CartThresholdFreeChoice",
       thresholdAmount: toNumber((c as any).thresholdAmount, 150),
-      choiceVariantIds: (c as any).choiceVariantIds?.map(toGidVariant).filter(Boolean) ?? [],
+      choiceVariantIds: uniq(((c as any).choiceVariantIds ?? []).map(toGidVariant)),
     };
   });
 
@@ -457,10 +498,6 @@ function typeLabel(t: CampaignType): string {
   return CAMPAIGN_TYPE_OPTIONS.find((x) => x.value === t)?.label ?? t;
 }
 
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v)) as T;
-}
-
 /* =============================================================================
  * Component
  * ========================================================================== */
@@ -471,11 +508,8 @@ export default function CampaignsPage() {
   const nav = useNavigation();
 
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(() => clone(initialCampaigns));
-
-  // new campaign form
   const [selectedType, setSelectedType] = React.useState<CampaignType>("BuyXGetOneFree");
 
-  // track dirty
   const isSaving = nav.state !== "idle";
 
   function updateCampaign(index: number, next: Campaign) {
@@ -538,7 +572,6 @@ export default function CampaignsPage() {
     setCampaigns((prev) => [...prev, next]);
   }
 
-  // ---- render editors per type
   function renderTypeFields(c: Campaign, idx: number) {
     if (c.type === "BuyXGetOneFree") {
       return (
@@ -547,22 +580,23 @@ export default function CampaignsPage() {
             label="Buy quantity (X)"
             type="number"
             value={String(c.buyQuantity)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })
-            }
+            onChange={(value: string) => updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })}
             autoComplete="off"
           />
+
           <TextField
-            label="Eligible variant IDs (one per line) — cheapest units become free"
+            label="Eligible variant IDs (auto-filled)"
             value={variantIdsToText(c.eligibleVariantIds)}
             onChange={() => undefined}
-            helpText="Use search below to pick variants."
-            disabled
+            readOnly
+            autoComplete="off"
+            helpText="Pick variants below — list updates automatically."
           />
+
           <VariantPicker
             label="Search eligible variants"
             selectedIds={c.eligibleVariantIds}
-            onChange={(next) => updateCampaign(idx, { ...c, eligibleVariantIds: next })}
+            onChange={(next) => updateCampaign(idx, { ...c, eligibleVariantIds: uniq(next.map(toGidVariant)) })}
           />
         </BlockStack>
       );
@@ -575,32 +609,36 @@ export default function CampaignsPage() {
             label="Buy quantity (X)"
             type="number"
             value={String(c.buyQuantity)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })
-            }
+            onChange={(value: string) => updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })}
             autoComplete="off"
           />
+
           <TextField
-            label="Trigger variant IDs (one per line)"
+            label="Trigger variant IDs (auto-filled)"
             value={variantIdsToText(c.triggerVariantIds)}
             onChange={() => undefined}
-            disabled
+            readOnly
+            autoComplete="off"
           />
+
           <VariantPicker
             label="Search trigger variants"
             selectedIds={c.triggerVariantIds}
-            onChange={(next) => updateCampaign(idx, { ...c, triggerVariantIds: next })}
+            onChange={(next) => updateCampaign(idx, { ...c, triggerVariantIds: uniq(next.map(toGidVariant)) })}
           />
+
           <TextField
-            label="Free variant ID (Z)"
+            label="Free variant ID (Z) (auto-filled)"
             value={c.freeVariantId || ""}
             onChange={() => undefined}
-            disabled
+            readOnly
+            autoComplete="off"
           />
+
           <VariantPicker
             label="Search free variant"
             selectedIds={c.freeVariantId ? [c.freeVariantId] : []}
-            onChange={(next) => updateCampaign(idx, { ...c, freeVariantId: next[0] || "" })}
+            onChange={(next) => updateCampaign(idx, { ...c, freeVariantId: toGidVariant(next[0] || "") })}
             single
           />
         </BlockStack>
@@ -614,32 +652,36 @@ export default function CampaignsPage() {
             label="Buy quantity (X)"
             type="number"
             value={String(c.buyQuantity)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })
-            }
+            onChange={(value: string) => updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })}
             autoComplete="off"
           />
+
           <TextField
-            label="Trigger variant IDs (one per line)"
+            label="Trigger variant IDs (auto-filled)"
             value={variantIdsToText(c.triggerVariantIds)}
             onChange={() => undefined}
-            disabled
+            readOnly
+            autoComplete="off"
           />
+
           <VariantPicker
             label="Search trigger variants"
             selectedIds={c.triggerVariantIds}
-            onChange={(next) => updateCampaign(idx, { ...c, triggerVariantIds: next })}
+            onChange={(next) => updateCampaign(idx, { ...c, triggerVariantIds: uniq(next.map(toGidVariant)) })}
           />
+
           <TextField
-            label="Choice variant IDs (gifts) — one per line"
+            label="Choice variant IDs (gifts) (auto-filled)"
             value={variantIdsToText(c.choiceVariantIds)}
             onChange={() => undefined}
-            disabled
+            readOnly
+            autoComplete="off"
           />
+
           <VariantPicker
             label="Search gift variants"
             selectedIds={c.choiceVariantIds}
-            onChange={(next) => updateCampaign(idx, { ...c, choiceVariantIds: next })}
+            onChange={(next) => updateCampaign(idx, { ...c, choiceVariantIds: uniq(next.map(toGidVariant)) })}
           />
         </BlockStack>
       );
@@ -652,11 +694,10 @@ export default function CampaignsPage() {
             label="Threshold amount"
             type="number"
             value={String(c.thresholdAmount)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, thresholdAmount: toNumber(value, 0) })
-            }
+            onChange={(value: string) => updateCampaign(idx, { ...c, thresholdAmount: toNumber(value, 0) })}
             autoComplete="off"
           />
+
           <Select
             label="Discount type"
             options={[
@@ -668,13 +709,12 @@ export default function CampaignsPage() {
               updateCampaign(idx, { ...c, discount: { ...c.discount, type: value as "percentage" | "fixed" } })
             }
           />
+
           <TextField
             label={c.discount.type === "percentage" ? "Percentage value (e.g. 10)" : "Fixed value (e.g. 5.00)"}
             type="number"
             value={String(c.discount.value)}
-            onChange={(value: string) =>
-              updateCampaign(idx, { ...c, discount: { ...c.discount, value: toNumber(value, 0) } })
-            }
+            onChange={(value: string) => updateCampaign(idx, { ...c, discount: { ...c.discount, value: toNumber(value, 0) } })}
             autoComplete="off"
           />
         </BlockStack>
@@ -688,29 +728,26 @@ export default function CampaignsPage() {
           label="Threshold amount"
           type="number"
           value={String(c.thresholdAmount)}
-          onChange={(value: string) =>
-            updateCampaign(idx, { ...c, thresholdAmount: toNumber(value, 0) })
-          }
+          onChange={(value: string) => updateCampaign(idx, { ...c, thresholdAmount: toNumber(value, 0) })}
           autoComplete="off"
         />
+
         <TextField
-          label="Choice variant IDs (gifts) — one per line"
+          label="Choice variant IDs (gifts) (auto-filled)"
           value={variantIdsToText(c.choiceVariantIds)}
           onChange={() => undefined}
-          disabled
+          readOnly
+          autoComplete="off"
         />
+
         <VariantPicker
           label="Search gift variants"
           selectedIds={c.choiceVariantIds}
-          onChange={(next) => updateCampaign(idx, { ...c, choiceVariantIds: next })}
+          onChange={(next) => updateCampaign(idx, { ...c, choiceVariantIds: uniq(next.map(toGidVariant)) })}
         />
       </BlockStack>
     );
   }
-
-  // We need React import for hooks in this file (some templates don't auto-inject)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-
 
   return (
     <Page
@@ -742,10 +779,7 @@ export default function CampaignsPage() {
                 <div style={{ minWidth: 320 }}>
                   <Select
                     label="Type"
-                    options={CAMPAIGN_TYPE_OPTIONS.map((o) => ({
-                      label: o.label,
-                      value: o.value,
-                    }))}
+                    options={CAMPAIGN_TYPE_OPTIONS.map((o) => ({ label: o.label, value: o.value }))}
                     value={selectedType}
                     onChange={(value: string) => setSelectedType(value as CampaignType)}
                   />
@@ -790,9 +824,7 @@ export default function CampaignsPage() {
                           <TextField
                             label="ID"
                             value={c.id}
-                            onChange={(value: string) =>
-                              updateCampaign(idx, { ...(c as any), id: String(value || "").trim() })
-                            }
+                            onChange={(value: string) => updateCampaign(idx, { ...(c as any), id: String(value || "").trim() })}
                             helpText="Уникальный ID кампании"
                             autoComplete="off"
                           />
@@ -800,9 +832,7 @@ export default function CampaignsPage() {
                           <TextField
                             label="Label"
                             value={c.label}
-                            onChange={(value: string) =>
-                              updateCampaign(idx, { ...(c as any), label: String(value || "") })
-                            }
+                            onChange={(value: string) => updateCampaign(idx, { ...(c as any), label: String(value || "") })}
                             autoComplete="off"
                           />
 
@@ -812,9 +842,7 @@ export default function CampaignsPage() {
                                 label="Priority"
                                 type="number"
                                 value={String(c.priority)}
-                                onChange={(value: string) =>
-                                  updateCampaign(idx, { ...(c as any), priority: toNumber(value, 0) })
-                                }
+                                onChange={(value: string) => updateCampaign(idx, { ...(c as any), priority: toNumber(value, 0) })}
                                 autoComplete="off"
                               />
                             </div>
@@ -826,9 +854,7 @@ export default function CampaignsPage() {
                                   { label: "No", value: "false" },
                                 ]}
                                 value={c.stackable ? "true" : "false"}
-                                onChange={(value: string) =>
-                                  updateCampaign(idx, { ...(c as any), stackable: value === "true" })
-                                }
+                                onChange={(value: string) => updateCampaign(idx, { ...(c as any), stackable: value === "true" })}
                               />
                             </div>
                           </InlineStack>
