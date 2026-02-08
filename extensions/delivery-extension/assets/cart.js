@@ -257,6 +257,35 @@
     console.groupEnd();
   }
 
+  function logApplicableCampaigns(pricing, cart) {
+    if (!pricing) return;
+
+    const applied = Array.isArray(pricing.appliedCampaigns) ? pricing.appliedCampaigns : [];
+    const baseItems = (cart?.items || []).map((item) => ({
+      variantId: toGid(item.variant_id),
+      title: item.product_title || item.title || "",
+      quantity: Number(item.quantity || 0),
+    }));
+
+    const campaignItems = (pricing.lines || [])
+      .filter((line) => line && line.isGiftLine)
+      .map((line) => ({
+        variantId: line.variantId,
+        quantity: Number(line.quantity || 0),
+        labels: Array.isArray(line.appliedCampaignLabels) ? line.appliedCampaignLabels : [],
+        campaignIds: Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [],
+      }));
+
+    console.groupCollapsed("[cart.js] applicable campaigns");
+    console.log("Applied campaigns:", applied.length ? applied : "none");
+    console.log("Base cart items:", baseItems);
+    console.log("Campaign gift items:", campaignItems.length ? campaignItems : "none");
+    if (pricing.needsFreeChoice) {
+      console.warn("[cart.js] needs free choice:", pricing.choiceContext || "unknown");
+    }
+    console.groupEnd();
+  }
+
   async function safeReadJsonResponse(res) {
     const ct = String(res.headers.get("content-type") || "");
     if (!ct.includes("application/json")) {
@@ -455,6 +484,7 @@
       const pricing = data?.pricing;
       console.log("[cart.js] preview response pricing:", pricing);
       logCampaignSummary(pricing);
+      logApplicableCampaigns(pricing, cart);
 
       if (!pricing?.lines?.length) return;
 
