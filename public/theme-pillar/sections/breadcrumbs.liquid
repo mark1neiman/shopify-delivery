@@ -1,0 +1,159 @@
+{%- unless template == 'index' -%}
+  {%- liquid
+    assign justify = section.settings.text_alignment | default: 'start'
+  -%}
+  <div
+    class="section-breadcrumb page-width page-width--{{ section.settings.container }} section--padding"
+    style="--section-padding-top: {{ section.settings.padding_top }}px;--section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+  >
+    <nav
+      class="breadcrumbs flex items-center justify-start md:justify-{{ justify }}"
+      role="navigation"
+      aria-label="breadcrumbs"
+    >
+      <a href="{{ routes.root_url }}" title="Home" class="reversed-link">{{ 'general.breadcrumbs.home' | t }}</a>
+      {%- if template contains 'page' -%}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        <span class="breadcrumbs--last text-subtext">{{ page.title }}</span>
+      {%- elsif template contains 'product' -%}
+        {%- liquid
+          assign primary_collection = product.metafields.breadcrumb.primary_collection
+        -%}
+        {%- if collection.url != blank -%}
+          <span aria-hidden="true" class="breadcrumbs--sep"></span>
+          {%- if primary_collection != blank -%}
+            {{ primary_collection.value.title | link_to: primary_collection.value.url, class: 'reversed-link' }}
+          {%- else -%}
+            {{ collection.title | link_to: collection.url, class: 'reversed-link' }}
+          {%- endif -%}
+        {%- else -%}
+          {% assign current_collection = product.collections | first %}
+          <span aria-hidden="true" class="breadcrumbs--sep"></span>
+          {%- if primary_collection != blank -%}
+            <a href="{{ primary_collection.value.url }}" class="reversed-link">{{ primary_collection.value.title }}</a>
+          {%- elsif current_collection != blank -%}
+            <a href="{{ current_collection.url }}" class="reversed-link">{{ current_collection.title }}</a>
+          {%- else -%}
+            <a href="{{ routes.all_products_collection_url }}" class="reversed-link">
+              {{- 'general.breadcrumbs.collections' | t -}}
+            </a>
+          {%- endif -%}
+        {%- endif -%}
+        <span aria-hidden="true" class="breadcrumbs--sep breadcrumbs--sep-last"></span>
+        <span class="breadcrumbs--last text-subtext">{{ product.title }}</span>
+      {%- elsif template contains 'collection' and collection.handle -%}
+        {%- if collection.handle != 'all' -%}
+          <span aria-hidden="true" class="breadcrumbs--sep"></span>
+          <a href="{{ routes.all_products_collection_url }}" class="reversed-link">
+            {{- 'general.breadcrumbs.collections' | t -}}
+          </a>
+        {% endif %}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        {%- if current_tags -%}
+          {% capture url %}{{ routes.collections_url }}/{{ collection.handle }}{% endcapture %}
+          {{ collection.title | link_to: url, class: 'reversed-link' }}
+          <span aria-hidden="true" class="breadcrumbs--sep"></span>
+          <span class="breadcrumbs--last text-subtext">{{ current_tags | join: ' + ' }}</span>
+        {%- else -%}
+          <span class="breadcrumbs--last text-subtext">{{ collection.title }}</span>
+        {%- endif -%}
+      {%- elsif template == 'list-collections' -%}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        <span class="breadcrumbs--last text-subtext">{{ 'templates.collections.title' | t }}</span>
+      {%- elsif template == 'blog' -%}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        {%- if current_tags -%}
+          {{ blog.title | link_to: blog.url, class: 'reversed-link' }}
+          <span aria-hidden="true" class="breadcrumbs--sep"></span>
+          <span class="breadcrumbs--last text-subtext">{{ current_tags | join: ' + ' }}</span>
+        {%- else -%}
+          <span>{{ blog.title }}</span>
+        {%- endif -%}
+      {%- elsif template == 'article' -%}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        {{ blog.title | link_to: blog.url, class: 'reversed-link' }}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        <span class="breadcrumbs--last text-subtext">{{ article.title }}</span>
+      {%- elsif template == 'cart' -%}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        <span class="breadcrumbs--last text-subtext">{{ 'general.cart.title' | t }}</span>
+      {%- else -%}
+        <span aria-hidden="true" class="breadcrumbs--sep"></span>
+        <span class="breadcrumbs--last text-subtext">{{ page_title }}</span>
+      {%- endif -%}
+    </nav>
+  </div>
+{%- endunless -%}
+{% schema %}
+{
+  "name": "t:sections.breadcrumbs.name",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"],
+    "templates": ["index"]
+  },
+  "limit": 1,
+  "settings": [
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        },
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:general.text_alignment.label",
+      "options": [
+        {
+          "value": "start",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "end",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ],
+      "default": "start"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "label": "t:general.padding.top.label",
+      "default": 16,
+      "min": 0,
+      "max": 24,
+      "step": 1,
+      "unit": "px"
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "label": "t:general.padding.bottom.label",
+      "default": 20,
+      "min": 0,
+      "max": 24,
+      "step": 1,
+      "unit": "px"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.breadcrumbs.name"
+    }
+  ]
+}
+{% endschema %}

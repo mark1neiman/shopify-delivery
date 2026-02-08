@@ -1,0 +1,26 @@
+.testimonials-masonry .testimonial {
+  margin-block-start: var(--offset-top, 0);
+}
+@media (min-width: 768px) {
+  .testimonials-masonry .testimonial {
+    height: auto;
+    align-self: flex-start;
+  }
+}
+.testimonials-masonry .testimonial__info {
+  gap: 0;
+}
+.testimonials-masonry .testimonial__content {
+  --mt: 1.2rem;
+}
+.testimonials-masonry .testimonial__product {
+  margin-top: 2rem;
+}
+@media (max-width: 767.98px) {
+  .testimonials-masonry .testimonial__product {
+    margin-top: 1.6rem;
+  }
+}
+.testimonials-masonry .testimonial--has-bg {
+  padding: 2rem;
+}

@@ -1,0 +1,28 @@
+{%- liquid
+  assign heading_size = block.settings.heading_size | default: 'h4'
+-%}
+<details
+  id="Details-{{ block.id }}-{{ section_id }}"
+  class="accordion-details"
+  is="accordion-group"
+  {% if block.settings.default_open %}
+    open
+    aria-expanded="true"
+  {% else %}
+    aria-expanded="false"
+  {% endif %}
+>
+  <summary class="accordion-details__summary flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      {% render 'icons', icon: block.settings.icon %}
+      <h2 class="{{ heading_size }} inline-richtext">
+        {{ block.settings.heading | default: block.settings.page.title | escape }}
+      </h2>
+    </div>
+    {%- render 'icon-plus-toggle' -%}
+  </summary>
+  <div class="accordion-details__content rte text-subtext">
+    {{ block.settings.content }}
+    {{ block.settings.page.content }}
+  </div>
+</details>

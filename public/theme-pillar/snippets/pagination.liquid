@@ -1,0 +1,88 @@
+{% comment %}
+  Renders a set of links for paginated results. Must be used within paginate tags.
+
+  Usage:
+  {% paginate results by 2 %}
+    {% render 'pagination', paginate: paginate, anchor: '#yourID' %}
+  {% endpaginate %}
+
+  Accepts:
+  - paginate: {Object}
+  - anchor: {String} (optional) This can be added so that on page reload it takes you to wherever you've placed your anchor tag.
+{% endcomment %}
+
+{%- if paginate.parts.size > 0 -%}
+  <nav
+    class="pagination{% unless type == 'number' %} text-center{% endunless %}"
+    role="navigation"
+    aria-label="{{ 'general.pagination.label' | t }}"
+  >
+    {%- if type == 'infinite' or type == 'load_more' -%}
+      {%- if paginate.next -%}
+        <button
+          class="btn btn--primary"
+          action="{{ shop.url }}{{ paginate.next.url }}"
+          type="{{ type }}"
+          is="load-more-button"
+        >
+          <span>{{ 'general.pagination.show_more' | t }}</span>
+          {%- render 'loading-spinner' -%}
+        </button>
+      {%- endif -%}
+    {%- else -%}
+      <ul class="pagination__list list-unstyled flex items-center flex-wrap justify-center" role="list">
+        {%- if paginate.previous -%}
+          <li>
+            <a
+              href="{{ paginate.previous.url }}{{ anchor }}"
+              class="pagination__item pagination__item--previous pagination__item-arrow motion-reduce"
+            >
+              {% render 'icon-caret-left', size: 'extra-small' %}
+              <span>{{ 'general.pagination.previous' | t }}</span>
+            </a>
+          </li>
+        {%- endif -%}
+
+        {%- for part in paginate.parts -%}
+          <li>
+            {%- if part.is_link -%}
+              <a
+                href="{{ part.url }}{{ anchor }}"
+                class="pagination__item"
+                aria-label="{{ 'general.pagination.page' | t: number: part.title }}"
+              >
+                {{- part.title -}}
+              </a>
+            {%- else -%}
+              {%- if part.title == paginate.current_page -%}
+                <a
+                  role="link"
+                  aria-disabled="true"
+                  class="pagination__item pagination__item--current background-2"
+                  aria-current="page"
+                  aria-label="{{ 'general.pagination.page' | t: number: part.title }}"
+                >
+                  {{- part.title -}}
+                </a>
+              {%- else -%}
+                <span class="pagination__item">{{ part.title }}</span>
+              {%- endif -%}
+            {%- endif -%}
+          </li>
+        {%- endfor -%}
+
+        {%- if paginate.next -%}
+          <li>
+            <a
+              href="{{ paginate.next.url }}{{ anchor }}"
+              class="pagination__item pagination__item--next pagination__item-arrow motion-reduce"
+            >
+              <span>{{ 'general.pagination.next' | t }}</span>
+              {% render 'icon-caret-right', size: 'extra-small' %}
+            </a>
+          </li>
+        {%- endif -%}
+      </ul>
+    {%- endif -%}
+  </nav>
+{%- endif -%}

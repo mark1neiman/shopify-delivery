@@ -1,0 +1,29 @@
+.featured-collection .tabs__btn.btn--underline:after {
+  width: 0;
+  transform: none;
+  transition: all 0.5s;
+}
+.featured-collection .tabs__btn.btn--underline:hover:after {
+  transform: none;
+  animation: none;
+}
+.featured-collection .tabs__btn.btn--underline.active:after {
+  width: 100%;
+}
+.featured-collection .tabs__btn.btn--underline:not(.active):not(:hover) {
+  opacity: 0.6;
+}
+.featured-collection .tabs-nav__inner {
+  column-gap: 3.2rem;
+  row-gap: 1.2rem;
+}
+@media (max-width: 767.98px) {
+  .featured-collection .tabs-nav__inner {
+    column-gap: 2.4rem;
+  }
+}
+.featured-collection .card-media,
+.featured-collection .card-media--link,
+.featured-collection .card-media__media {
+  height: 100%;
+}

@@ -1,0 +1,36 @@
+{% comment %}
+  Renders quick view modal for the given product
+
+  Accepts:
+  - modal_id: {String} Unique id for modal
+  - product: {Object} Product object
+
+  Usage:
+  {% render 'quick-view-modal', modal_id: modal_id, product: product %}
+{% endcomment %}
+{%- liquid
+  assign quick_view_type = settings.quick_view_type
+-%}
+<quick-view-modal
+  id="{{ modal_id }}"
+  class="quick-view drawer--loading{% if quick_view_type == 'drawer' %} drawer drawer--right{% else %} modal drawer{% endif %}"
+  data-product-url="{{ product.url }}"
+  hidden
+>
+  <div class="fixed-overlay" aria-controls="{{ modal_id }}"></div>
+  <div class="drawer__inner flex flex-col color-{{ settings.overlay_color_scheme }}">
+    <div class="drawer__header-title md:hidden">
+      <h3>{{ 'products.product.quick_view_title' | t }}</h3>
+    </div>
+    <button
+      class="drawer__close-btn z-2"
+      aria-controls="{{ modal_id }}"
+      aria-label="{{ 'accessibility.close' | t }}"
+      type="button"
+    >
+      {% render 'icon-close', size: 'large' %}
+    </button>
+    {%- render 'loading-spinner', class: 'loading__spinner drawer__loading-spinner' -%}
+    <div class="drawer__body v-scrollable h-full quick-view__content"></div>
+  </div>
+</quick-view-modal>

@@ -1,0 +1,22 @@
+.highlight-text-with-image .text {
+  column-gap: 1.2rem;
+  row-gap: 2rem;
+}
+.highlight-text-with-image a {
+  display: inline-block;
+  vertical-align: middle;
+  width: var(--image-width);
+  max-width: 100%;
+}
+.highlight-text-with-image img, .highlight-text-with-image svg {
+  display: block;
+}
+@media (max-width: 767.98px) {
+  .highlight-text-with-image .text {
+    column-gap: 0.8rem;
+    row-gap: 0.8rem;
+  }
+  .highlight-text-with-image a {
+    width: var(--image-width-mobile);
+  }
+}

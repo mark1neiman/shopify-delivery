@@ -1,0 +1,670 @@
+{{ 'section-buttons-with-icon.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'buttons-with-icon-list.js' | asset_url }}" defer="defer"></script>
+
+{%- liquid
+  assign enable_slider = section.settings.enable_slider
+-%}
+
+{% render 'divider',
+  show_divider: section.settings.show_section_divider,
+  divider_width: section.settings.divider_width
+%}
+
+{%- style -%}
+  .section-{{ section.id }}:has(.swiper-button-lock) .button-list__items {
+    justify-content: {{ section.settings.item_alignment | replace: 'left', 'flex-start' | replace: 'right', 'flex-end' }};
+  }
+{%- endstyle -%}
+
+<div
+  class="section section-{{ section.id }} section--padding button-list color-{{ section.settings.color_scheme }}"
+  style="--section-padding-top: {{ section.settings.padding_top }}px;--section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+>
+  <div class="section__container page-width page-width--{{ section.settings.container }}">
+    {% render 'section-heading', section_settings: section.settings %}
+    <div class="section__content swiper-show-nav-on-hover inline-flex relative{% if section.settings.swipe_on_mobile %} swipe-mobile swipe-mobile--auto-cols{% endif %}">
+      <button-list
+        class="block w-full m-0{% if enable_slider %} swiper overlay-list{% endif %}"
+        data-section-id="{{ section.id }}"
+        {% if enable_slider %}
+          data-slider-reach="begin"
+          data-enable-slider="true"
+        {% endif %}
+      >
+        <div class="button-list__items flex{% if enable_slider %} swiper-wrapper{%  else %} flex-wrap justify-{{ section.settings.item_alignment | replace: 'left', 'start' | replace: 'right', 'end' }}{% endif %}{% if section.settings.swipe_on_mobile %} swipe-mobile__inner{% endif %}">
+          {%- for block in section.blocks -%}
+            <div class="button-list__item{% if enable_slider %} swiper-slide{% endif %}">
+              {%- liquid
+                assign tag = 'div'
+                if block.settings.button_link != blank
+                  assign tag = 'a'
+                endif
+              -%}
+              <div
+                class="block button-item{% if block.settings.icon_img != blank %} button-item--image{% elsif block.settings.icon != 'none' %} button-item--icon{% endif %}"
+                data-index="{{ forloop.index0 }}"
+                {{ block.shopify_attributes }}
+              >
+                <{{ tag }}
+                  class="button-item__inner hover-wrapper btn {{ section.settings.item_button_style }}"
+                  {% if block.settings.button_link != blank %}
+                    href="{{ block.settings.button_link }}"
+                  {% endif %}
+                >
+                  <span class="btn__text flex items-center gap-x-2">
+                    {%- if block.settings.icon_img != blank -%}
+                      {%- liquid
+                        assign alt = block.settings.icon_img.alt | default: shop.name | escape
+                        assign image_widths = '38, 48, 76, 96, 132, ' | append: block.settings.icon_img.width
+                      -%}
+                      {%- capture image_sizes -%}(min-width:768px) 48px, 38px{%- endcapture -%}
+                      <picture
+                        class="media-wrapper button-item__icon flex shrink-0 rounded"
+                        style="--aspect-ratio: 1;"
+                      >
+                        {{
+                          block.settings.icon_img
+                          | image_url: width: block.settings.icon_img.width
+                          | image_tag:
+                            loading: 'lazy',
+                            class: 'motion-reduce absolute inset-0 w-full h-full',
+                            widths: image_widths,
+                            sizes: image_sizes,
+                            is: 'image-lazy',
+                            alt: alt
+                        }}
+                      </picture>
+                    {%- elsif block.settings.icon != 'none' -%}
+                      <span class="button-item__icon flex shrink-0 rounded">
+                        {% render 'icons', icon: block.settings.icon %}
+                      </span>
+                    {%- endif -%}
+
+                    {%- if block.settings.button_label != blank -%}
+                      <span class="button-item__text flex-1{% unless section.settings.item_button_font == 'button' %} font-{{ section.settings.item_button_font }}{% endunless %}">
+                        {{- block.settings.button_label -}}
+                      </span>
+                    {%- endif -%}
+                  </span>
+                </{{ tag }}>
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      </button-list>
+      {%- if enable_slider -%}
+        <div class="swiper-controls swiper-controls--nav-floating hidden md:block">
+          <button
+            class="swiper-button swiper-button-prev btn swiper-button--drop-shadow"
+            name="previous"
+            aria-label="{{ 'general.slider.previous_slide' | t }}"
+          >
+            <span class="btn__text"> {% render 'icon-caret-left' %}</span>
+          </button>
+          <button
+            class="swiper-button swiper-button-next btn swiper-button--drop-shadow"
+            name="next"
+            aria-label="{{ 'general.slider.next_slide' | t }}"
+          >
+            <span class="btn__text"> {% render 'icon-caret-right' %}</span>
+          </button>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.buttons-with-icon.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:general.section_header.content"
+    },
+    {
+      "id": "section_header_alignment",
+      "type": "select",
+      "label": "t:general.text_alignment.label",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "id": "section_header_alignment_mobile",
+      "type": "select",
+      "label": "t:general.text_alignment.mobile.label",
+      "default": "inherit",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.text_alignment.options__4.label"
+        },
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "inline_richtext",
+      "id": "subheading",
+      "label": "t:general.subheading.label"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "default": "Button group",
+      "label": "t:general.heading.label",
+      "info": "t:general.heading.info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "label": "t:general.highlight_text.highlight_style.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+        },
+        {
+          "value": "hand_drawn_circle",
+          "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+        },
+        {
+          "value": "thick_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+        },
+        {
+          "value": "wave_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "highlight_font_style",
+      "label": "t:general.highlight_text.highlight_font_style.label",
+      "options": [
+        {
+          "value": "italic",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+        },
+        {
+          "value": "normal",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "highlight_style_color",
+      "label": "t:general.highlight_text.highlight_style_color.label"
+    },
+    {
+      "type": "color",
+      "id": "highlight_text_color",
+      "label": "t:general.highlight_text.highlight_text_color.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:general.text_size.heading.label",
+      "default": "h1",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:general.text_size.options__h5.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:general.text_size.options__h4.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:general.text_size.options__h3.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:general.text_size.options__h2.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:general.text_size.options__h1.label"
+        },
+        {
+          "value": "hd2",
+          "label": "t:general.text_size.options__hd2.label"
+        },
+        {
+          "value": "hd1",
+          "label": "t:general.text_size.options__hd1.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:general.header__block_settings.content"
+    },
+    {
+      "type": "select",
+      "id": "item_alignment",
+      "label": "t:general.content_alignment.label",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.content_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.content_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.content_alignment.options__3.label"
+        }
+      ],
+      "default": "left"
+    },
+    {
+      "type": "select",
+      "id": "item_button_style",
+      "label": "t:general.button.button_style.label",
+      "options": [
+        {
+          "value": "btn--primary",
+          "label": "t:general.button.button_style.options__1.label"
+        },
+        {
+          "value": "btn--secondary",
+          "label": "t:general.button.button_style.options__2.label"
+        },
+        {
+          "value": "btn--icon",
+          "label": "t:general.button.button_style.options__6.label"
+        }
+      ],
+      "default": "btn--icon"
+    },
+    {
+      "type": "select",
+      "id": "item_button_font",
+      "label": "t:general.font_family.button.label",
+      "options": [
+        {
+          "value": "button",
+          "label": "t:general.font_family.options__4.label"
+        },
+        {
+          "value": "body",
+          "label": "t:general.font_family.options__1.label"
+        },
+        {
+          "value": "body-bolder",
+          "label": "t:general.font_family.options__3.label"
+        },
+        {
+          "value": "heading",
+          "label": "t:general.font_family.options__2.label"
+        }
+      ],
+      "default": "button"
+    },
+    {
+      "type": "header",
+      "content": "t:general.carousel.name"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_slider",
+      "label": "t:general.carousel.enable_carousel.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:general.mobile.name"
+    },
+    {
+      "type": "checkbox",
+      "id": "swipe_on_mobile",
+      "default": true,
+      "label": "t:general.mobile.swipe_on_mobile.label"
+    },
+    {
+      "type": "header",
+      "content": "t:general.divider.section_heading.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:general.divider.show_divider.label"
+    },
+    {
+      "type": "select",
+      "id": "divider_width",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 120,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.top.label",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 120,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.bottom.label",
+      "default": 50
+    }
+  ],
+  "blocks": [
+    {
+      "type": "button_item",
+      "name": "t:general.button.name",
+      "settings": [
+        {
+          "type": "header",
+          "content": "t:general.general.name"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:general.button.button_link.label"
+        },
+        {
+          "type": "header",
+          "content": "t:general.icon.label"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:general.icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.icon.options__1.label"
+            },
+            {
+              "value": "car-simple",
+              "label": "t:general.icon.options__2.label"
+            },
+            {
+              "value": "truck",
+              "label": "t:general.icon.options__3.label"
+            },
+            {
+              "value": "package",
+              "label": "t:general.icon.options__4.label"
+            },
+            {
+              "value": "currency-circle-dollar",
+              "label": "t:general.icon.options__5.label"
+            },
+            {
+              "value": "gift",
+              "label": "t:general.icon.options__6.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.icon.options__7.label"
+            },
+            {
+              "value": "globe",
+              "label": "t:general.icon.options__8.label"
+            },
+            {
+              "value": "check",
+              "label": "t:general.icon.options__9.label"
+            },
+            {
+              "value": "arrow-up-left",
+              "label": "t:general.icon.options__10.label"
+            },
+            {
+              "value": "lightning",
+              "label": "t:general.icon.options__11.label"
+            },
+            {
+              "value": "calendar-blank",
+              "label": "t:general.icon.options__12.label"
+            },
+            {
+              "value": "bell-ringing",
+              "label": "t:general.icon.options__13.label"
+            },
+            {
+              "value": "location",
+              "label": "t:general.icon.options__14.label"
+            },
+            {
+              "value": "tag",
+              "label": "t:general.icon.options__15.label"
+            },
+            {
+              "value": "map-pin",
+              "label": "t:general.icon.options__16.label"
+            },
+            {
+              "value": "smiley",
+              "label": "t:general.icon.options__17.label"
+            },
+            {
+              "value": "stool",
+              "label": "t:general.icon.options__18.label"
+            },
+            {
+              "value": "clock",
+              "label": "t:general.icon.options__19.label"
+            },
+            {
+              "value": "phone",
+              "label": "t:general.icon.options__20.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.icon.options__21.label"
+            },
+            {
+              "value": "paperplane",
+              "label": "t:general.icon.options__22.label"
+            },
+            {
+              "value": "sliders",
+              "label": "t:general.icon.options__23.label"
+            },
+            {
+              "value": "sound",
+              "label": "t:general.icon.options__24.label"
+            },
+            {
+              "value": "music",
+              "label": "t:general.icon.options__25.label"
+            },
+            {
+              "value": "airplane",
+              "label": "t:general.icon.options__26.label"
+            },
+            {
+              "value": "alarm",
+              "label": "t:general.icon.options__27.label"
+            },
+            {
+              "value": "play-list",
+              "label": "t:general.icon.options__28.label"
+            },
+            {
+              "value": "drop-slash",
+              "label": "t:general.icon.options__29.label"
+            },
+            {
+              "value": "pause-circle",
+              "label": "t:general.icon.options__30.label"
+            },
+            {
+              "value": "acorn",
+              "label": "t:general.icon.options__34.label"
+            },
+            {
+              "value": "leaf",
+              "label": "t:general.icon.options__35.label"
+            }
+          ],
+          "default": "check"
+        },
+        {
+          "type": "image_picker",
+          "id": "icon_img",
+          "label": "t:general.custom_icon.label"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.buttons-with-icon.name",
+      "blocks": [
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        },
+        {
+          "type": "button_item",
+          "settings": {
+            "icon": "check"
+          }
+        }
+      ]
+    }
+  ],
+  "disabled_on": {
+    "groups": ["footer", "header", "custom.overlay"]
+  }
+}
+{% endschema %}

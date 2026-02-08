@@ -1,0 +1,425 @@
+{%- liquid
+  assign limit = section.settings.limit
+-%}
+{% render 'divider',
+  show_divider: section.settings.show_section_divider,
+  divider_width: section.settings.divider_width
+%}
+<script src="{{ 'quick-comparison-table.js' | asset_url }}" defer="defer"></script>
+{{ 'section-quick-comparison-table.css' | asset_url | stylesheet_tag }}
+<div
+  class="section section--padding page-width page-width--{{ section.settings.container }} color-{{ section.settings.color_scheme }}"
+  style="--section-padding-top: {{ section.settings.padding_top }}px;--section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+>
+  <quick-comparison-table
+    class="quick-comparison-table"
+    data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ limit }}"
+  >
+    {%- if recommendations.performed and recommendations.products_count > 0 -%}
+      {%- liquid
+        assign products_to_display = recommendations.products_count
+        if products_to_display > limit
+          assign products_to_display = limit
+        endif
+      -%}
+      {% render 'section-heading',
+        section_settings: section.settings,
+        description_size: section.settings.description_size
+      %}
+      <div class="quick-comparison-table-container h-scrollable relative z-0">
+        <table class="quick-comparison-table text-subtext">
+          {%- for block in section.blocks -%}
+            <tr data-compare-key="{{ block.type }}">
+              <td class="td-label background-1 text-body">
+                {%- case block.type -%}
+                  {%- when 'price' -%}
+                    {{ 'products.product.price.label' | t }}
+                  {%- when 'description' -%}
+                    {{ 'products.product.description' | t }}
+                  {%- when 'vendor' -%}
+                    {{ 'products.product.vendor' | t }}
+                  {%- when 'type' -%}
+                    {{ 'products.product.type' | t }}
+                  {%- when 'variants' -%}
+                    {{ 'products.product.product_variants' | t }}
+                {%- endcase -%}
+              </td>
+              {% render 'quick-comparison-table-col', product: product, block: block %}
+              {%- for recommendation in recommendations.products -%}
+                {% render 'quick-comparison-table-col', product: recommendation, block: block %}
+              {%- endfor -%}
+            </tr>
+          {%- endfor -%}
+        </table>
+      </div>
+    {%- endif -%}
+  </quick-comparison-table>
+</div>
+{% schema %}
+{
+  "name": "t:sections.quick-comparison-table.name",
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "blocks": [
+    {
+      "type": "info",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.info.name",
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_view_details_button",
+          "label": "t:sections.product-compare.blocks.info.settings.show_view_details_button.label",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.description.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "text_line_limit",
+          "label": "t:general.text_line_limit.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.text_line_limit.options__none.label"
+            },
+            {
+              "value": "1-line",
+              "label": "t:general.text_line_limit.options__1.label"
+            },
+            {
+              "value": "2-lines",
+              "label": "t:general.text_line_limit.options__2.label"
+            },
+            {
+              "value": "3-lines",
+              "label": "t:general.text_line_limit.options__3.label"
+            },
+            {
+              "value": "4-lines",
+              "label": "t:general.text_line_limit.options__4.label"
+            },
+            {
+              "value": "5-lines",
+              "label": "t:general.text_line_limit.options__5.label"
+            }
+          ],
+          "default": "3-lines"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_view_more_button",
+          "label": "t:general.show_view_more_button.label",
+          "info": "t:general.show_view_more_button.info",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "price",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.price.name"
+    },
+    {
+      "type": "vendor",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.vendor.name"
+    },
+    {
+      "type": "type",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.type.name"
+    },
+    {
+      "type": "variants",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.variants.name"
+    }
+  ],
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:sections.quick-comparison-table.settings.paragraph__1.content"
+    },
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        },
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "header",
+      "content": "t:general.section_header.content"
+    },
+    {
+      "id": "section_header_alignment",
+      "type": "select",
+      "label": "t:general.text_alignment.label",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "id": "section_header_alignment_mobile",
+      "type": "select",
+      "label": "t:general.text_alignment.mobile.label",
+      "default": "inherit",
+      "options": [
+        {
+          "value": "inherit",
+          "label": "t:general.text_alignment.options__4.label"
+        },
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "t:general.heading.label",
+      "default": "Quick comparison table",
+      "info": "t:general.heading.info"
+    },
+    {
+      "type": "select",
+      "id": "highlight_style",
+      "label": "t:general.highlight_text.highlight_style.label",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:general.highlight_text.highlight_style.options.option__1.label"
+        },
+        {
+          "value": "hand_drawn_circle",
+          "label": "t:general.highlight_text.highlight_style.options.option__2.label"
+        },
+        {
+          "value": "thick_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__3.label"
+        },
+        {
+          "value": "wave_underline",
+          "label": "t:general.highlight_text.highlight_style.options.option__4.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "highlight_font_style",
+      "label": "t:general.highlight_text.highlight_font_style.label",
+      "options": [
+        {
+          "value": "italic",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__1.label"
+        },
+        {
+          "value": "normal",
+          "label": "t:general.highlight_text.highlight_font_style.options.option__2.label"
+        }
+      ]
+    },
+    {
+      "type": "color",
+      "id": "highlight_style_color",
+      "label": "t:general.highlight_text.highlight_style_color.label"
+    },
+    {
+      "type": "color",
+      "id": "highlight_text_color",
+      "label": "t:general.highlight_text.highlight_text_color.label"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "t:general.text_size.heading.label",
+      "default": "h2",
+      "options": [
+        {
+          "value": "h5",
+          "label": "t:general.text_size.options__h5.label"
+        },
+        {
+          "value": "h4",
+          "label": "t:general.text_size.options__h4.label"
+        },
+        {
+          "value": "h3",
+          "label": "t:general.text_size.options__h3.label"
+        },
+        {
+          "value": "h2",
+          "label": "t:general.text_size.options__h2.label"
+        },
+        {
+          "value": "h1",
+          "label": "t:general.text_size.options__h1.label"
+        },
+        {
+          "value": "hd2",
+          "label": "t:general.text_size.options__hd2.label"
+        },
+        {
+          "value": "hd1",
+          "label": "t:general.text_size.options__hd1.label"
+        }
+      ]
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "t:general.text.label",
+      "default": "<p>Displays a quick comparison table for the current product and its related products</p>"
+    },
+    {
+      "type": "select",
+      "id": "description_size",
+      "label": "t:general.text_size.text.label",
+      "default": "text-base",
+      "options": [
+        {
+          "value": "text-sm",
+          "label": "t:general.text_size.options__small.label"
+        },
+        {
+          "value": "text-base",
+          "label": "t:general.text_size.options__base.label"
+        },
+        {
+          "value": "text-lg",
+          "label": "t:general.text_size.options__large.label"
+        },
+        {
+          "value": "text-inherit",
+          "label": "t:general.text_size.options__inherit.label"
+        }
+      ]
+    },
+    {
+      "type": "range",
+      "id": "limit",
+      "label": "t:general.grid.product_limit.label",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 8
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.top.label",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.bottom.label",
+      "default": 50
+    },
+    {
+      "type": "header",
+      "content": "t:general.divider.section_heading.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_section_divider",
+      "default": false,
+      "label": "t:general.divider.show_divider.label"
+    },
+    {
+      "type": "select",
+      "id": "divider_width",
+      "options": [
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        },
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.divider.width.label"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.quick-comparison-table.name",
+      "blocks": [
+        {
+          "type": "info"
+        },
+        {
+          "type": "description"
+        },
+        {
+          "type": "price"
+        },
+        {
+          "type": "variants"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

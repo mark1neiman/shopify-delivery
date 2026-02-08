@@ -1,0 +1,39 @@
+<div class="product__blocks-below-media hidden md:block product__blocks accordion-parent">
+  {%- for block in section.blocks -%}
+    {%- liquid
+      unless block.settings.show_below_product_media
+        continue
+      endunless
+
+      assign block_classes = 'product__block product__block--' | append: block.type
+    -%}
+    {%- case block.type -%}
+      {%- when 'divider' -%}
+        <div class="{{ block_classes }}" {{ block.shopify_attributes }}>
+          <div class="product__divider border-top no-empty"></div>
+        </div>
+      {%- when 'payment_info' -%}
+        <div class="{{ block_classes }}" {{ block.shopify_attributes }}>
+          {%- render 'product-payment-info', block: block -%}
+        </div>
+      {%- when 'collapsible_tab' -%}
+        <div class="{{ block_classes }}" {{ block.shopify_attributes }}>
+          {%- render 'product-collapsible-tab', block: block, section_id: section.id -%}
+        </div>
+      {%- when 'complementary' -%}
+        <div
+          class="{{ block_classes }} product__block--{{ block.type }}-{% if block.settings.make_collapsible_row %}collapsible{% else %}inline{% endif %}{% if block.settings.block_heading != blank %} has-heading{% endif %}"
+          {{ block.shopify_attributes }}
+        >
+          {%- render 'product-complementary', block: block, product_id: product.id, section_id: section.id -%}
+        </div>
+      {%- when 'grid-icon-box' -%}
+        <div
+          class="{{ block_classes }}"
+          {{ block.shopify_attributes }}
+        >
+          {% render 'product-grid-icon-box', block: block %}
+        </div>
+    {%- endcase -%}
+  {%- endfor -%}
+</div>

@@ -1,0 +1,862 @@
+{%- liquid
+  assign should_show = section.settings.enable
+  if section.settings.show_for_visitors_only and customer
+    assign should_show = false
+  endif
+
+  if section.settings.show_for_homepage_only and template != 'index'
+    assign should_show = false
+  endif
+
+  if request.design_mode
+    assign should_show = true
+  endif
+-%}
+{%- if should_show -%}
+  {%- style -%}
+    .subscription-popup__teaser {
+      position: fixed;
+      top: 50%;
+      inset-inline-end: 100%;
+      transform: translate(-50%, -100%) rotate(-90deg);
+      transform-origin: top center;
+      border-radius: var(--medium-blocks-radius);
+      border-start-start-radius: 0;
+      border-start-end-radius: 0;
+      height: 4rem;
+      padding: 0 1.2rem;
+      z-index: 29 !important;
+    }
+  {%- endstyle -%}
+  <link rel="stylesheet" href="{{ 'subscription-popup.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'subscription-popup.css' | asset_url | stylesheet_tag }}</noscript>
+  {%- liquid
+    assign trigger_open = section.settings.trigger_open
+    assign repeat_open = section.settings.repeat_open
+    assign alignment = section.settings.alignment
+    assign width = section.settings.width
+    assign show_teaser = section.settings.show_teaser
+    assign teaser_button_text = section.settings.teaser_button_text
+    assign image_block = section.blocks | where: 'type', 'image' | first
+    assign is_top_image = false
+    assign modal_css_class = ''
+
+    if image_block != blank
+      assign image = image_block.settings.image
+      assign image_position = image_block.settings.image_position
+      assign modal_css_class = ' subscription-popup__' | append: 'has-image'
+      assign modal_css_class = ' subscription-popup__' | append: 'image-' | append: image_position
+
+      if image_position == 'top'
+        assign is_top_image = true
+      endif
+    else
+      assign modal_css_class = ' subscription-popup__' | append: 'no-image'
+    endif
+
+    assign modal_id = 'SubscriptionModal-' | append: section.id
+  -%}
+  <subscription-popup
+    id="{{ modal_id }}"
+    class="drawer modal subscription-popup{{ modal_css_class }}"
+    shopify-design-mode
+    hidden
+    data-trigger-open="{{ trigger_open }}"
+    data-repeat-open="{{ repeat_open }}"
+    style="--modal-width: {{ width | divided_by: 10.0 }}rem;"
+  >
+    <div class="fixed-overlay" aria-controls="{{ modal_id }}"></div>
+    <div class="drawer__inner blocks-radius color-{{ settings.overlay_color_scheme }}">
+      <button
+        class="drawer__close-btn z-2 drawer__close-btn--fill-mobile{% if is_top_image %} drawer__close-btn--fill{% endif %}"
+        aria-controls="{{ modal_id }}"
+        aria-label="{{ 'accessibility.close' | t }}"
+      >
+        {% render 'icon-close', size: 'large' %}
+      </button>
+      {%- render 'loading-spinner' -%}
+      <div class="drawer__body v-scrollable h-full">
+        <div class="flex flex-wrap text-{{ alignment }}">
+          {%- if image_block != blank -%}
+            {%- if image != blank -%}
+              {%- liquid
+                assign image_ratio = image.aspect_ratio
+
+                assign image_mobile = image_block.settings.image_mobile
+                assign image_mobile_ratio = image_mobile.aspect_ratio
+              -%}
+              {%- capture image_sizes -%}
+              {%- if image_block.settings.image_position == 'left' -%}(min-width: 1024px) {{ width | times: 0.47728 | floor }}px,{%- endif -%}(min-width: {{ width | plus: 32 }}px) {{ width }}px, calc(100vw - 3.2rem)
+              {%- endcapture -%}
+              <div
+                class="subscription-popup__image w-full media-wrapper"
+                style="--aspect-ratio: {{ image_ratio }};{% if image_mobile_ratio != blank %}--aspect-ratio-mobile: {{ image_mobile_ratio }};{% endif %}"
+              >
+                <picture class="block bg-image">
+                  {%- if image_mobile != blank -%}
+                    <source
+                      media="(max-width: 1023px)"
+                      srcset="{{ image_mobile | image_url: width: '375x' }} 375w, {{ image_mobile | image_url: width: '420x' }} 420w, {{ image_mobile | image_url: width: '750x' }} 750w, {{ image_mobile | image_url: width: '840x' }} 840w, {{ image_mobile | image_url: width: '1023x' }} 1023w, {{ image_mobile | image_url: width: '1500x' }} 1500w, {{ image_mobile | image_url: width: '1680x' }} 1680w"
+                    >
+                  {%- endif -%}
+                  {{
+                    image
+                    | image_url: width: image.width
+                    | image_tag:
+                      loading: 'lazy',
+                      fetchpriority: 'low',
+                      class: 'motion-reduce',
+                      widths: '375, 420, 750, 840, 1100, 1500, 1780, 2000',
+                      sizes: image_sizes,
+                      is: 'image-lazy'
+                  }}
+                </picture>
+              </div>
+            {%- else -%}
+              <div class="subscription-popup__image w-full">
+                {{ 'lifestyle-1' | placeholder_svg_tag: 'placeholder-svg w-full h-full' }}
+              </div>
+            {%- endif -%}
+          {%- endif -%}
+          <div class="subscription-popup__blocks w-full flex flex-col justify-center">
+            {%- for block in section.blocks -%}
+              {%- case block.type -%}
+                {%- when 'heading' -%}
+                  {%- unless block.settings.heading == blank -%}
+                    <div class="subscription-popup__title" {{ block.shopify_attributes }}>
+                      <h3 class="{{ block.settings.text_size }}">
+                        {{- block.settings.heading -}}
+                      </h3>
+                    </div>
+                  {%- endunless -%}
+                {%- when 'text' -%}
+                  {%- unless block.settings.text == blank -%}
+                    <div
+                      class="subscription-popup__text rich-text__text rte text-subtext {{ block.settings.text_size }}"
+                      {{ block.shopify_attributes }}
+                    >
+                      {{- block.settings.text -}}
+                    </div>
+                  {%- endunless -%}
+                {%- when 'form' -%}
+                  <div class="subscription-popup__form" {{ block.shopify_attributes }}>
+                    {% render 'newsletter-form',
+                      custom_id: 'Popup',
+                      hide_label: true,
+                      button_label: block.settings.button_label,
+                      button_icon: block.settings.button_icon
+                    %}
+                  </div>
+                {%- when 'button' -%}
+                  {%- unless block.settings.button_label == blank -%}
+                    <div class="subscription-popup__cta" {{ block.shopify_attributes }}>
+                      {% render 'button',
+                        button_style: 'btn--primary',
+                        button_link: block.settings.button_link,
+                        button_label: block.settings.button_label,
+                        button_icon: block.settings.button_icon,
+                        additional_classes: 'w-full'
+                      %}
+                    </div>
+                  {%- endunless -%}
+                {%- when 'socials' -%}
+                  {%- assign social_classes = 'flex-wrap' | append: ' justify-' | append: alignment -%}
+                  {%- render 'social-icons',
+                    class: social_classes,
+                    item_class: 'btn btn--icon btn--icon-circle',
+                    size: 'large'
+                  -%}
+                {%- when 'code' -%}
+                  {%- liquid
+                    assign discount_code = block.settings.discount_code
+                    assign apply_button = block.settings.apply_button
+                  -%}
+                  {%- unless discount_code == blank -%}
+                    <div class="subscription-popup__code flex gap-2" {{ block.shopify_attributes }}>
+                      <input value="{{ discount_code }}" readonly class="form-control">
+                      <div
+                        class="shrink-0 tooltip--manual"
+                        data-tooltip
+                        is="copy-to-clipboard"
+                        data-copy-value="{{ discount_code }}"
+                      >
+                        <span class="tooltip pointer-events-none">{{- 'general.share.copied' | t -}}</span>
+                        {% render 'button',
+                          button_style: 'btn--primary',
+                          button_tag: 'button',
+                          button_label: apply_button,
+                          button_icon: block.settings.button_icon,
+                          additional_classes: ''
+                        %}
+                      </div>
+                    </div>
+                  {%- endunless -%}
+              {%- endcase -%}
+            {%- endfor -%}
+          </div>
+        </div>
+      </div>
+    </div>
+  </subscription-popup>
+  {%- if show_teaser and teaser_button_text != blank -%}
+    <button
+      class="subscription-popup__teaser btn btn--primary no-js-hidden"
+      role="button"
+      aria-haspopup="dialog"
+      aria-controls="{{ modal_id }}"
+      style="--color-button: {{ section.settings.teaser_popup_bg.red }},{{ section.settings.teaser_popup_bg.green }},{{ section.settings.teaser_popup_bg.blue }};--color-button-text:{{ section.settings.teaser_popup_text.red }},{{ section.settings.teaser_popup_text.green }},{{ section.settings.teaser_popup_text.blue }};"
+    >
+      <span class="btn__text flex items-center gap-3">
+        {%- render 'icon-envelope-simple' %}
+        {{- teaser_button_text -}}
+      </span>
+    </button>
+  {%- endif -%}
+  <script src="{{ 'subscription-popup.js' | asset_url }}" defer="defer"></script>
+{%- endif -%}
+{% schema %}
+{
+  "name": "t:sections.popup.name",
+  "enabled_on": {
+    "groups": ["custom.overlay"]
+  },
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enable",
+      "label": "t:sections.popup.settings.enable.label",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_for_homepage_only",
+      "label": "t:sections.popup.settings.show_for_homepage_only.label",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_for_visitors_only",
+      "label": "t:sections.popup.settings.show_for_visitors_only.label",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "trigger_open",
+      "label": "t:sections.popup.settings.trigger_open.label",
+      "options": [
+        {
+          "value": "immediately",
+          "label": "t:sections.popup.settings.trigger_open.options__1.label"
+        },
+        {
+          "value": "delay",
+          "label": "t:sections.popup.settings.trigger_open.options__2.label"
+        },
+        {
+          "value": "scroll_down",
+          "label": "t:sections.popup.settings.trigger_open.options__3.label"
+        }
+      ],
+      "default": "delay",
+      "info": "t:sections.popup.settings.trigger_open.info"
+    },
+    {
+      "type": "select",
+      "id": "repeat_open",
+      "label": "t:sections.popup.settings.repeat_open.label",
+      "info": "t:sections.popup.settings.repeat_open.info",
+      "options": [
+        {
+          "value": "no_repeat",
+          "label": "t:sections.popup.settings.repeat_open.options__1.label"
+        },
+        {
+          "value": "every_30_mins",
+          "label": "t:sections.popup.settings.repeat_open.options__2.label"
+        },
+        {
+          "value": "every_1_hr",
+          "label": "t:sections.popup.settings.repeat_open.options__3.label"
+        },
+        {
+          "value": "every_6_hrs",
+          "label": "t:sections.popup.settings.repeat_open.options__4.label"
+        },
+        {
+          "value": "every_12_hrs",
+          "label": "t:sections.popup.settings.repeat_open.options__5.label"
+        },
+        {
+          "value": "every_day",
+          "label": "t:sections.popup.settings.repeat_open.options__6.label"
+        },
+        {
+          "value": "every_3_days",
+          "label": "t:sections.popup.settings.repeat_open.options__7.label"
+        },
+        {
+          "value": "every_week",
+          "label": "t:sections.popup.settings.repeat_open.options__8.label"
+        },
+        {
+          "value": "every_2_weeks",
+          "label": "t:sections.popup.settings.repeat_open.options__9.label"
+        },
+        {
+          "value": "every_month",
+          "label": "t:sections.popup.settings.repeat_open.options__10.label"
+        }
+      ],
+      "default": "every_day"
+    },
+    {
+      "type": "select",
+      "id": "alignment",
+      "label": "t:general.text_alignment.label",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "range",
+      "id": "width",
+      "label": "t:sections.popup.settings.width.label",
+      "min": 400,
+      "max": 900,
+      "step": 5,
+      "unit": "px",
+      "default": 880
+    },
+    {
+      "type": "header",
+      "content": "t:sections.popup.settings.header__teaser_button.content",
+      "info": "t:sections.popup.settings.header__teaser_button.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_teaser",
+      "label": "t:sections.popup.settings.show_teaser.label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "teaser_button_text",
+      "label": "t:general.button.button_label.label",
+      "default": "Newsletter",
+      "visible_if": "{{ section.settings.show_teaser == true }}"
+    },
+    {
+      "type": "color",
+      "id": "teaser_popup_bg",
+      "label": "t:sections.popup.settings.teaser_popup_bg.label",
+      "default": "#1437AA",
+      "visible_if": "{{ section.settings.show_teaser == true }}"
+    },
+    {
+      "type": "color",
+      "id": "teaser_popup_text",
+      "label": "t:sections.popup.settings.teaser_popup_text.label",
+      "default": "#ffffff",
+      "visible_if": "{{ section.settings.show_teaser == true }}"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image",
+      "name": "t:general.image.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:general.image.label"
+        },
+        {
+          "type": "image_picker",
+          "id": "image_mobile",
+          "label": "t:general.image_mobile.label"
+        },
+        {
+          "type": "select",
+          "id": "image_position",
+          "label": "t:general.image_position.label",
+          "options": [
+            {
+              "value": "top",
+              "label": "t:general.image_position.options__top.label"
+            },
+            {
+              "value": "left",
+              "label": "t:general.image_position.options__left.label"
+            }
+          ],
+          "default": "top"
+        }
+      ]
+    },
+    {
+      "type": "heading",
+      "name": "t:general.heading.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "heading",
+          "label": "t:general.text.label",
+          "default": "Create attention for the heading"
+        },
+        {
+          "type": "select",
+          "id": "text_size",
+          "label": "t:general.text_size.text.label",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ],
+          "default": "h1"
+        }
+      ]
+    },
+    {
+      "type": "text",
+      "name": "t:general.text.name",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "t:general.text.label",
+          "default": "<p>Add details about your popup information to encourage successful action.</p>"
+        },
+        {
+          "type": "select",
+          "id": "text_size",
+          "label": "t:general.text_size.text.label",
+          "default": "text-base",
+          "options": [
+            {
+              "value": "text-sm",
+              "label": "t:general.text_size.options__small.label"
+            },
+            {
+              "value": "text-base",
+              "label": "t:general.text_size.options__base.label"
+            },
+            {
+              "value": "text-lg",
+              "label": "t:general.text_size.options__large.label"
+            },
+            {
+              "value": "text-inherit",
+              "label": "t:general.text_size.options__inherit.label"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "form",
+      "name": "t:sections.popup.blocks.form.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Subscribe"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    },
+    {
+      "type": "code",
+      "name": "t:sections.popup.blocks.code.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "discount_code",
+          "label": "t:sections.popup.blocks.code.settings.code.label",
+          "info": "t:sections.popup.blocks.code.settings.code.info"
+        },
+        {
+          "type": "text",
+          "id": "apply_button",
+          "label": "t:sections.popup.blocks.code.settings.apply_button",
+          "default": "Copy code",
+          "info": "t:sections.popup.blocks.code.settings.apply_button_info"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    },
+    {
+      "type": "button",
+      "name": "t:general.button.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:general.button.button_label.label",
+          "default": "Button label"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:general.button.button_link.label"
+        },
+        {
+          "type": "select",
+          "id": "button_icon",
+          "label": "t:general.button.button_icon.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.button.button_icon.options__1.label"
+            },
+            {
+              "value": "caret-right",
+              "label": "t:general.button.button_icon.options__2.label"
+            },
+            {
+              "value": "caret-left",
+              "label": "t:general.button.button_icon.options__22.label"
+            },
+            {
+              "value": "arrow-right",
+              "label": "t:general.button.button_icon.options__3.label"
+            },
+            {
+              "value": "arrow-left",
+              "label": "t:general.button.button_icon.options__23.label"
+            },
+            {
+              "value": "close",
+              "label": "t:general.button.button_icon.options__4.label"
+            },
+            {
+              "value": "home",
+              "label": "t:general.button.button_icon.options__5.label"
+            },
+            {
+              "value": "search",
+              "label": "t:general.button.button_icon.options__6.label"
+            },
+            {
+              "value": "hamburger",
+              "label": "t:general.button.button_icon.options__7.label"
+            },
+            {
+              "value": "pencil",
+              "label": "t:general.button.button_icon.options__8.label"
+            },
+            {
+              "value": "plus",
+              "label": "t:general.button.button_icon.options__9.label"
+            },
+            {
+              "value": "cart",
+              "label": "t:general.button.button_icon.options__10.label"
+            },
+            {
+              "value": "account",
+              "label": "t:general.button.button_icon.options__11.label"
+            },
+            {
+              "value": "sign-in",
+              "label": "t:general.button.button_icon.options__12.label"
+            },
+            {
+              "value": "chat",
+              "label": "t:general.button.button_icon.options__13.label"
+            },
+            {
+              "value": "download",
+              "label": "t:general.button.button_icon.options__14.label"
+            },
+            {
+              "value": "upload",
+              "label": "t:general.button.button_icon.options__15.label"
+            },
+            {
+              "value": "heart",
+              "label": "t:general.button.button_icon.options__16.label"
+            },
+            {
+              "value": "play-outline",
+              "label": "t:general.button.button_icon.options__17.label"
+            },
+            {
+              "value": "pause",
+              "label": "t:general.button.button_icon.options__18.label"
+            },
+            {
+              "value": "stop",
+              "label": "t:general.button.button_icon.options__19.label"
+            },
+            {
+              "value": "speaker",
+              "label": "t:general.button.button_icon.options__20.label"
+            },
+            {
+              "value": "setting",
+              "label": "t:general.button.button_icon.options__21.label"
+            }
+          ],
+          "default": "none"
+        }
+      ]
+    },
+    {
+      "type": "socials",
+      "name": "t:sections.popup.blocks.socials.name",
+      "limit": 1
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "heading"
+      },
+      {
+        "type": "text"
+      },
+      {
+        "type": "form"
+      }
+    ]
+  }
+}
+{% endschema %}

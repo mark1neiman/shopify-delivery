@@ -1,0 +1,165 @@
+.lookbook-card:has(.lookbook-icon:hover) {
+  z-index: 1;
+}
+
+.lookbook-icon {
+  --pin-color: 0, 0, 0;
+  --pin-background: 255, 255, 255;
+  --card-transform: 0;
+  top: var(--top);
+  left: var(--left);
+  transform: translate(calc(var(--left) * -1), calc(var(--top) * -1));
+  cursor: pointer;
+  aspect-ratio: 1;
+}
+@media (max-width: 767.98px) {
+  .lookbook-icon {
+    top: var(--top-mobile, var(--top));
+    left: var(--left-mobile, var(--left));
+    transform: translate(calc(var(--left-mobile, var(--left)) * -1), calc(var(--top-mobile, var(--top)) * -1));
+  }
+}
+.lookbook-icon__pin {
+  cursor: pointer;
+  border-radius: 50%;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.lookbook-icon--plus {
+  width: 3.2rem;
+}
+.lookbook-icon--plus .lookbook-icon__pin {
+  color: rgb(var(--pin-color));
+  background-color: rgb(var(--pin-background));
+  box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.12);
+}
+.lookbook-icon--dot {
+  width: 4.8rem;
+}
+.lookbook-icon--dot .lookbook-icon__pin {
+  box-shadow: 0px 4px 9px 0px rgba(0, 0, 0, 0.2);
+  background-color: rgb(var(--pin-background));
+  width: 33.33%;
+  z-index: 3;
+  transition: all 0.4s;
+}
+.lookbook-icon--dot:before, .lookbook-icon--dot:after {
+  content: "";
+  border-radius: 50%;
+  position: absolute;
+  width: 100%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  transform: translateZ(0) scale(1);
+}
+.lookbook-icon--dot:before {
+  background-color: rgba(var(--pin-background), 0.2);
+  width: 66.66%;
+  z-index: 2;
+  transition: all 0.4s;
+}
+.lookbook-icon--dot:after {
+  border: 1px solid rgba(var(--pin-background), 0);
+  background-color: rgba(0, 0, 0, 0.2);
+  animation: 1.5s dotscale ease infinite;
+  z-index: 1;
+  transition: all 0.4s;
+}
+.lookbook-icon--dot.is-active:before,
+.lookbook-icon--dot.is-active .lookbook-icon__pin, .lookbook-icon--dot:hover:before,
+.lookbook-icon--dot:hover .lookbook-icon__pin, .lookbook-icon--dot:focus:before,
+.lookbook-icon--dot:focus .lookbook-icon__pin {
+  width: 50%;
+}
+.lookbook-icon--dot.is-active:after, .lookbook-icon--dot:hover:after, .lookbook-icon--dot:focus:after {
+  border-color: rgba(var(--pin-background), 0.5);
+}
+.lookbook-icon--dark {
+  --pin-color: 255, 255, 255;
+  --pin-background: 0, 0, 0;
+}
+.lookbook-icon.is-active, .lookbook-icon:hover, .lookbook-icon:focus {
+  z-index: 1;
+}
+.lookbook-icon.is-active .lookbook-icon__pin path.vertical, .lookbook-icon:hover .lookbook-icon__pin path.vertical, .lookbook-icon:focus .lookbook-icon__pin path.vertical {
+  transform: rotate(270deg);
+}
+.lookbook-icon__card {
+  gap: 1.2rem;
+  top: 100%;
+  left: 50%;
+  z-index: 11;
+  width: var(--card-w, 26.6rem);
+  padding: var(--card-p, 1.2rem);
+  transition: 0.3s all ease-out;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  inset: var(--card-inset);
+  transform: translate3d(var(--card-transform), 10px, 0);
+  box-shadow: 0px 4px 10px 0px rgba(0, 0, 0, 0.12);
+  cursor: auto;
+  --pcard-info-gap: 0;
+  overflow: visible;
+  -webkit-mask-image: none;
+}
+.lookbook-icon__card .product-card__image {
+  width: 7rem;
+  flex-shrink: 0;
+}
+.lookbook-icon__card-image {
+  width: 5rem;
+  flex-shrink: 0;
+}
+.lookbook-icon:focus .lookbook-icon__card, .lookbook-icon:hover .lookbook-icon__card, .lookbook-icon.is-active .lookbook-icon__card {
+  opacity: 1;
+  visibility: visible;
+  transform: translate3d(var(--card-transform), 0, 0);
+  pointer-events: auto;
+}
+.lookbook-icon__card:before, .lookbook-icon__card:after {
+  content: "";
+  width: 100%;
+  height: 1.4rem;
+  position: absolute;
+  left: 0;
+}
+.lookbook-icon__card:before {
+  top: 100%;
+}
+.lookbook-icon__card:after {
+  bottom: 100%;
+}
+@media (max-width: 767.98px) {
+  .lookbook-icon__card {
+    width: 24.6rem;
+  }
+  .lookbook-icon__card .product-card__image {
+    width: 5rem;
+  }
+}
+.lookbook-icon[data-position=bottom] {
+  --card-inset: calc(100% + 1.2rem) 50% auto 50%;
+  --card-transform: -50%;
+}
+.lookbook-icon[data-position=top] {
+  --card-inset: auto 50% calc(100% + 1.2rem) 50%;
+  --card-transform: -50%;
+}
+.lookbook-icon[data-position=bottom-left] {
+  --card-inset: calc(100% + 1.2rem) 0 auto auto;
+}
+.lookbook-icon[data-position=top-left] {
+  --card-inset: auto 0 calc(100% + 1.2rem) auto;
+}
+.lookbook-icon[data-position=bottom-right] {
+  --card-inset: calc(100% + 1.2rem) auto auto 0;
+}
+.lookbook-icon[data-position=top-right] {
+  --card-inset: auto auto calc(100% + 1.2rem) 0;
+}
+.lookbook-icon .lookbook-icon__pin path.vertical {
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform var(--animation-default);
+}

@@ -1,0 +1,99 @@
+{%- if product.quantity_price_breaks_configured? -%}
+  {%- liquid
+    assign selected_variant = product.selected_or_first_available_variant
+    assign has_qty_rules = false
+    if selected_variant.quantity_rule.increment > 1 or selected_variant.quantity_rule.min > 1 or selected_variant.quantity_rule.max != null
+      assign has_qty_rules = true
+    endif
+
+    assign has_vol_pricing = false
+    if selected_variant.quantity_price_breaks.size > 0
+      assign has_vol_pricing = true
+    endif
+  -%}
+  {%- if has_qty_rules or has_vol_pricing -%}
+    {%- capture qty_rules_vol_pricing -%}
+      <button class="btn btn--plain text-sm-extra font-body quantity-popover__toggle">
+        <svg class="icon icon-info icon--small" viewBox="0 0 25 24" stroke="currentColor" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12.5 16V11M13 8C13 8.27614 12.7761 8.5 12.5 8.5C12.2239 8.5 12 8.27614 12 8M13 8C13 7.72386 12.7761 7.5 12.5 7.5C12.2239 7.5 12 7.72386 12 8M13 8H12M22.5 12C22.5 17.5228 18.0228 22 12.5 22C6.97715 22 2.5 17.5228 2.5 12C2.5 6.47715 6.97715 2 12.5 2C18.0228 2 22.5 6.47715 22.5 12Z"></path>
+        </svg>
+        {{ 'products.product.volume_pricing.note' | t }}
+      </button>
+      <div class="quantity-popover__quantity-rule color-{{ settings.overlay_color_scheme }}">
+        <button aria-label="{{ 'accessibility.close' | t }}" class="btn btn--plain quantity-popover__close">
+          {%- render 'icon-close', size: 'extra-small' -%}
+        </button>
+        {%- if has_qty_rules -%}
+          <div class="quantity__rules text-sm">
+            {%- if selected_variant.quantity_rule.increment > 1 -%}
+              <span class="divider">
+                {{-
+                  'products.product.quantity.multiples_of'
+                  | t: quantity: selected_variant.quantity_rule.increment
+                -}}
+              </span>
+            {%- endif -%}
+            {%- if selected_variant.quantity_rule.min > 1 -%}
+              <span class="divider">
+                {{-
+                  'products.product.quantity.minimum_of'
+                  | t: quantity: selected_variant.quantity_rule.min
+                -}}
+              </span>
+            {%- endif -%}
+            {%- if selected_variant.quantity_rule.max != null -%}
+              <span class="divider">
+                {{-
+                  'products.product.quantity.maximum_of'
+                  | t: quantity: selected_variant.quantity_rule.max
+                -}}
+              </span>
+            {%- endif -%}
+          </div>
+        {%- endif -%}
+        {%- if has_vol_pricing -%}
+          {{ 'component-volume-pricing.css' | asset_url | stylesheet_tag }}
+          <volume-pricing class="block parent-display v-scrollable" id="Volume-{{ block_id }}">
+            <ul class="list-unstyled">
+              <li>
+                <span>{{ selected_variant.quantity_rule.min }}+</span>
+                {%- liquid 
+                  if settings.currency_code_enabled
+                    assign price = selected_variant.price | money_with_currency
+                  else
+                    assign price = selected_variant.price | money
+                  endif
+                -%}
+                <span> {{ 'sections.quick_order_list.each' | t: money: price }}</span>
+              </li>
+              {%- for price_break in selected_variant.quantity_price_breaks -%}
+                <li>
+                  <span>
+                    {{- price_break.minimum_quantity -}}
+                    <span aria-hidden="true">+</span>
+                  </span>
+                  {%- liquid 
+                    if settings.currency_code_enabled
+                      assign price_break_price = price_break.price | money_with_currency
+                    else
+                      assign price_break_price = price_break.price | money
+                    endif
+                  -%}
+                  <span>{{ 'sections.quick_order_list.each' | t: money: price_break_price }}</span>
+                </li>
+              {%- endfor -%}
+            </ul>
+          </volume-pricing>
+        {%- endif -%}
+      </div>
+    {%- endcapture -%}
+  {%- endif -%}
+  <script src="{{ 'quantity-popover.js' | asset_url }}" defer="defer"></script>
+  <quantity-popover
+    id="QuantityRule-{{ block_id }}"
+    class="flex quantity-popover relative"
+    trigger="click"
+  >
+    {{- qty_rules_vol_pricing -}}
+  </quantity-popover>
+{%- endif -%}

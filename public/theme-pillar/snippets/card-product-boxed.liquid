@@ -1,0 +1,401 @@
+{%- liquid
+  assign variant = product.selected_or_first_available_variant
+
+  assign show_color_swatches = settings.pcard_enable_color_swatches
+
+  if show_vendor == null
+    assign show_vendor = settings.pcard_show_vendor
+  endif
+
+  if show_type == null
+    assign show_type = settings.pcard_show_type
+  endif
+
+  if show_price == null
+    assign show_price = settings.pcard_show_price
+  endif
+
+  if show_product_option == null
+    assign show_product_option = settings.pcard_show_color_swatch
+  endif
+
+  assign first_media_type = product.featured_media.media_type
+  assign featured_media = product.featured_media
+
+  if first_media_type == 'model' or first_media_type == 'video'
+    assign featured_media = product.featured_media.preview_image
+  endif
+
+  if image_ratio == blank
+    assign image_ratio = settings.pcard_image_ratio | default: '1'
+  endif
+  if image_ratio == 'adapt'
+    if featured_media != blank
+      assign image_ratio = featured_media.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+
+  assign second_image = ''
+  if settings.pcard_show_second_img and product.images.size > 1 and product.images[1] != blank
+    assign second_image = product.images[1]
+  endif
+
+  if enable_quick_add == null
+    assign enable_quick_add = settings.pcard_show_cart_button
+  endif
+
+  if enable_quick_view == null
+    assign enable_quick_view = settings.pcard_show_quickview_button
+  endif
+
+  if enable_compare_checkbox == null
+    assign enable_compare_checkbox = false
+  endif
+
+  assign mobile_hide_quick_add = settings.pcard_mobile_hide_quick_add
+
+  assign atc_button_tag = 'a'
+  unless settings.pcard_choose_options_actions == 'product_page'
+    assign atc_button_tag = 'button'
+  endunless
+
+  if use_short_text_for_atc_button == null
+    assign use_short_text_for_atc_button = false
+  endif
+
+  assign product_url = product.url
+
+  if remove_params
+    assign product_url = product_url | split: '?' | first
+  endif
+
+  assign card_wrapper_class = ''
+  if custom_class != blank
+    assign card_wrapper_class = card_wrapper_class | append: ' ' | append: custom_class
+  endif
+  if mobile_hide_quick_add
+    assign card_wrapper_class = card_wrapper_class | append: ' mobile-hide-quick-add'
+  endif
+
+  assign quick_view_suffix = quick_view_suffix | default: ''
+  assign quick_view_modal_id = 'QuickView-' | append: product.id | append: '-' | append: section.id | append: quick_view_suffix
+
+  assign loading = 'lazy'
+  assign fetchpriority = 'low'
+  if section_index < 3 and index == 1
+    assign loading = 'eager'
+    assign fetchpriority = 'high'
+  endif
+
+  # Update default values here also need to update for pcard-color-swatch.liquid
+  assign image_sizes = image_sizes | default: '450px'
+  assign image_widths = '70, 140, 165, 355, 450, 535, 710, 900, 1070, 1420'
+-%}
+<div
+  class="product-card product-card-style-boxed color-{{ settings.pcard_color_scheme }} {{ card_wrapper_class }}"
+>
+  <div class="product-card__wrapper h-full">
+    <div class="product-card__image-wrapper{% if second_image == blank %} product-card__image-wrapper--main-only{% endif %} color-{{ settings.pcard_overlay_color_scheme }} bg-none">
+      <a href="{{ product.url }}" aria-label="{{ product.title | escape }}" tabindex="-1">
+        <motion-element data-motion="zoom-out-sm" class="block">
+          {%- if featured_media -%}
+            {%- unless first_media_type == 'video' or first_media_type == 'external_video' -%}
+              <div
+                class="media-wrapper product-card__image product-card__image--main"
+                style="--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio }};"
+              >
+                {%- assign first_image_widths = image_widths | append: ', ' | append: featured_media.width -%}
+                {{
+                  featured_media
+                  | image_url: width: featured_media.width
+                  | image_tag:
+                    loading: loading,
+                    fetchpriority: fetchpriority,
+                    class: 'motion-reduce',
+                    widths: first_image_widths,
+                    sizes: image_sizes,
+                    is: 'image-lazy'
+                }}
+              </div>
+              {%- unless second_image == blank -%}
+                <div
+                  class="media-wrapper product-card__image product-card__image--second inset-full hidden md:block"
+                  style="--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio }};"
+                >
+                  {%- assign second_image_widths = image_widths | append: ', ' | append: second_image.width -%}
+                  {{
+                    second_image
+                    | image_url: width: second_image.width
+                    | image_tag:
+                      loading: 'lazy',
+                      class: 'motion-reduce',
+                      widths: second_image_widths,
+                      sizes: image_sizes,
+                      is: 'image-lazy'
+                  }}
+                </div>
+              {%- endunless -%}
+            {%- else -%}
+              <div class="media media--adapt" style="--media-ratio: {{ image_ratio }};">
+                {% render 'video',
+                  video: product.featured_media,
+                  muted: true,
+                  autoplay: true,
+                  loop: true,
+                  cover_image: featured_media,
+                  show_play_button: false
+                %}
+              </div>
+            {%- endunless -%}
+          {%- else -%}
+            <div
+              class="product-card__image product-card__image--main"
+              style="--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio }};"
+            >
+              {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg' -}}
+            </div>
+          {%- endif -%}
+        </motion-element>
+      </a>
+      {%- render 'pcard-badges', product: product -%}
+      {%- render 'pcard-flash-sale', product: product -%}
+      {%- if enable_quick_view -%}
+        <button
+          class="product-card__quickview btn btn--icon-circle {{ settings.quickview_button_style }} no-js-hidden"
+          aria-label="{{ 'products.product.quick_view' | t }}"
+          aria-controls="{{ quick_view_modal_id }}"
+          aria-haspopup="dialog"
+        >
+          <span class="btn__text flex gap-1 items-center">{%- render 'icon-search', size: 'large' -%}</span>
+        </button>
+      {%- endif -%}
+      {%- if enable_quick_add -%}
+        {%- liquid
+          assign product_form_id = 'quick-add-' | append: section.id | append: product.id
+          assign qty_rules = false
+          if variant.quantity_rule.min > 1 or variant.quantity_rule.max != null or variant.quantity_rule.increment > 1
+            assign qty_rules = true
+          endif
+        -%}
+        {%- if product.variants.size > 1 or qty_rules -%}
+          <div class="product-card__actions product-card__main-actions{% unless settings.pcard_choose_options_actions == 'product_page' %} no-js-hidden{% endunless %}">
+            <{{ atc_button_tag }}
+              {% if settings.pcard_choose_options_actions == 'product_page' %}
+                href="{{- product_url -}}"
+              {% else %}
+                aria-controls="{{ quick_view_modal_id }}"
+                aria-haspopup="dialog"
+              {% endif %}
+              class="product-card__atc product-card__action-button btn {{ settings.pcard_button_style }}"
+            >
+              <div class="btn__text flex gap-1 items-center">
+                <span class="product-card__atc-icon product-card__action-icon inline-flex md:hidden">
+                  {%- render 'icon-cart', name: settings.cart_icon -%}
+                </span>
+                <span class="product-card__atc-text product-card__action-text">
+                  {%- if use_short_text_for_atc_button -%}
+                    {{- 'products.product.choose_options_short' | t -}}
+                  {%- else -%}
+                    {{- 'products.product.choose_options' | t -}}
+                  {%- endif -%}
+                </span>
+              </div>
+            </{{ atc_button_tag }}>
+          </div>
+        {%- else -%}
+          {%- form 'product',
+            product,
+            id: product_form_id,
+            class: 'product-card__actions product-card__main-actions',
+            novalidate: 'novalidate',
+            data-type: 'add-to-cart-form',
+            is: 'product-form'
+          -%}
+            <input
+              type="hidden"
+              name="id"
+              value="{{- variant.id -}}"
+              class="product-variant-id"
+              {% if variant.available == false %}
+                disabled
+              {% endif %}
+            >
+            <button
+              id="{{ product_form_id }}-submit"
+              type="submit"
+              name="add"
+              {% if variant.available == false %}
+                disabled
+              {% endif %}
+              aria-label="{{ 'products.product.add_to_cart' | t }}"
+              class="product-card__atc product-card__action-button btn {{ settings.pcard_button_style }}"
+            >
+              <div class="btn__text flex gap-1 items-center">
+                <span class="product-card__atc-icon product-card__action-icon inline-flex md:hidden">
+                  {%- render 'icon-cart', name: settings.cart_icon -%}
+                </span>
+                <span class="product-card__atc-text product-card__action-text">
+                  {%- if variant.available -%}
+                    {%- if use_short_text_for_atc_button -%}
+                      {{- 'products.product.add_to_cart_short' | t -}}
+                    {%- else -%}
+                      {{- 'products.product.add_to_cart' | t -}}
+                    {%- endif -%}
+                  {%- else -%}
+                    {{- 'products.product.sold_out' | t -}}
+                  {%- endif -%}
+                </span>
+              </div>
+              {% render 'loading-spinner' %}
+            </button>
+          {%- endform -%}
+        {%- endif -%}
+      {%- endif -%}
+      {%- if enable_compare_checkbox -%}
+        <compare-checkbox class="product-card__compare hidden">
+          <label
+            data-tooltip="left"
+            class="flex items-center justify-center cursor-pointer"
+            for="CompareCheckbox-{{ section.id }}-{{ block.id }}-{{ product.id }}"
+          >
+            <input
+              id="CompareCheckbox-{{ section.id }}-{{ block.id }}-{{ product.id }}"
+              class="js-compare-checkbox"
+              type="checkbox"
+              name="product-compare"
+              data-product-id="{{ product.id }}"
+              data-product-url="{{ product.url }}"
+            >
+            <span class="tooltip pointer-events-none">{{- 'products.product.compare' | t -}}</span>
+          </label>
+        </compare-checkbox>
+      {%- endif -%}
+    </div>
+    <div class="product-card__info text-{{ settings.pcard_content_alignment }}">
+      {%- if show_vendor and product.vendor != blank -%}
+        <p class="product-card__vendor text-sm-extra m-0">
+          <a
+            href="{{ product.vendor | url_for_vendor }}"
+            class="reversed-link"
+            aria-label="{{ 'accessibility.vendor' | t }}{{ product.vendor }}"
+          >
+            {{- product.vendor -}}
+          </a>
+        </p>
+      {%- endif -%}
+      {%- if show_type and product.type != blank -%}
+        <p class="product-card__type text-sm-extra m-0">
+          <a
+            href="{{ product.type | url_for_type }}"
+            class="reversed-link"
+            aria-label="{{ 'accessibility.product_type' | t }}{{ product.type }}"
+          >
+            {{- product.type -}}
+          </a>
+        </p>
+      {%- endif -%}
+      <h3 class="product-card__title text-pcard-title">
+        <a
+          class="reversed-link block {% if settings.pcard_title_line_limit != 'none' %} text-limit-{{ settings.pcard_title_line_limit }}{% endif %}"
+          href="{{ product.url }}"
+        >
+          <span class="reversed-link__text">{{- product.title -}}</span>
+        </a>
+      </h3>
+      {%- if show_price -%}
+        {% render 'price', product: product, alignment: settings.pcard_content_alignment %}
+      {%- endif -%}
+      {%- if show_color_swatches -%}
+        {%- render 'pcard-color-swatch',
+          product: product,
+          image_sizes: image_sizes,
+          image_widths: image_widths,
+          enable_quick_view: enable_quick_view,
+          quick_view_modal_id: quick_view_modal_id
+        -%}
+      {%- endif -%}
+    </div>
+    <div class="product-card__list-actions hidden gap-3 flex-col">
+      {%- if enable_quick_add -%}
+        {%- liquid
+          assign product_form_id = 'list-view-quick-add-' | append: section.id | append: product.id
+          assign qty_rules = false
+          if variant.quantity_rule.min > 1 or variant.quantity_rule.max != null or variant.quantity_rule.increment > 1
+            assign qty_rules = true
+          endif
+        -%}
+        {%- if product.variants.size > 1 or qty_rules -%}
+          <div class="product-card__list-actions-main">
+            <{{ atc_button_tag }}
+              {% if settings.pcard_choose_options_actions == 'product_page' %}
+                href="{{- product_url -}}"
+              {% else %}
+                aria-controls="{{ quick_view_modal_id }}"
+                aria-haspopup="dialog"
+              {% endif %}
+              class="product-card__list-atc btn btn--primary"
+            >
+              <span class="btn__text flex gap-1 items-center">
+                {%- if use_short_text_for_atc_button -%}
+                  {{- 'products.product.choose_options_short' | t -}}
+                {%- else -%}
+                  {{- 'products.product.choose_options' | t -}}
+                {%- endif -%}
+              </span>
+            </{{ atc_button_tag }}>
+          </div>
+        {%- else -%}
+          {%- form 'product',
+            product,
+            id: product_form_id,
+            class: 'product-card__list-actions-main',
+            novalidate: 'novalidate',
+            data-type: 'add-to-cart-form',
+            is: 'product-form'
+          -%}
+            <input
+              type="hidden"
+              name="id"
+              value="{{- variant.id -}}"
+              class="product-variant-id"
+              {% if variant.available == false %}
+                disabled
+              {% endif %}
+            >
+            <button
+              id="{{ product_form_id }}-submit"
+              type="submit"
+              name="add"
+              {% if variant.available == false %}
+                disabled
+              {% endif %}
+              aria-label="{{ 'products.product.add_to_cart' | t }}"
+              class="product-card__list-atc btn btn--primary w-full"
+            >
+              <span class="btn__text flex gap-1 items-center">
+                {%- if variant.available -%}
+                  {%- if use_short_text_for_atc_button -%}
+                    {{- 'products.product.add_to_cart_short' | t -}}
+                  {%- else -%}
+                    {{- 'products.product.add_to_cart' | t -}}
+                  {%- endif -%}
+                {%- else -%}
+                  {{- 'products.product.sold_out' | t -}}
+                {%- endif -%}
+              </span>
+              {% render 'loading-spinner' %}
+            </button>
+          {%- endform -%}
+        {%- endif -%}
+      {%- endif -%}
+      <a href="{{- product_url -}}" class="btn btn--secondary">
+        <span class="btn__text flex gap-1 items-center">{{- 'products.product.view_details' | t -}}</span>
+      </a>
+    </div>
+  </div>
+  {%- if settings.pcard_choose_options_actions == 'open_popup' or enable_quick_view -%}
+    {% render 'quick-view-modal', modal_id: quick_view_modal_id, product: product %}
+  {%- endif -%}
+</div>

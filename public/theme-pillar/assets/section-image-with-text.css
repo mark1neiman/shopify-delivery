@@ -1,0 +1,96 @@
+.image-with-text__media {
+  max-width: 100%;
+  width: var(--image-width, 100%);
+}
+@media (max-width: 767.98px) {
+  .image-with-text__media {
+    width: 100%;
+  }
+}
+.image-with-text__inner {
+  --padding-x: 0;
+}
+@media (min-width: 768px) {
+  .image-with-text__inner {
+    --padding-x: 5rem;
+    flex: 0 0 var(--image-width);
+    max-width: calc(100% - var(--image-width));
+  }
+}
+@media (min-width: 1024px) {
+  .image-with-text__inner {
+    --padding-x: 10rem;
+  }
+}
+.image-with-text__badge {
+  font-size: 0.6rem;
+  font-weight: var(--font-heading-weight);
+  top: 10%;
+  width: var(--badge-size, 8.3rem);
+  height: var(--badge-size, 8.3rem);
+}
+.image-with-text__badge--mobile-left {
+  inset-inline: 0 auto;
+}
+.image-with-text__badge--mobile-right {
+  inset-inline: auto 0;
+}
+@media (min-width: 768px) {
+  .image-with-text__badge {
+    --badge-size: 13rem;
+    transform: translateX(50%);
+    font-size: 0.8rem;
+    inset-inline: auto 0;
+  }
+}
+@media (min-width: 1024px) {
+  .image-with-text__badge {
+    font-size: 1rem;
+  }
+}
+.image-with-text__badge .split-chars {
+  animation-name: spin;
+  animation-direction: reverse;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  animation-duration: 12s;
+  animation-play-state: running;
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+.image-with-text__badge .split-chars span {
+  display: inline-block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(calc(var(--inner-angle) * var(--char-id))) translateY(var(--radius));
+}
+.image-with-text__badge .badge__icon {
+  width: 100%;
+  max-width: var(--badge-image-size);
+}
+.image-with-text .icon-with-text .icon {
+  color: rgba(var(--icon-color), 1);
+}
+@media (max-width: 767.98px) {
+  .image-with-text--show-badge .image-with-text__media {
+    padding-inline: 2.2rem;
+  }
+}
+.image-with-text--image-right .image-with-text__inner {
+  padding-inline-end: var(--padding-x);
+}
+@media (min-width: 768px) {
+  .image-with-text--image-right .image-with-text__badge {
+    inset-inline: auto 100%;
+  }
+}
+.image-with-text--image-left .image-with-text__inner {
+  padding-inline-start: var(--padding-x);
+}
+
+@media (max-width: 767.98px) {
+  .image-with-text-overlay .content-overlay--bottom-center-mobile {
+    --padding-y: 6rem;
+  }
+}

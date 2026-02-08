@@ -1,0 +1,113 @@
+.tabs__header {
+  --tab-spacing: 6rem;
+  --tab-spacing-mobile: 2.4rem;
+  margin-bottom: var(--header-padding-bottom);
+  column-gap: 1.6rem;
+}
+.tabs__header--horizontal .section__header {
+  --header-padding-bottom: 0;
+  --header-padding-bottom-mobile: 1.2rem;
+}
+.tabs__nav-wrap {
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+}
+.tabs__nav {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: flex-start;
+  vertical-align: top;
+  overflow-y: hidden;
+  overflow-x: auto;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  gap: 0 var(--tab-spacing);
+}
+.tabs__nav::-webkit-scrollbar {
+  display: none;
+}
+.no-js .tabs__nav {
+  display: none;
+}
+.tabs__tab {
+  position: relative;
+  cursor: pointer;
+  transition: all var(--duration-default);
+  background: none !important;
+  border: none;
+  white-space: unset;
+  height: auto;
+  margin: 0;
+  color: var(--color-tab-normal, rgb(var(--color-foreground)));
+}
+.tabs__tab:hover, .tabs__tab[aria-selected=true] {
+  color: var(--color-tab-active, rgb(var(--color-foreground)));
+}
+.no-js .tabs__content {
+  display: block;
+}
+.tabs__content .icon-with-text .icon {
+  --icon-size: 2.4rem;
+}
+.tabs-nav--headings .tabs__header {
+  --color-tab-normal: rgba(var(--color-foreground), 0.3);
+  position: relative;
+}
+.tabs-nav--headings .tabs__header:before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(var(--color-foreground), 0.2);
+}
+.tabs-nav--headings .tabs__tab {
+  padding: 0 0 1.2rem !important;
+}
+.tabs-nav--headings .tabs__tab:after {
+  width: 0;
+  transform: none;
+  height: 2px;
+}
+.tabs-nav--headings .tabs__tab[aria-selected=true]:after {
+  width: 100%;
+}
+.tabs-nav--buttons .tabs__header {
+  --tab-spacing: 0.8rem;
+  --tab-spacing-mobile: 0.8rem;
+}
+.tabs-nav--buttons [role=tab] {
+  padding: 0 2rem;
+  border-color: rgba(var(--color-foreground), 0.2);
+}
+.tabs-nav--buttons [role=tab][aria-selected=true] {
+  color: rgb(var(--color-button-text));
+}
+.tabs-nav--buttons [role=tab][aria-selected=true]:before {
+  width: calc(100% + var(--buttons-border-width, 0px));
+}
+
+@media (max-width: 767.98px) {
+  .tabs__header {
+    margin-bottom: var(--header-padding-bottom-mobile);
+  }
+  .tabs__nav-wrap {
+    justify-content: center;
+    min-width: 100%;
+    max-width: calc(100% + 3rem);
+    margin-inline: -1.5rem;
+  }
+  .tabs__nav {
+    gap: 0 var(--tab-spacing-mobile);
+    padding-inline: 1.5rem;
+  }
+}
+@media (min-width: 768px) {
+  .help-sidebar__wrapper > .tabs {
+    overflow: hidden;
+  }
+}

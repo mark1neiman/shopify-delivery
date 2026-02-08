@@ -1,0 +1,158 @@
+{% comment %}
+  Usage:
+  {% render 'card-image' %}
+
+  Accepts:
+  - mobile_layout: vertical/horizontal. Default: vertical
+{% endcomment %}
+
+{%- liquid
+  assign mobile_layout = mobile_layout | default: 'vertical'
+  assign rich_text_size = rich_text_size | default: 'standard'
+  assign content_spacing = content_spacing | default: 'small'
+  assign image_ratio = image_ratio | default: '1/1'
+  if image_ratio == 'adapt'
+    if image == blank
+      assign image_ratio = '1/1'
+    else
+      assign image_ratio = image.aspect_ratio
+    endif
+
+    if image_mobile == blank
+      assign image_mobile_ratio = image_ratio
+    else
+      assign image_mobile_ratio = image_mobile.aspect_ratio
+    endif
+  endif
+
+  assign alt_image = image.alt | default: shop.name | escape
+
+  assign content_alignment_mobile = content_alignment_mobile | default: content_alignment
+  assign description_size = description_size | default: 'text-base'
+
+  if mobile_layout == 'horizontal'
+    assign content_alignment_mobile = 'left'
+  endif
+
+  assign motion_delay = 50
+
+  assign loading = 'lazy'
+  assign fetchpriority = 'auto'
+  if forloop_index == 1 and section_index < 2 or enable_preload_image
+    assign loading = 'eager'
+    assign fetchpriority = 'high'
+  endif
+-%}
+{%- if link -%}
+  <a
+    href="{{ link }}"
+    class="card-media--link focus-inset"
+    aria-label="{{ heading | default: shop.name }}"
+  >
+{%- endif -%}
+<div class="card-media card-media--boxed card-media--mobile-{{ mobile_layout | replace: 'vertical', 'v' | replace: 'horizontal', 'h' }}-layout relative hover-wrapper color-{{ color_scheme }} blocks-radius">
+  <div class="card-media__media-wrapper overflow-hidden block w-full blocks-radius">
+    <motion-element class="block" data-motion="zoom-out-sm">
+      <picture
+        class="card-media__media media-wrapper{% if image == blank %} bg-none{% endif %}"
+        style="--aspect-ratio: {{ image_ratio }};{% if image_mobile_ratio %}--aspect-ratio-mobile: {{ image_mobile_ratio }};{% endif %}"
+      >
+        {%- if image != blank -%}
+          {%- if image_mobile -%}
+            <source
+              media="(max-width: 767px)"
+              srcset="{{ image_mobile | image_url: width: '400x' }} 400w, {{ image_mobile | image_url: width: '600x' }} 600w, {{ image_mobile | image_url: width: '800x' }} 800w, {{ image_mobile | image_url: width: '1000x' }} 1000w"
+              width="{{ image_mobile.width }}"
+              height="{{ image_mobile.height }}"
+            >
+          {%- endif -%}
+          {{
+            image
+            | image_url: width: 1100
+            | image_tag:
+              loading: loading,
+              fetchpriority: fetchpriority,
+              class: 'motion-reduce absolute inset-0 w-full hover-scale-up',
+              widths: '165, 360, 535, 750, 940, 1100',
+              is: 'image-lazy',
+              alt: alt_image
+          }}
+        {%- else -%}
+          {{ 'image' | placeholder_svg_tag: 'placeholder-svg hover-scale-up w-full' }}
+        {%- endif -%}
+      </picture>
+    </motion-element>
+  </div>
+  {%- if heading != blank or description != blank or button_label != blank or subheading != blank -%}
+    <div class="card-media__content card-media__content--{{ content_alignment }}">
+      <div class="card-media__content-wrapper rich-text rich-text--{{ rich_text_size }} text-{{ content_alignment_mobile }} md:text-{{ content_alignment }}">
+        {%- if heading != blank or description != blank or subheading != blank -%}
+        <div class="card-media__content-inner">
+          {%- if subheading != blank -%}
+            <motion-element
+              class="block rich-text__subheading text-subheading"
+              data-motion="fade-up"
+              data-motion-delay="{{ motion_delay }}"
+            >
+              {{- subheading -}}
+            </motion-element>
+            {%- assign motion_delay = motion_delay | plus: 50 -%}
+          {%- endif -%}
+          {%- if heading != blank -%}
+            <motion-element
+              class="block card-media__heading rich-text__heading {{ heading_size }}"
+              data-motion="fade-up"
+              data-motion-delay="{{ motion_delay }}"
+            >
+              {% render 'highlight-text',
+                hl_text: heading,
+                hl_style: highlight_style,
+                hl_font_style: highlight_font_style,
+                hl_style_color: highlight_style_color,
+                hl_text_color: highlight_text_color
+              %}
+            </motion-element>
+            {%- assign motion_delay = motion_delay | plus: 50 -%}
+          {%- endif -%}
+          {%- if description != blank -%}
+            <motion-element
+              class="block card-media__description rich-text__text rte text-subtext {{ description_size }}{% if text_limit %} text-limit-{{ text_limit }}{% endif %}"
+              data-motion="fade-up"
+              data-motion-delay="{{ motion_delay }}"
+            >
+              {{- description -}}
+            </motion-element>
+            {%- assign motion_delay = motion_delay | plus: 50 -%}
+          {%- endif -%}
+        </div>
+        {%- endif -%}
+        {%- if button_label != blank -%}
+          {% liquid
+            assign button_attr = ''
+            unless link
+              assign button_attr = 'disabled'
+            endunless
+          %}
+          <motion-element
+            class="card-media__button rich-text__button block"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+          >
+            {% render 'button',
+              button_style: button_style,
+              button_tag: 'button',
+              button_label: button_label,
+              button_icon: button_icon,
+              button_size: button_size,
+              additional_attributes: button_attr
+            %}
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+{%- if link -%}
+  </a>
+{%- endif -%}

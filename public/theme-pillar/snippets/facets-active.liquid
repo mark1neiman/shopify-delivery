@@ -1,0 +1,77 @@
+{%- liquid
+  assign active_values_count = 0
+-%}
+{%- capture active_facets -%}
+  {%- for filter in results.filters -%}
+    {%- if filter.type == 'price_range' -%}
+      {%- if filter.max_value.value != blank or filter.min_value.value != blank -%}
+        <a class="facet-remove btn btn--secondary flex relative" href="{{ filter.url_to_remove }}" aria-label="{{ 'products.facets.clear' | t: name: active_value.label | escape }}" is="facet-remove">
+          <div class="btn__text flex items-center justify-between gap-2">
+            <div class="facet-title text-wrap flex items-center gap-2">
+              {{- filter.min_value.value | default: 0 | money_without_trailing_zeros }} - {{ filter.max_value.value | default: filter.range_max | money_without_trailing_zeros -}}
+            </div>
+            {%- render 'icon-close', size: 'extra-small' -%}
+          </div>
+        </a>
+        {%- assign active_values_count = active_values_count | plus: 1 -%}
+      {%- endif -%}
+    {%- else -%}
+      {%- for active_value in filter.active_values -%}
+        <a class="facet-remove btn btn--secondary flex relative" href="{{ active_value.url_to_remove }}" aria-label="{{ 'products.facets.clear' | t: name: active_value.label | escape }}" is="facet-remove">
+          <div class="btn__text flex items-center justify-between gap-2">
+            <div class="facet-title text-wrap flex items-center gap-2">
+              {%- if filter.type == 'list' -%}
+                {%- liquid
+                  assign is_color = false
+                  assign swatch_trigger = settings.color_swatch_trigger | downcase
+                  assign downcase_label = filter.label | downcase
+                  if swatch_trigger contains downcase_label
+                    assign is_color = true
+                  elsif swatch_trigger contains 'color' and downcase_label contains 'colour'
+                    assign is_color = true
+                  endif
+
+                  if is_color or filter.presentation == 'swatch'
+                    if filter.presentation == 'swatch'
+                      render 'swatch', value: active_value.value, title: active_value.label, class: 'pointer-events-none', swatch: active_value.swatch
+                    else
+                      render 'swatch', value: active_value.label, title: active_value.label, class: 'pointer-events-none'
+                    endif
+                  endif
+                -%}
+              {%- endif -%}
+              {%- liquid
+                if filter.type == 'boolean'
+                  echo filter.label | append: ': ' | append: active_value.label
+                else
+                  echo active_value.label
+                endif
+              -%}
+            </div>
+            {%- render 'icon-close', size: 'extra-small' -%}
+          </div>
+        </a>
+        {%- assign active_values_count = active_values_count | plus: 1 -%}
+      {%- endfor -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if active_values_count > 1 -%}
+    {%- liquid
+      if results.url
+        assign results_url = results.url
+      else
+        assign terms = results.terms | escape
+        assign results_url = routes.search_url | append: '?q=' | append: terms | append: '&options%5Bprefix%5D=last&type=product'
+        if results.sort_by != blank
+          assign results_url = results_url | append: '&sort_by=' | append: results.sort_by
+        endif
+      endif
+    -%}
+    <a href="{{ results_url }}" class="facet-clear-all btn--link" is="facet-remove">
+      {{- 'products.facets.clear_all' | t -}}
+    </a>
+  {%- endif -%}
+{%- endcapture -%}
+<div class="facets-active flex flex-wrap items-center gap-2" id="FacetFiltersActive">
+  {{- active_facets -}}
+</div>

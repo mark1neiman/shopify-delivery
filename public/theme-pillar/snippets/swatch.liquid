@@ -1,0 +1,95 @@
+{%- liquid
+  if swatch == blank
+    assign file_extension = file_extension | default: 'png'
+    assign file_name = value | handle | append: '.' | append: file_extension
+    assign swatch_fallback = value | split: ' ' | last | handle
+    assign swatch_fallback_override = false
+
+    assign value_downcase = value | downcase
+    assign swatch_config = settings.swatch_list | newline_to_br | split: '<br />'
+    for swatch in swatch_config
+      assign swatch_parts = swatch | strip | split: ':'
+      assign swatch_name = swatch_parts.first | downcase | strip
+
+      if swatch_name == value_downcase
+        assign swatch_value = swatch_parts.last | strip
+        if swatch_value contains '#'
+          assign swatch_fallback = swatch_value
+          assign swatch_fallback_override = true
+        else
+          assign file_name = swatch_value
+        endif
+        break
+      endif
+    endfor
+
+    assign swatch_image = blank
+    if images[file_name] != blank
+      assign swatch_image = images[file_name] | image_url: width: 72
+    elsif file_name contains '//cdn.shopify.com/'
+      assign swatch_image = file_name
+    endif
+  else
+    assign swatch_image = blank
+    assign swatch_fallback = value | split: ' ' | last | handle
+    assign swatch_focal_point = null
+    if swatch.image
+      assign swatch_image = swatch.image | image_url: width: 72
+      assign swatch_fallback_override = false
+      assign swatch_focal_point = swatch.image.presentation.focal_point
+    elsif swatch.color
+      assign swatch_fallback = swatch.color
+    endif
+  endif
+-%}
+
+{%- if href -%}
+  <a
+    href="{{ href }}"
+    class="swatch-color block relative"
+    title="{{ title | escape }}"
+    aria-label="{{ title | escape }}"
+    {% if class != blank %}
+      {{ class -}}
+    {% endif %}
+    style="--swatch-background: {{ swatch_fallback }};{% if swatch_fallback_override == false and swatch_image != blank %} background-image: url({{ swatch_image }});{% endif %}{% if swatch_focal_point %} --swatch-focal-point: {{ swatch_focal_point }}{% endif %}"
+  >
+    {%- if tooltip != blank -%}
+      <span class="tooltip pointer-events-none">{{ tooltip | escape }}</span>
+    {%- else -%}
+      <span class="visually-hidden">{{ value | escape }}</span>
+    {%- endif -%}
+  </a>
+{%- else -%}
+  <input
+    class="visually-hidden"
+    name="{{ name }}"
+    value="{{ value | escape }}"
+    type="{% if allow_multiple %}checkbox{% else %}radio{% endif %}"
+    {% if form %}
+      form="{{ form | escape }}"
+    {% endif %}
+    id="{{ id | escape }}"
+    {% if disabled %}
+      disabled
+    {% endif -%}
+    {% if selected %}
+      checked
+    {% endif %}
+  >
+  <label for="{{ id | escape }}" class="flex items-center gap-2 reversed-link">
+    <div
+      class="swatch-color block relative no-empty{% if class != blank %} {{ class }}{% endif %}"
+
+      style="--swatch-background: {{ swatch_fallback }};{% if swatch_fallback_override == false and swatch_image != blank %} background-image: url({{ swatch_image }});{% endif %}{% if swatch_focal_point %} --swatch-focal-point: {{ swatch_focal_point }}{% endif %}"
+    ></div>
+    <div class="flex flex-grow justify-between items-center gap-1 text-subtext">
+      {%- if filter_label != blank -%}
+        <span class="reversed-link__text">{{ filter_label | escape }}</span>
+      {%- endif -%}
+      {%- if filter_count != blank -%}
+        <span class="count">{{ filter_count }}</span>
+      {%- endif -%}
+    </div>
+  </label>
+{%- endif -%}

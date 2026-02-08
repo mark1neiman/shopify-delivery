@@ -1,0 +1,317 @@
+{%- liquid
+  assign search_recommendation_empty = true
+  if settings.most_searched_keyworkds != blank or settings.products_recommendations != blank
+    assign search_recommendation_empty = false
+  endif
+
+  assign shop_types = shop.types
+  if shop_types.first == blank
+    assign shop_types = shop_types | slice: 1, shop_types.size
+  endif
+-%}
+{{ settings.form_field }}
+{{ settings.background }}
+<predictive-search class="block w-full search__form" data-search-recommendation-empty="{{ search_recommendation_empty }}" data-results-limit="{{ settings.number_results_to_show }}">
+  <div class="flex flex-col w-full h-full">
+    <form
+      action="{{ routes.search_url }}"
+      method="get"
+      role="search"
+      id="PredictiveSearch-{{ section.id }}"
+    >
+      <input type="hidden" name="options[prefix]" value="last">
+      <div class="search__field relative flex items-center">
+        {%- if settings.predictive_search_type_enabled
+          and settings.predictive_search_enabled
+          and shop_types.size > 0
+        -%}
+          <div class="search__types">
+            <select
+              class="form-select form-control"
+              aria-label="{{ 'general.search.search_type' | t }}"
+              id="SearchProductTypes"
+            >
+              <option value="">{{ 'general.search.all_products' | t }}</option>
+              {% for option in shop_types %}
+                <option value="{{ shop_types[forloop.index0] }}">{{ shop_types[forloop.index0] }}</option>
+              {% endfor %}
+            </select>
+            {%- render 'icon-caret-down', size: '2xs' -%}
+          </div>
+        {%- endif -%}
+        <input
+          id="SearchInput-{{ section.id }}"
+          class="search__input form-control"
+          type="search"
+          name="q"
+          {% if context == 'page' %}
+            value="{{ search.terms | escape }}"
+          {% endif %}
+          placeholder="{{ 'general.search.placeholder' | t }}"
+          {% if settings.predictive_search_enabled %}
+            role="combobox"
+            aria-expanded="false"
+            aria-owns="predictive-search-results"
+            aria-controls="predictive-search-results"
+            aria-haspopup="listbox"
+            aria-autocomplete="list"
+            autocorrect="off"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+          {% endif %}
+        >
+        <label class="visually-hidden" for="SearchInput-{{ section.id }}">
+          {{- 'general.search.search' | t -}}
+        </label>
+        {%- if settings.predictive_search_enabled %}
+          <button
+            type="reset"
+            class="search__reset absolute flex items-center justify-center text-subtext"
+            aria-label="{{ 'general.search.reset' | t }}"
+          >
+            <span>{{ 'templates.search.clear' | t }}</span>
+            {% render 'loading-spinner' %}
+          </button>
+        {%- endif -%}
+        <button
+          type="submit"
+          class="btn--inherit search__field-icon absolute search__icon-search flex items-center justify-center{% if settings.predictive_search_enabled %} predictive-search-icon{% endif %}"
+          aria-label="{{ 'general.search.search' | t }}"
+        >
+          {%- render 'icon-search', size: 'large' -%}
+        </button>
+      </div>
+    </form>
+    <div class="search__content page-width v-scrollable hidden color-{{ settings.overlay_color_scheme }}">
+      {%- if settings.most_searched_keyworkds != blank or settings.products_recommendations != blank -%}
+        <div class="search_box search__recommendations flex flex-col md:flex-row gap-y-6">
+          {% if settings.products_recommendations != blank %}
+            <div class="search__products-recommendation search__box-products flex flex-col flex-grow gap-5 lg:gap-6 order-last md:order-first">
+              <h4 class="h4">
+                {{- 'templates.search.most_searched_products' | t -}}
+              </h4>
+              <div class="swipe-mobile swipe-mobile--2-cols">
+                <div class="f-grid f-grid--gap-{{ settings.search_products_column_gap }} f-grid--row-gap-{{ settings.search_products_row_gap }} swipe-mobile__inner">
+                  {%- for product in settings.products_recommendations -%}
+                    {%- render 'card-product',
+                      product: product,
+                      section: section,
+                      parent_color_scheme: settings.overlay_color_scheme,
+                      use_short_text_for_atc_button: true,
+                      show_vendor: settings.predictive_search_show_vendor,
+                      show_type: settings.predictive_search_show_type,
+                      show_price: settings.predictive_search_show_price,
+                      quick_view_suffix: 'search__recommendations'
+                    -%}
+                  {%- endfor -%}
+                </div>
+              </div>
+            </div>
+          {%- endif -%}
+          {%- if settings.most_searched_keyworkds != blank -%}
+            {%- liquid
+              assign keywords = settings.most_searched_keyworkds | split: ','
+            -%}
+            <div class="search__most-searched-keywords search__box-others flex flex-col gap-3{% if settings.products_recommendations == blank %} no-products{% endif %}">
+              <h4 class="h6">{{ 'templates.search.most_searched_keywords' | t }}</h4>
+              <ul class="flex flex-col flex-wrap gap-y-2 text-subtext">
+                {%- for keyword in keywords -%}
+                  <li>
+                    <a
+                      href="{{ routes.search_url }}?type=product&options%5Bprefix%5D=last&q={{- keyword | strip -}}"
+                      class="reversed-link text-capitalize"
+                    >
+                      {{ keyword | strip }}
+                    </a>
+                  </li>
+                {%- endfor -%}
+              </ul>
+            </div>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+      <div class="search__box search__results w-full h-full">
+        <div
+          id="PredictiveSearchResults-{{ section.id }}"
+          role="listbox"
+          class="h-full w-full"
+        >
+          {%- if predictive_search.performed -%}
+            {%- if predictive_search.resources.queries.size > 0
+              or predictive_search.resources.products.size > 0
+              or predictive_search.resources.collections.size > 0
+              or predictive_search.resources.articles.size > 0
+              or predictive_search.resources.pages.size > 0
+            -%}
+              <div class="flex w-full flex-col gap-y-6 md:flex-row">
+                <div class="flex flex-col flex-grow search__box-products order-last md:order-first">
+                  {%- if predictive_search.resources.products.size > 0 -%}
+                    <div class="flex flex-col gap-5 lg:gap-6 predictive-search-result search__box-item predictive-search-result--products">
+                      <h4 class="h4 predictive-search-result__heading">
+                        {{- 'templates.search.products' | t -}}
+                      </h4>
+
+                      <div class="swipe-mobile swipe-mobile--2-cols">
+                        <div
+                          id="predictive-search-results-products-list"
+                          class="f-grid f-grid--gap-{{ settings.search_products_column_gap }} f-grid--row-gap-{{ settings.search_products_row_gap }} swipe-mobile__inner"
+                        >
+                          {%- for product in predictive_search.resources.products -%}
+                            {%- render 'card-product',
+                              product: product,
+                              section: section,
+                              parent_color_scheme: settings.overlay_color_scheme,
+                              use_short_text_for_atc_button: true,
+                              show_vendor: settings.predictive_search_show_vendor,
+                              show_type: settings.predictive_search_show_type,
+                              show_price: settings.predictive_search_show_price
+                            -%}
+                          {%- endfor -%}
+                        </div>
+                      </div>
+
+                      <div class="search__results-all block">
+                        {%- assign search_term = predictive_search.terms
+                          | split: 'AND'
+                          | last
+                          | strip
+                          | replace: '%20', ' '
+                        -%}
+                        <button
+                          type="submit"
+                          class="btn btn--primary"
+                          form="PredictiveSearch-{{ section.id }}"
+                        >
+                          <span class="btn__text flex items-center gap-2">
+                            {{ 'templates.search.search_for' | t: terms: search_term }}
+                            {%- render 'icon-arrow-right', size: 'extra-medium' -%}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  {%- endif -%}
+                </div>
+                <div class="search__box-others flex flex-col gap-6 lg:gap-8{% if predictive_search.resources.products.size == 0 %} no-products{% endif %}">
+                  {%- if predictive_search.resources.queries.size > 0 -%}
+                    <div class="grid gap-3 predictive-search-result search__box-item predictive-search-result--queries">
+                      <h4 class="h6 predictive-search-result__heading">
+                        {{- 'templates.search.suggestions' | t -}}
+                      </h4>
+                      <ul
+                        id="predictive-search-results-queries-list"
+                        role="group"
+                        aria-labelledby="predictive-search-queries"
+                        class="predictive-search-result__list flex flex-col text-subtext gap-y-2"
+                      >
+                        {%- for query in predictive_search.resources.queries -%}
+                          <li
+                            id="predictive-search-option-query-{{ forloop.index }}"
+                            class="predictive-search-result__list-item flex"
+                            role="option"
+                            aria-selected="false"
+                          >
+                            <a
+                              href="{{ query.url }}"
+                              class="reversed-link inline-flex items-center gap-2"
+                              aria-label="{{ query.text }}"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="16"
+                                height="16"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                              >
+                                <path d="M7.25 12.5C10.1495 12.5 12.5 10.1495 12.5 7.25C12.5 4.35051 10.1495 2 7.25 2C4.35051 2 2 4.35051 2 7.25C2 10.1495 4.35051 12.5 7.25 12.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M10.9609 10.9636L13.9985 14.0012" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <span>{{ query.styled_text }}</span>
+                            </a>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    </div>
+                  {%- endif -%}
+
+                  {%- if predictive_search.resources.collections.size > 0 -%}
+                    <div class="grid gap-3 predictive-search-result search__box-item predictive-search-result--collections">
+                      <h4 class="h6 predictive-search-result__heading">
+                        {{ 'templates.search.collections' | t }}
+                      </h4>
+                      <ul
+                        id="predictive-search-results-collection-list"
+                        role="group"
+                        aria-labelledby="predictive-search-collection"
+                        class="predictive-search-result__list flex flex-col gap-y-2 text-subtext"
+                      >
+                        {%- for collection in predictive_search.resources.collections -%}
+                          <li
+                            id="predictive-search-option-collection-{{ forloop.index }}"
+                            class="predictive-search__list-item flex"
+                            role="option"
+                            aria-selected="false"
+                          >
+                            <a href="{{ collection.url }}" class="reversed-link">
+                              {{ collection.title | escape }}
+                            </a>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    </div>
+                  {%- endif -%}
+                  {%- if predictive_search.resources.articles.size > 0 or predictive_search.resources.pages.size > 0 -%}
+                    <div class="grid gap-3 predictive-search-result search__box-item predictive-search-result--article">
+                      <h4 class="h6 predictive-search-result__heading">
+                        {{ 'templates.search.articles_pages' | t }}
+                      </h4>
+                      <ul
+                        id="predictive-search-results-article-page-list"
+                        class="predictive-search-result__list flex flex-col gap-y-2 text-subtext"
+                        role="group"
+                        aria-labelledby="predictive-search-article-page"
+                      >
+                        {%- for article in predictive_search.resources.articles -%}
+                          <li
+                            id="predictive-search-option-article-{{ forloop.index }}"
+                            class="predictive-search-result__list-item flex"
+                            role="option"
+                            aria-selected="false"
+                          >
+                            <a href="{{ article.url }}" class="reversed-link">
+                              {{ article.title | escape }}
+                            </a>
+                          </li>
+                        {%- endfor -%}
+                        {%- for page in predictive_search.resources.pages -%}
+                          <li
+                            id="predictive-search-option-page-{{ forloop.index }}"
+                            class="predictive-search-result__list-item"
+                            role="option"
+                            aria-selected="false"
+                          >
+                            <a href="{{ page.url }}" class="reversed-link">
+                              {{ page.title | escape }}
+                            </a>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    </div>
+                  {%- endif -%}
+                </div>
+              </div>
+            {%- else -%}
+              <div class="empty-state flex flex-col gap-3 w-full h-full">
+                {%- assign search_term = predictive_search.terms | split: 'AND' | last | strip | replace: '%20', ' ' -%}
+                <h4>
+                  {{ 'templates.search.no_results_text' | t: terms: search_term }}
+                </h4>
+                <p class="m-0 text-subtext">{{ 'templates.search.no_results_message' | t }}</p>
+              </div>
+            {%- endif -%}
+          {%- endif -%}
+        </div>
+      </div>
+    </div>
+  </div>
+</predictive-search>

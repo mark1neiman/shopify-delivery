@@ -1,0 +1,26 @@
+{%- if settings.pcard_show_flash_sale != blank and product.metafields.foxtheme.flash_sale_text.value != blank -%}
+  {%- liquid
+    assign duration = 6.0
+    assign speed = 0.8
+    assign duration = duration | divided_by: speed
+  -%}
+  <div class="product-card__flash-sale absolute blocks-radius-md color-{{ settings.pcard_flash_sale_color_scheme }}">
+    <scrolling-promotion
+      class="scrolling-promotion scrolling-promotion--left"
+      {% if pause_on_hover %}
+        data-pause-on-hover
+      {% endif %}
+      data-repeats="5"
+      style="--v-spacing: 9px;--h-spacing: 8px; --h-spacing-mobile: 4px; --duration: {{ duration }}s;"
+    >
+      <div class="promotion">
+        {%- for item in product.metafields.foxtheme.flash_sale_text.value -%}
+          <div class="promotion__item flex items-center gap-2">
+            {% render 'icon-lightning-fill', size: 'extra-small' %}
+            <span class="font-body-bold text-sm-extra">{{ item }}</span>
+          </div>
+        {%- endfor -%}
+      </div>
+    </scrolling-promotion>
+  </div>
+{%- endif -%}

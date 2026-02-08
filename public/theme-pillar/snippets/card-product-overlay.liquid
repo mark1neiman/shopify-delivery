@@ -1,0 +1,238 @@
+{%- liquid
+  if image_ratio == blank
+    assign image_ratio = '3/4'
+  endif
+
+  if thumbnail_ratio == blank
+    assign thumbnail_ratio = settings.pcard_image_ratio | default: '1/1'
+  endif
+-%}
+{%- if product != blank -%}
+  {% liquid
+    assign variant = product.selected_or_first_available_variant
+
+    assign first_media_type = product.media.first.media_type
+
+    assign product_thumbnail = product.featured_media
+    assign product_showcase_image = product_thumbnail
+    if product.metafields.foxtheme.showcase_image.value != blank
+      assign product_showcase_image = product.metafields.foxtheme.showcase_image.value
+    endif
+
+    assign product_showcase_video = blank
+    if product.metafields.foxtheme.showcase_video.value != blank
+      assign product_showcase_video = product.metafields.foxtheme.showcase_video.value
+    elsif first_media_type == 'video'
+      assign product_showcase_video = product.media.first
+    endif
+
+    if image_ratio == 'adapt'
+      assign image_ratio = product_showcase_image.aspect_ratio
+    endif
+
+    if thumbnail_ratio == 'adapt'
+      if product_thumbnail != blank
+        assign thumbnail_ratio = product_thumbnail.aspect_ratio
+      else
+        assign thumbnail_ratio = '1'
+      endif
+    endif
+
+    if enable_quick_add == null
+      assign enable_quick_add = settings.pcard_show_cart_button
+    endif
+
+    assign mobile_hide_quick_add = settings.pcard_mobile_hide_quick_add
+
+    assign atc_button_tag = 'a'
+    unless settings.pcard_choose_options_actions == 'product_page'
+      assign atc_button_tag = 'button'
+    endunless
+
+    assign product_url = product.url
+
+    if remove_params
+      assign product_url = product_url | split: '?' | first
+    endif
+
+    assign card_wrapper_class = ''
+    if mobile_hide_quick_add
+      assign card_wrapper_class = card_wrapper_class | append: ' mobile-hide-quick-add'
+    endif
+
+    assign quick_view_suffix = quick_view_suffix | default: ''
+    assign quick_view_modal_id = 'QuickView-' | append: product.id | append: '-' | append: section.id | append: quick_view_suffix
+
+    assign loading = 'lazy'
+    assign fetchpriority = 'low'
+    if section_index < 2 and index == 1
+      assign loading = 'eager'
+      assign fetchpriority = 'high'
+    endif
+  %}
+  <div class="product-card--overlay relative{{ card_wrapper_class }}">
+    <div
+      class="pcard__media blocks-radius media-wrapper"
+      style="--aspect-ratio: {{ image_ratio | default: 1 }}"
+    >
+      {%- if product_showcase_video != blank -%}
+        {% render 'video',
+          video: product_showcase_video,
+          muted: true,
+          autoplay: video_autoplay,
+          controls: false,
+          loop: true,
+          cover_image: product_showcase_image,
+          show_play_button: true
+        %}
+      {%- elsif product_showcase_image != blank -%}
+        <a
+          href="{{ product_url }}"
+          class="pcard__link focus-inset blocks-radius hover-wrapper"
+          style="--aspect-ratio: {{ image_ratio | default: 1 }}"
+        >
+          {{
+            product_showcase_image
+            | image_url: width: 1360
+            | image_tag:
+              loading: loading,
+              fetchpriority: fetchpriority,
+              class: 'motion-reduce hover-scale-up',
+              widths: '460, 680, 920, 1360',
+              is: 'image-lazy'
+          -}}
+        </a>
+      {%- else -%}
+        {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+      {%- endif -%}
+    </div>
+    <div class="pcard__overlay-card flex items-center gap-3 color-{{ section.settings.color_scheme }}">
+      <a href="{{ product_url }}" class="pcard__link full-width-link focus-inset blocks-radius">
+        <span class="visually-hidden">{{- product.title -}}</span>
+      </a>
+      <div
+        class="pcard__thumbnail media-wrapper blocks-radius-sm"
+        style="--aspect-ratio: {{ thumbnail_ratio }}"
+      >
+        {%- if product_thumbnail != blank -%}
+          {{
+            product_thumbnail
+            | image_url: width: product_thumbnail.width
+            | image_tag:
+              loading: loading,
+              fetchpriority: fetchpriority,
+              class: 'motion-reduce',
+              widths: '52, 66, 104, 132',
+              sizes: '(max-width: 767px) 52px, 66px',
+              is: 'image-lazy'
+          }}
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+        {%- endif -%}
+      </div>
+      <div class="pcard__info flex items-center justify-between gap-2 flex-grow">
+        <div class="pcard__info-main">
+          <h3 class="pcard__title text-pcard-title">
+            <span class="text-limit-1-line">{{- product.title -}}</span>
+          </h3>
+          {% render 'price', product: product %}
+        </div>
+        {%- if enable_quick_add -%}
+          {%- liquid
+            assign product_form_id = 'quick-add-' | append: section.id | append: product.id
+            assign qty_rules = false
+            if variant.quantity_rule.min > 1 or variant.quantity_rule.max != null or variant.quantity_rule.increment > 1
+              assign qty_rules = true
+            endif
+          -%}
+          {%- if product.variants.size > 1 or qty_rules -%}
+            <{{ atc_button_tag }}
+              {% if settings.pcard_choose_options_actions == 'product_page' %}
+                href="{{- product_url -}}"
+              {% else %}
+                aria-controls="{{ quick_view_modal_id }}"
+                aria-haspopup="dialog"
+              {% endif %}
+              class="pcard__actions hidden md:inline-flex shrink-0 pcard__atc btn btn--icon-circle btn--secondary"
+              aria-label="{{- 'products.product.choose_options' | t -}}"
+            >
+              {% render 'icon-cart', name: settings.cart_icon, size: 'medium' %}
+            </{{ atc_button_tag }}>
+          {%- else -%}
+            {%- liquid
+              if variant.available
+                assign button_label = 'products.product.add_to_cart' | t
+              else
+                assign button_label = 'products.product.sold_out' | t
+              endif
+            -%}
+            {%- form 'product',
+              product,
+              id: product_form_id,
+              class: 'pcard__actions hidden md:block',
+              novalidate: 'novalidate',
+              data-type: 'add-to-cart-form',
+              is: 'product-form'
+            -%}
+              <input
+                type="hidden"
+                name="id"
+                value="{{- variant.id -}}"
+                class="product-variant-id"
+                {% if variant.available == false %}
+                  disabled
+                {% endif %}
+              >
+              <button
+                id="{{ product_form_id }}-submit"
+                type="submit"
+                name="add"
+                {% if variant.available == false %}
+                  disabled
+                {% endif %}
+                aria-label="{{ 'products.product.add_to_cart' | t }}"
+                class="pcard__atc btn btn--icon-circle btn--secondary"
+                aria-label="{{ button_label }}"
+              >
+                {% render 'icon-cart', name: settings.cart_icon, size: 'medium' %}
+                {% render 'loading-spinner' %}
+              </button>
+            {%- endform -%}
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </div>
+    {%- if settings.pcard_choose_options_actions == 'open_popup' -%}
+      {% render 'quick-view-modal', modal_id: quick_view_modal_id, product: product %}
+    {%- endif -%}
+  </div>
+{%- else -%}
+  {%- liquid
+    if image_ratio == 'adapt'
+      assign image_ratio = '1'
+    endif
+
+    if thumbnail_ratio == 'adapt'
+      assign thumbnail_ratio = '1'
+    endif
+  -%}
+  <div class="product-card--overlay relative">
+    <div class="pcard__media blocks-radius" style="--aspect-ratio: {{ image_ratio }};">
+      {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+    </div>
+    <div class="pcard__overlay-card flex items-center gap-3 color-scheme-1">
+      <div
+        class="pcard__thumbnail media-wrapper bg-none blocks-radius-sm"
+        style="--aspect-ratio: {{ thumbnail_ratio }}"
+      >
+        {{ 'product-1' | placeholder_svg_tag: 'placeholder-svg' }}
+      </div>
+      <div class="pcard__info flex items-center justify-between gap-2 flex-grow">
+        <div class="pcard__info-main">
+          <h3 class="pcard__title text-pcard-title">{{- 'onboarding.product_title' | t -}}</h3>
+          {% render 'price' %}
+        </div>
+      </div>
+    </div>
+  </div>
+{%- endif -%}

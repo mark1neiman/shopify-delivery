@@ -1,0 +1,33 @@
+{%- liquid
+  assign swipe_on_mobile = block.settings.swipe_on_mobile
+  assign columns_desktop = block.settings.columns_desktop
+  assign columns_mobile = block.settings.columns_mobile
+-%}
+<div class="{% if swipe_on_mobile %} swipe-mobile swipe-mobile--{{ columns_mobile }}-cols{% endif %}">
+  <div
+    class="f-grid f-grid--gap-{{ block.settings.column_gap }} f-grid--row-gap-{{ block.settings.row_gap }}{% if swipe_on_mobile %} swipe-mobile__inner{% endif %}"
+    style="--f-columns-mobile: {{ columns_mobile }}; --f-columns-md: {{ columns_desktop }}"
+  >
+    {%- for i in (1..8) -%}
+      {%- liquid
+        assign icon_key = 'icon_' | append: i
+        assign heading_key = 'heading_' | append: i
+        assign icon = block.settings[icon_key]
+        assign heading = block.settings[heading_key]
+        if heading == blank
+          continue
+        endif
+      -%}
+      <div class="f-column">
+        <div class="grid-icon-box flex flex-col items-center justify-start text-center blocks-radius">
+          {%- if icon != 'none' -%}
+            {%- render 'icons', icon: icon -%}
+          {%- endif -%}
+          <span class="inline-richtext text-sm">
+            {{- heading -}}
+          </span>
+        </div>
+      </div>
+    {%- endfor -%}
+  </div>
+</div>

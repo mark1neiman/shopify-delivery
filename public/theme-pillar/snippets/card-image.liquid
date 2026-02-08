@@ -1,0 +1,237 @@
+{% comment %}
+  Usage:
+  {% render 'card-image' %}
+
+  Accepts:
+  - parent_color_scheme: The color scheme of section.
+  - layout: {String} Default: standard. Accepted value: standard/split
+  - content_spacing: {String} Space around content inside card. Accepted value: small/medium/large
+{% endcomment %}
+
+{%- liquid
+  assign rich_text_size = rich_text_size | default: 'standard'
+  assign content_spacing = content_spacing | default: 'small'
+  assign image_ratio = image_ratio | default: '1/1'
+  if image_ratio == 'adapt'
+    if image == blank
+      assign image_ratio = '1/1'
+    else
+      assign image_ratio = image.aspect_ratio
+    endif
+
+    if image_mobile == blank
+      assign image_mobile_ratio = image_ratio
+    else
+      assign image_mobile_ratio = image_mobile.aspect_ratio
+    endif
+  endif
+
+  assign alt_image = image.alt | default: shop.name | escape
+
+  assign content_alignment_mobile = content_alignment_mobile | default: content_alignment
+  assign description_size = description_size | default: 'text-base'
+
+  assign card_mobile_color_inherit = false
+  if parent_color_scheme == color_scheme_mobile
+    assign card_mobile_color_inherit = true
+  endif
+
+  assign card_color_inherit = false
+  if parent_color_scheme == color_scheme
+    assign card_color_inherit = true
+  endif
+
+  assign show_badge = show_badge | default: false
+
+  assign layout = 'standard'
+  if content_position contains 'split'
+    assign layout = 'split'
+    assign content_position = content_position | replace: 'split-', ''
+  endif
+
+  if badge_main_text == blank and badge_subtext == blank
+    assign show_badge = false
+  endif
+
+  assign rounded = rounded | default: false
+  if content_position != 'below'
+    assign rounded = true
+  else
+    assign show_text_below = true
+    unless card_color_inherit
+      assign rounded = true
+    endunless
+  endif
+
+  assign card_classes = 'card-media card-media--auto-height card-media--content-' | append: content_position | append: ' card-media--' | append: content_spacing
+  assign card_classes = card_classes | append: ' relative overflow-hidden hover-wrapper color-' | append: color_scheme
+
+  if show_text_below
+    assign card_classes = card_classes | append: ' card-media--mobile-content-below'
+
+    if card_mobile_color_inherit
+      assign card_classes = card_classes | append: ' card-media--mobile-color-inherit'
+    endif
+  endif
+
+  if color_scheme_mobile
+    assign card_classes = card_classes | append: ' mobile-color-' | append: color_scheme_mobile
+  endif
+
+  if card_color_inherit
+    assign card_classes = card_classes | append: ' card-media--color-inherit'
+  endif
+
+  assign motion_delay = 50
+
+  assign loading = 'lazy'
+  assign fetchpriority = 'auto'
+  if forloop_index == 1 and section_index < 2 or enable_preload_image
+    assign loading = 'eager'
+    assign fetchpriority = 'high'
+  endif
+-%}
+{%- if show_badge != false -%}
+  {% capture badge_html %}
+    <motion-element
+      class="card-media__badge card-badge card-badge--size-{{ badge_size | default: 'medium' }} card-badge--{{ badge_shape | default: 'circle' }} card-badge--{{ badge_position }} color-{{ badge_color_scheme }} flex flex-col items-center justify-center pointer-events-none text-center"
+      data-motion="fade-in"
+      data-motion-delay="50"
+    >
+      {%- if badge_subtext != blank -%}
+        <span class="card-badge__subtext block {{ badge_subtext_size | default: 'h6' }}">{{- badge_subtext -}}</span>
+      {%- endif -%}
+      {%- if badge_main_text != blank -%}
+        <span class="card-badge__main-text block {{ badge_main_text_size | default: 'h3' }}">
+          {{- badge_main_text -}}
+        </span>
+      {%- endif -%}
+    </motion-element>
+  {% endcapture %}
+{%- endif -%}
+
+{%- if link -%}
+  <a
+    href="{{ link }}"
+    class="card-media--link focus-inset"
+    aria-label="{{ heading | default: shop.name }}"
+  >
+{%- endif -%}
+<div class="{{ card_classes }}{% if rounded %} blocks-radius{% endif %}">
+  <div class="card-media__media-wrapper relative overflow-hidden block w-full h-full{% if content_position == 'below' and card_color_inherit %} blocks-radius{% endif %}">
+    <motion-element class="block h-full" data-motion="zoom-out-sm">
+      <picture
+        class="card-media__media media-wrapper h-full{% if image == blank %} bg-none{% endif %}"
+        style="--aspect-ratio: {{ image_ratio }};{% if image_mobile_ratio %}--aspect-ratio-mobile: {{ image_mobile_ratio }};{% endif %}"
+      >
+        {%- if image != blank -%}
+          {%- liquid
+            assign image_sizes = image_sizes | default: ''
+            assign image_widths = '165, 360, 535, 750, 940, 1100, 1300, 1500, 1780, 2000, 2200, 2400, 2600, 2800, 3000, ' | append: image.width
+          -%}
+          {%- if image_mobile -%}
+            <source
+              media="(max-width: 767px)"
+              srcset="{{ image_mobile | image_url: width: '400x' }} 400w, {{ image_mobile | image_url: width: '600x' }} 600w, {{ image_mobile | image_url: width: '800x' }} 800w, {{ image_mobile | image_url: width: '1000x' }} 1000w"
+              width="{{ image_mobile.width }}"
+              height="{{ image_mobile.height }}"
+            >
+          {%- endif -%}
+          {{
+            image
+            | image_url: width: image.width
+            | image_tag:
+              loading: loading,
+              fetchpriority: fetchpriority,
+              class: 'motion-reduce absolute inset-0 w-full h-full hover-scale-up',
+              widths: image_widths,
+              sizes: image_sizes,
+              is: 'image-lazy',
+              alt: alt_image
+          }}
+        {%- else -%}
+          {{ 'image' | placeholder_svg_tag: 'placeholder-svg hover-scale-up w-full h-full' }}
+        {%- endif -%}
+
+        {% if image_overlay_opacity and image_overlay_opacity > 0 %}
+          <div
+            class="bg-overlay"
+            style="--color-overlay-alpha: {{ image_overlay_opacity }};"
+          ></div>
+        {% endif %}
+      </picture>
+    </motion-element>
+    {{ badge_html }}
+  </div>
+  {%- if heading != blank or description != blank or button_label != blank or subheading != blank -%}
+    <div class="card-media__content card-media__content--{{ content_alignment }}{% if content_position != 'below' %} content-overlay content-overlay--{{ content_position }}{% if content_position_mobile %} content-overlay--{{ content_position_mobile }}-mobile{% endif %}{% endif %}">
+      <div class="card-media__content-wrapper rich-text rich-text--{{ rich_text_size }} text-{{ content_alignment_mobile }} md:text-{{ content_alignment }}{% if layout == 'split' %} flex-1 flex flex-col items-{{ content_alignment_mobile | replace: 'left', 'start' | replace: 'right', 'end' }} md:items-{{ content_alignment | replace: 'left', 'start' | replace: 'right', 'end' }}{% endif %}">
+        {%- if subheading != blank -%}
+          <motion-element
+            class="block rich-text__subheading text-subheading subheading-style--{{ subheading_style }}{% if content_position == 'top-subheading' or content_position == 'middle-content' %} flex-1{% endif %}"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+          >
+            <span class="inline-flex">{{- subheading -}}</span>
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+        {%- if heading != blank -%}
+          <motion-element
+            class="block card-media__heading rich-text__heading {{ heading_size }}"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+            {% if heading_size_mobile == 'custom' %}
+              style="--custom-heading-size: {{ heading_size_custom | divided_by: 10.0 }}rem;"
+            {% endif %}
+          >
+            {% render 'highlight-text',
+              hl_text: heading,
+              hl_style: highlight_style,
+              hl_font_style: highlight_font_style,
+              hl_style_color: highlight_style_color,
+              hl_text_color: highlight_text_color
+            %}
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+        {%- if description != blank -%}
+          <motion-element
+            class="block card-media__description rich-text__text rte text-subtext {{ description_size }}"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+          >
+            {{- description -}}
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+        {%- if button_label != blank -%}
+          {% liquid
+            assign button_attr = ''
+            unless link
+              assign button_attr = 'disabled'
+            endunless
+          %}
+          <motion-element
+            class="card-media__button rich-text__button{% if content_position == 'bottom-button' or content_position == 'middle-content' %} flex-1 flex items-end{% else %} block{% endif %}"
+            data-motion="fade-up"
+            data-motion-delay="{{ motion_delay }}"
+          >
+            {% render 'button',
+              button_style: button_style,
+              button_tag: 'button',
+              button_label: button_label,
+              button_icon: button_icon,
+              button_size: button_size,
+              additional_attributes: button_attr
+            %}
+          </motion-element>
+          {%- assign motion_delay = motion_delay | plus: 50 -%}
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+{%- if link -%}
+  </a>
+{%- endif -%}

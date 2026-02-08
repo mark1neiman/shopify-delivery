@@ -1,0 +1,338 @@
+{%- liquid
+  case block.type
+    when 'promotion_banner'
+      assign promo_images = block.settings.promo_image_1 | append: ',' | append: block.settings.promo_image_2 | append: ',' | append: block.settings.promo_image_3 | append: ',' | append: block.settings.promo_image_4 | append: ',' | append: block.settings.promo_image_5
+      assign has_promo = false
+      unless promo_images == ',,,,'
+        assign has_promo = true
+      endunless
+    when 'custom_card'
+      assign promo_images = block.settings.promo_image_1 | append: ',' | append: block.settings.promo_image_2 | append: ',' | append: block.settings.promo_image_3 | append: ',' | append: block.settings.promo_image_4 | append: ',' | append: block.settings.promo_image_5
+      assign has_promo = false
+      unless promo_images == ',,,,'
+        assign has_promo = true
+      endunless
+    when 'product_list'
+      assign collections = block.settings.collections
+      assign product_list = block.settings.product_list
+      assign heading = block.settings.heading
+      assign show_progress_bar = block.settings.show_progress_bar
+  endcase
+-%}
+
+<details
+  is="menu-drawer-details"
+  level="top"
+  {% if is_hl_item and hl_link_color != blank and hl_link_color != 'rgba(0,0,0,0)' %}
+    style="--hl-link-color: {{ hl_link_color }};"
+  {% endif %}
+>
+  <summary class="menu-drawer__item-link menu-drawer__item-link-heading flex items-center justify-between">
+    <span class="relative {% if is_hl_item %} hightlight-link hightlight-link--{{ hl_link_style }}{% endif %}">
+      {%- liquid
+        assign link_class = ''
+        if is_hl_item
+          case hl_link_style
+            when 'button'
+              assign link_class = 'btn btn--primary'
+            when 'wave_underline'
+              assign link_class = 'relative wave-underline'
+          endcase
+        endif
+      -%}
+      <span class="flex items-center {{ link_class }}">
+        {%- unless is_hl_item -%}
+          {{- link.title | escape -}}
+        {%- else -%}
+          {%- case hl_link_style -%}
+            {%- when 'button' -%}
+              <span class="btn__text flex items-center">{{- link.title | escape -}}</span>
+            {%- else -%}
+              {{- link.title | escape -}}
+          {%- endcase -%}
+        {%- endunless -%}
+      </span>
+      {%- if is_hl_item -%}
+        {%- case hl_link_style -%}
+          {%- when 'star_twinkle' -%}
+            <svg class="star star-1" width="12" height="12" viewBox="0 0 12 12">
+              <path d="M6 0L7.854 4.146L12 6L7.854 7.854L6 12L4.146 7.854L0 6L4.146 4.146L6 0Z" fill="currentColor"/>
+            </svg>
+            <svg class="star star-2" width="12" height="12" viewBox="0 0 12 12">
+              <path d="M6 0L7.854 4.146L12 6L7.854 7.854L6 12L4.146 7.854L0 6L4.146 4.146L6 0Z" fill="currentColor"/>
+            </svg>
+            <svg class="star star-3" width="12" height="12" viewBox="0 0 12 12">
+              <path d="M6 0L7.854 4.146L12 6L7.854 7.854L6 12L4.146 7.854L0 6L4.146 4.146L6 0Z" fill="currentColor"/>
+            </svg>
+        {%- endcase -%}
+      {%- endif -%}
+    </span>
+    {%- render 'icon-caret-right', size: '2xs' -%}
+  </summary>
+  <div class="menu-drawer__submenu absolute z-1 flex flex-col w-full h-full" data-parent>
+    <button type="button" class="menu-drawer__item-back-link font-navigation flex items-center gap-2 w-full">
+      {%- render 'icon-caret-left', size: 'small' -%}
+      {{ link.title | escape }}
+    </button>
+    <ul class="flex flex-col h-full v-scrollable" data-parent role="list">
+      {%- for childlink in link.links -%}
+        <li class="menu-drawer__item menu-drawer__item--{{ block.type }}" level="child">
+          {%- if childlink.links != blank -%}
+            <details is="accordion-details" class="accordion-details">
+              <summary class="menu-drawer__item-link menu-drawer__item-link-heading accordion-details__summary flex items-center justify-between">
+                <span>{{ childlink.title | escape }}</span>
+                {%- render 'icon-plus-toggle', size: '2xs' -%}
+              </summary>
+              <div class="flex flex-col w-full">
+                {%- if block.type == 'sidebar' -%}
+                  <style>
+                    .menu-drawer__item-grandchild {
+                      --f-columns-mobile: 2;
+                      --f-column-gap-mobile: 1.2rem;
+                      --f-row-gap-mobile: 2.4rem;
+                      padding-block-start: 1.2rem;
+                    }
+                  </style>
+                  <ul class="f-grid menu-drawer__item-grandchild">
+                    {%- for grandchildlink in childlink.links -%}
+                      {%- liquid
+                        assign is_collection_link = false
+                        if grandchildlink.type == 'collection_link' and block.settings.show_collection_image
+                          assign is_collection_link = true
+                          assign collection_object = grandchildlink.object
+                          assign collection_image = collection_object.featured_image
+                        endif
+
+                        if collection_object.metafields.foxtheme.collection_megamenu_image.value
+                          assign collection_image = collection_object.metafields.foxtheme.collection_megamenu_image.value
+                        endif
+
+                        if block.settings.show_image_of_first_product
+                          assign collection_image = collections[grandchildlink.object.handle].all_products.first
+                        endif
+
+                        assign image_ratio = block.settings.image_ratio
+                        if image_ratio == 'adapt'
+                          if collection_object.metafields.foxtheme.collection_megamenu_image.value
+                            assign image_ratio = collection_image.aspect_ratio
+                          else
+                            assign image_ratio = collection_image.featured_image.aspect_ratio
+                          endif
+                        endif
+                      -%}
+
+                      <li>
+                        <a href="{{ grandchildlink.url }}" class="grid gap-3 hover-wrapper reversed-link">
+                          {%- if is_collection_link -%}
+                            <div class="overflow-hidden blocks-radius-md">
+                              <motion-element data-motion="zoom-out-sm" class="block">
+                                <div class="media-wrapper" style="--aspect-ratio: {{ image_ratio }};">
+                                  {{
+                                    collection_image
+                                    | image_url: width: collection_image.featured_image.width
+                                    | image_tag:
+                                      loading: 'lazy',
+                                      class: 'motion-reduce hover-scale-up',
+                                      widths: first_image_widths,
+                                      sizes: image_sizes,
+                                      is: 'image-lazy'
+                                  }}
+                                </div>
+                              </motion-element>
+                            </div>
+                          {%- endif -%}
+                          <p class="block m-0">
+                            <span class="reversed-link__text">{{ grandchildlink.title | escape }}</span>
+                          </p>
+                        </a>
+                      </li>
+                    {%- endfor -%}
+                  </ul>
+                {%- else -%}
+                  <ul class="v-scrollable h-full w-full">
+                    {%- for grandchildlink in childlink.links -%}
+                      <li class="menu-drawer__item">
+                        <a
+                          href="{{ grandchildlink.url }}"
+                          class="menu-drawer__item-link flex items-center justify-between text-subtext"
+                        >
+                          {{- grandchildlink.title | escape -}}
+                        </a>
+                      </li>
+                    {%- endfor -%}
+                  </ul>
+                {%- endif -%}
+              </div>
+            </details>
+          {%- else -%}
+            <a
+              href="{{ childlink.url }}"
+              class="menu-drawer__item-link flex items-center justify-between"
+            >
+              {{- childlink.title -}}
+            </a>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+      {%- case block.type -%}
+        {%- when 'promotion_banner' -%}
+          {%- if has_promo and enable_mega_menu -%}
+            <div class="menu-drawer__promotions mega-menu__promotions-grid gap-4">
+              {%- for i in (1..5) -%}
+                {%- liquid
+                  assign promo_image = 'promo_image_' | append: i
+                  assign promo_mobile_image = 'promo_mobile_image_' | append: i
+                  assign color_scheme = 'color_scheme_' | append: i
+                  assign heading = 'heading_' | append: i
+                  assign subheading = 'subheading_' | append: i
+                  assign subheading_style = 'subheading_style_' | append: i
+                  assign heading_size = 'heading_size_' | append: i
+                  assign description = 'description_' | append: i
+                  assign button_label = 'button_label_' | append: i
+                  assign button_style = 'button_style_' | append: i
+                  assign button_icon = 'button_icon_' | append: i
+                  assign content_position = 'content_position_' | append: i
+                  assign content_gap = 'content_gap_' | append: i
+                  assign content_alignment = 'content_alignment_' | append: i
+                  assign promotion_link = 'promotion_link_' | append: i
+                  assign promotion_image_overlay_opacity = 'image_overlay_opacity_' | append: i
+
+                  assign promo_image = block.settings[promo_image]
+                  assign promo_mobile_image = block.settings[promo_mobile_image]
+                  assign color_scheme = block.settings[color_scheme]
+                  assign heading = block.settings[heading]
+                  assign subheading = block.settings[subheading]
+                  assign subheading_style = block.settings[subheading_style]
+                  assign heading_size = block.settings[heading_size]
+                  assign description = block.settings[description]
+                  assign button_label = block.settings[button_label]
+                  assign button_style = block.settings[button_style]
+                  assign button_icon = block.settings[button_icon]
+                  assign content_position = block.settings[content_position]
+                  assign content_gap = block.settings[content_gap]
+                  assign content_alignment = block.settings[content_alignment]
+                  assign promotion_link = block.settings[promotion_link]
+                  assign promotion_image_overlay_opacity = block.settings[promotion_image_overlay_opacity]
+
+                  if promo_image == blank
+                    continue
+                  endif
+                -%}
+                <div class="promotion-item" style="--index: {{ forloop.index }};">
+                  {% render 'card-image',
+                    image: promo_image,
+                    image_mobile: promo_mobile_image,
+                    image_ratio: 'adapt',
+                    color_scheme: color_scheme,
+                    heading: heading,
+                    heading_size: heading_size,
+                    description: description,
+                    button_label: button_label,
+                    button_style: button_style,
+                    button_icon: button_icon,
+                    content_position: content_position,
+                    content_alignment: content_alignment,
+                    rich_text_size: content_gap,
+                    image_overlay_opacity: promotion_image_overlay_opacity,
+                    link: promotion_link,
+                    subheading: subheading,
+                    subheading_style: subheading_style
+                  %}
+                </div>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+        {%- when 'custom_card' -%}
+          {%- if has_promo and enable_mega_menu -%}
+            <div
+              class="menu-drawer__promotions mega-menu__promotions-grid gap-x-2 gap-y-4"
+              style="--promotion-columns: 2;"
+            >
+              {%- for i in (1..5) -%}
+                {%- liquid
+                  assign promo_image = 'promo_image_' | append: i
+                  assign heading = 'heading_' | append: i
+                  assign heading_size = 'heading_size_' | append: i
+                  assign description = 'description_' | append: i
+                  assign button_style = 'button_style_' | append: i
+                  assign promotion_link = 'promotion_link_' | append: i
+
+                  assign promo_image = block.settings[promo_image]
+                  assign heading = block.settings[heading]
+                  assign heading_size = block.settings[heading_size]
+                  assign description = block.settings[description]
+                  assign promotion_link = block.settings[promotion_link]
+
+                  if promo_image == blank
+                    continue
+                  endif
+                -%}
+                <div class="promotion-item">
+                  {% render 'mega-custom-card',
+                    heading: heading,
+                    heading_size: heading_size,
+                    description: description,
+                    image: promo_image,
+                    link: promotion_link
+                  %}
+                </div>
+              {%- endfor -%}
+            </div>
+          {%- endif -%}
+        {%- when 'product_list' -%}
+          {%- if product_list != blank and enable_mega_menu -%}
+            <div class="menu-drawer__promotions mega-menu__promotions">
+              <div class="block w-full">
+                {%- if heading != blank -%}
+                  <div
+                    class="mega-menu__product-list--header flex items-center justify-between promotion-item promotion-item--product"
+                    style="--index: 1;"
+                  >
+                    <p class="m-0 font-navigation h6">{{ heading | escape }}</p>
+                  </div>
+                {%- endif -%}
+                <div
+                  class="mega-menu__promotions-grid swipe-mobile swipe-mobile--2-cols f-grid--gap-medium"
+                  id="product-list-{{ block.id }}"
+                >
+                  <div
+                    class="swipe-mobile__inner f-grid"
+                    style="--f-columns-md: 3; --f-column-gap: 1.2rem; --f-row-gap: 2rem;"
+                  >
+                    {%- for product in product_list -%}
+                      <div
+                        class="promotion-item promotion-item--product"
+                        style="--index: {{ forloop.index }};"
+                      >
+                        {%- render 'card-product',
+                          product: product,
+                          parent_color_scheme: section.settings.color_scheme,
+                          use_short_text_for_atc_button: true,
+                          show_vendor: block.settings.show_product_vendor,
+                          show_type: block.settings.show_product_type,
+                          enable_quick_view: false,
+                          enable_quick_add: false,
+                          quick_view_suffix: 'megamenu-mobile'
+                        -%}
+                      </div>
+                    {%- endfor -%}
+                  </div>
+                </div>
+                {% if show_progress_bar %}
+                  <scroll-progress-bar
+                    class="md:hidden no-js-hidden {{ product_list.count }}"
+                    target="product-list-{{ block.id }}"
+                    style="--margin-block-start: 2.4rem;"
+                  >
+                    <div class="progress-container">
+                      <div class="progress-bar no-empty"></div>
+                    </div>
+                  </scroll-progress-bar>
+                {% endif %}
+              </div>
+            </div>
+          {%- endif -%}
+      {%- endcase -%}
+    </ul>
+  </div>
+</details>

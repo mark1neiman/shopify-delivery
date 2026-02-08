@@ -1,0 +1,25 @@
+.main-blog__featured_post .section-divider {
+  margin-top: 4rem;
+}
+@media (max-width: 767.98px) {
+  .main-blog__featured_post .section-divider {
+    margin-top: 2.4rem;
+  }
+}
+.main-blog__block {
+  margin-top: 4rem;
+}
+@media (max-width: 767.98px) {
+  .main-blog__block {
+    margin-top: 2.4rem;
+  }
+}
+.main-blog__block:empty, .main-blog__block-first {
+  margin-top: 0;
+}
+.main-blog__heading + .main-blog__tags {
+  margin-top: 2.4rem;
+}
+.main-blog__tag {
+  --buttons-padding: 2rem;
+}

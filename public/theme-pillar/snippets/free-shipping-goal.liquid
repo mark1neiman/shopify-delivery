@@ -1,0 +1,22 @@
+{%- liquid
+  assign minimum_amount_in_cents = minimum_amount | plus: 0
+  assign total_price = cart.total_price | plus: 0
+-%}
+{%- capture left_to_spend -%}
+    <strong data-left-to-spend>{{ limit_currency | minus: cart.total_price | money }}</strong>
+{%- endcapture -%}
+<free-shipping-goal
+  data-cart-total="{{ total_price }}"
+  data-minimum-amount="{{ minimum_amount_in_cents }}"
+  class="free-shipping-goal grid gap-2{% if classes %} {{ classes }}{% endif %} no-js-hidden"
+>
+  <span class="free-shipping-goal__label free-shipping-goal__label--success">
+    {{- 'general.cart.free_shipping.congratulations_html' | t -}}
+  </span>
+  <span class="free-shipping-goal__label free-shipping-goal__label--default">
+    {{- 'general.cart.free_shipping.remaining_html' | t: remaining_amount: left_to_spend -}}
+  </span>
+  <progress-bar
+    class="progress-bar"
+  ></progress-bar>
+</free-shipping-goal>

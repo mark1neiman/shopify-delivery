@@ -1,0 +1,123 @@
+{% comment %}
+  Renders an hotspot with lookbook card for a given product or content
+
+  Usage:
+  {{ 'component-lookbook-card.css' | asset_url | stylesheet_tag }}
+
+  {% render 'lookbook-icon',
+    block: block,
+    icon_style: icon_style,
+    icon_color: icon_color,
+    lookbook_icon_index: lookbook_icon_index,
+    use_product: true,
+    product: product
+  %}
+{% endcomment %}
+
+{% liquid
+  assign icon_style = icon_style | default: 'dot'
+  assign icon_color = icon_color | default: 'dark'
+%}
+
+<lookbook-icon
+  class="absolute inline-flex items-center justify-center lookbook-icon lookbook-icon--{{ icon_style }} lookbook-icon--{{ icon_color }}"
+  style="{{ hotspot_style }}"
+  data-id="{{ block.id }}-{{ forloop.index }}"
+  data-index="{{ lookbook_icon_index }}"
+  data-position="top-center"
+  {{ block.shopify_attributes }}
+>
+  <div class="lookbook-icon__pin inline-flex items-center justify-center">
+    {% if icon_style == 'plus' %}
+      {%- render 'icon-plus-toggle', size: 'extra-small' -%}
+    {%- endif -%}
+  </div>
+  {% if use_product %}
+    {% liquid
+      assign featured_media = product.featured_media
+    %}
+    {%- if featured_media != blank -%}
+      <div class="lookbook-icon__card absolute product-card flex items-center gap-3 blocks-radius-md color-{{ settings.pcard_color_scheme }}">
+        <a
+          class="product-card__image blocks-radius-sm shrink-0"
+          href="{{ product.url }}"
+          aria-label="{{ product.title | escape }}"
+          tabindex="-1"
+        >
+          <div class="media-wrapper{% if featured_media == blank %} bg-none{% endif %}" style="--aspect-ratio: 1;">
+            {%- if featured_media != blank -%}
+              {% assign alt = featured_media.alt | default: product.title | escape %}
+              {{
+                featured_media
+                | image_url: width: 355
+                | image_tag:
+                  loading: 'lazy',
+                  class: 'motion-reduce',
+                  widths: '70, 140, 165, 355',
+                  is: 'image-lazy',
+                  alt: alt
+              }}
+            {%- else -%}
+              {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+            {%- endif -%}
+          </div>
+        </a>
+        <div class="product-card__info flex-1">
+          <p class="product-card__title text-pcard-title text-limit-1-line m-0">
+            <a href="{{ product.url }}" class="reversed-link">
+              {{- product.title -}}
+            </a>
+          </p>
+          {% render 'price', product: product %}
+        </div>
+      </div>
+    {% else %}
+      <div class="lookbook-icon__card absolute product-card flex items-center gap-3 blocks-radius-md color-{{ settings.pcard_color_scheme }}">
+        <div class="product-card__image blocks-radius-sm shrink-0" tabindex="-1">
+          <div class="media-wrapper" style="--aspect-ratio: 1;">
+            {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+          </div>
+        </div>
+        <div class="product-card__info flex-1">
+          <p class="product-card__title text-pcard-title text-limit-1-line m-0">
+            {{- 'onboarding.product_title' | t -}}
+          </p>
+          {% render 'price' %}
+        </div>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="lookbook-icon__card lookbook-icon__card--content absolute flex items-start blocks-radius-md color-{{ card_color_scheme }}">
+      <div class="lookbook-icon__card-image relative hidden md:block{% if block.settings.image == blank %} bg-none{% endif %}">
+        <picture
+          class="card-media__media rounded media-wrapper"
+          style="--aspect-ratio: 1;"
+        >
+          {%- if block.settings.image != blank -%}
+            {% assign alt = block.settings.image.alt | escape %}
+            {{
+              block.settings.image
+              | image_url: width: 355
+              | image_tag:
+                loading: 'lazy',
+                class: 'motion-reduce absolute inset-0 w-full h-full',
+                widths: '140, 165, 355',
+                is: 'image-lazy',
+                alt: alt
+            }}
+          {%- else -%}
+            {{ 'image' | placeholder_svg_tag: 'placeholder-svg' }}
+          {%- endif -%}
+        </picture>
+      </div>
+      <div class="grid flex-1 gap-2">
+        <p class="m-0 h6">
+          {{ block.settings.heading }}
+        </p>
+        <div class="block rte text-subtext text-sm-extra">
+          {{ block.settings.description }}
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+</lookbook-icon>

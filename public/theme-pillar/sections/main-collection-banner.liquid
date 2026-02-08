@@ -1,0 +1,474 @@
+{{ 'section-collection-hero.css' | asset_url | stylesheet_tag: preload: true }}
+{%- liquid
+  if section.settings.image != blank
+    assign banner = section.settings.image
+  endif
+  if section.settings.image_mobile != blank
+    assign banner_mobile = section.settings.image_mobile
+  endif
+
+  if collection.featured_image != blank
+    assign banner = collection.featured_image
+    assign banner_mobile = collection.featured_image
+  endif
+
+  # Override if it set in metafield.
+  if collection.metafields.foxtheme.collection_banner.value != blank
+    assign banner = collection.metafields.foxtheme.collection_banner.value
+    # Inherit from desktop in case has only desktop metafield.
+    assign banner_mobile = banner
+  endif
+
+  if collection.metafields.foxtheme.collection_banner_mobile.value != blank
+    assign banner_mobile = collection.metafields.foxtheme.collection_banner_mobile.value
+  endif
+
+  assign show_collection_image = section.settings.show_collection_image
+  if banner == blank and banner_mobile == blank
+    assign show_collection_image = false
+  endif
+
+  assign image_ratio = banner.aspect_ratio
+  assign image_ratio_mobile = banner_mobile.aspect_ratio | default: image_ratio
+
+  assign image_position = section.settings.image_position
+
+  assign inner_class = 'collection-hero__inner relative f-grid f-grid--gap-none color-' | append: section.settings.color_scheme
+  assign text_class = ''
+
+  if show_collection_image
+    case image_position
+      when 'right'
+        assign text_class = text_class | append: ' order-first'
+      when 'bottom'
+        assign text_class = text_class | append: ' order-first'
+      when 'as-bg'
+        assign text_class = text_class | append: ' content-overlay content-overlay--center'
+    endcase
+  endif
+
+  assign color_scheme_first = settings.color_schemes | first
+  assign color_inherit = false
+  assign parent_background = color_scheme_first.settings.background | downcase
+  assign card_background = section.settings.color_scheme.settings.background | downcase
+  if parent_background == card_background
+    assign color_inherit = true
+  endif
+
+  assign loading = 'lazy'
+  assign fetchpriority = 'low'
+  if section.index < 3
+    assign loading = 'eager'
+    assign fetchpriority = 'high'
+  endif
+-%}
+<div
+  class="collection-hero{% if show_collection_image %} collection-hero--image-{{ section.settings.image_position }}{% else %} collection-hero--no-image{% endif %} hero hero--{{ section.settings.image_height }} hero--mobile-{{ section.settings.image_height_mobile }}{% if color_inherit %} color-inherit{% endif %} section section--padding page-width page-width--{{ section.settings.container }}"
+  style="--section-padding-top: {{ section.settings.padding_top }}px;--section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+>
+  <div class="{{ inner_class }}{% unless color_inherit %} blocks-radius{% endunless %}">
+    {%- if show_collection_image -%}
+      {%- capture sizes -%}(max-width: 767px) calc(100vw - 3rem), {% if image_position == 'left' or image_position == 'right' %}calc(min({{ settings.page_width }}px, 100vw) / 2){% else %}min({{ settings.page_width }}px, 100vw){% endif %}{%- endcapture -%}
+      <parallax-element
+        class="flex overflow-hidden{% if color_inherit %} blocks-radius{% endif %}{% if banner == blank %} md:hidden{% endif %}"
+        {% if section.settings.enable_parallax %}
+          data-parallax="0.3" data-parallax-direction="{{ section.settings.parallax_direction }}"
+        {% endif %}
+      >
+        <motion-element class="block flex-1" data-motion="zoom-out">
+          <picture
+            class="hero__media media-wrapper"
+            style="{% if section.settings.image_height == 'adapt' %}--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio_mobile }};{% endif %}{% if section.settings.image_height_mobile == 'adapt' %}--aspect-ratio-mobile: {{ image_ratio_mobile }};{% endif %}"
+          >
+            {%- if banner != blank and banner_mobile != blank -%}
+              <source
+                media="(max-width: 767px)"
+                srcset="{{ banner_mobile | image_url: width: '400x' }} 400w, {{ banner_mobile | image_url: width: '600x' }} 600w, {{ banner_mobile | image_url: width: '800x' }} 800w, {{ banner_mobile | image_url: width: '1000x' }} 1000w"
+                width="{{ banner_mobile.width }}"
+                height="{{ banner_mobile.height }}"
+              >
+            {%- endif -%}
+            {%- liquid
+              if banner == blank
+                assign banner = banner_mobile
+              endif
+
+              assign alt_image = banner.alt | default: collection.title | escape
+            -%}
+            {{-
+              banner
+              | image_url: width: banner.width
+              | image_tag:
+                loading: loading,
+                fetchpriority: fetchpriority,
+                sizes: sizes,
+                width: banner.width,
+                height: banner.height,
+                widths: '300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,2200,2400,2600,2800,3000,3200',
+                alt: alt_image,
+                class: 'collection-hero__image'
+            -}}
+            {% if section.settings.image_overlay_opacity > 0 %}
+              <div
+                class="bg-overlay"
+                style="--color-overlay-alpha: {{ section.settings.image_overlay_opacity }};"
+              ></div>
+            {% endif %}
+          </picture>
+        </motion-element>
+      </parallax-element>
+    {%- endif -%}
+
+    <div class="collection-hero__text flex flex-col justify-center text-{{ section.settings.text_alignment }}{{ text_class }}">
+      {%- for block in section.blocks -%}
+        {%- case block.type -%}
+          {%- when 'collection_info' -%}
+            <div
+              class="collection-hero__info section--padding"
+              {{ block.shopify_attributes }}
+              style="--section-padding-top: {{ block.settings.padding_top }}px; --section-padding-bottom: {{ block.settings.padding_bottom }}px;"
+            >
+              <{{ block.settings.heading_tag }} class="collection-hero__title overflow-hidden {{ block.settings.heading_size }}">
+                <span class="visually-hidden">{{ 'sections.collection_template.title' | t }}: </span>
+                <motion-element data-motion="fade-up" class="inline-block">
+                  {{- collection.title | escape -}}
+                </motion-element>
+              </{{ block.settings.heading_tag }}>
+              {%- if block.settings.show_description and collection.description != blank -%}
+                <div class="collection-hero__description rte text-subtext">
+                  <motion-element
+                    data-motion="fade-up"
+                    data-motion-delay="50"
+                    class="block"
+                  >
+                    {{- collection.description }}
+                  </motion-element>
+                </div>
+              {%- endif -%}
+            </div>
+        {%- endcase -%}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main-collection-banner.name",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:sections.main-collection-banner.settings.paragraph.content"
+    },
+    {
+      "type": "header",
+      "content": "t:general.general.name"
+    },
+    {
+      "type": "select",
+      "id": "container",
+      "options": [
+        {
+          "value": "full",
+          "label": "t:general.container.options__full.label"
+        },
+        {
+          "value": "fixed",
+          "label": "t:general.container.options__fixed.label"
+        }
+      ],
+      "default": "fixed",
+      "label": "t:general.container.label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:general.colors.label",
+      "default": "scheme-1"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:general.text_alignment.label",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:general.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:general.text_alignment.options__2.label"
+        },
+        {
+          "value": "right",
+          "label": "t:general.text_alignment.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_collection_image",
+      "label": "t:sections.main-collection-banner.settings.show_collection_image.label",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:general.header__settings.content"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.main-collection-banner.settings.default_image.label",
+      "info": "t:sections.main-collection-banner.settings.default_image.info"
+    },
+    {
+      "type": "range",
+      "id": "image_overlay_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "%",
+      "label": "t:general.image_overlay_opacity.label",
+      "default": 0
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "t:sections.main-collection-banner.settings.image_position.label",
+      "default": "top",
+      "options": [
+        {
+          "value": "top",
+          "label": "t:sections.main-collection-banner.settings.image_position.options__1.label"
+        },
+        {
+          "value": "right",
+          "label": "t:sections.main-collection-banner.settings.image_position.options__2.label"
+        },
+        {
+          "value": "bottom",
+          "label": "t:sections.main-collection-banner.settings.image_position.options__3.label"
+        },
+        {
+          "value": "left",
+          "label": "t:sections.main-collection-banner.settings.image_position.options__4.label"
+        },
+        {
+          "value": "as-bg",
+          "label": "t:sections.main-collection-banner.settings.image_position.options__5.label"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "image_height",
+      "options": [
+        {
+          "value": "adapt",
+          "label": "t:general.height.options__1.label"
+        },
+        {
+          "value": "extra-small",
+          "label": "t:general.height.options__2.label"
+        },
+        {
+          "value": "small",
+          "label": "t:general.height.options__3.label"
+        },
+        {
+          "value": "medium",
+          "label": "t:general.height.options__4.label"
+        },
+        {
+          "value": "extra-medium",
+          "label": "t:general.height.options__5.label"
+        },
+        {
+          "value": "large",
+          "label": "t:general.height.options__6.label"
+        }
+      ],
+      "default": "medium",
+      "label": "t:general.height.image.label"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_parallax",
+      "label": "t:general.enable_parallax_effect.label"
+    },
+    {
+      "type": "select",
+      "id": "parallax_direction",
+      "label": "t:general.parallax_direction.label",
+      "options": [
+        {
+          "value": "vertical",
+          "label": "t:general.parallax_direction.options__1.label"
+        },
+        {
+          "value": "horizontal",
+          "label": "t:general.parallax_direction.options__2.label"
+        },
+        {
+          "value": "zoom",
+          "label": "t:general.parallax_direction.options__3.label"
+        }
+      ]
+    },
+    {
+      "type": "header",
+      "content": "t:general.header__mobile_settings.content"
+    },
+    {
+      "type": "image_picker",
+      "id": "image_mobile",
+      "label": "t:sections.main-collection-banner.settings.default_mobile_image.label",
+      "info": "t:sections.main-collection-banner.settings.default_mobile_image.info"
+    },
+    {
+      "type": "select",
+      "id": "image_height_mobile",
+      "options": [
+        {
+          "value": "auto",
+          "label": "t:general.height.options__8.label"
+        },
+        {
+          "value": "adapt",
+          "label": "t:general.height.options__1.label"
+        }
+      ],
+      "default": "auto",
+      "label": "t:general.height.image.label"
+    },
+    {
+      "type": "header",
+      "content": "t:general.padding.section_heading.content"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.top.label",
+      "default": 50
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "t:general.padding.bottom.label",
+      "default": 50
+    }
+  ],
+  "blocks": [
+    {
+      "type": "collection_info",
+      "name": "t:sections.main-collection-banner.blocks.collection_info.name",
+      "limit": 1,
+      "settings": [
+        {
+          "type": "select",
+          "id": "heading_size",
+          "label": "t:general.text_size.heading.label",
+          "default": "h1",
+          "options": [
+            {
+              "value": "h5",
+              "label": "t:general.text_size.options__h5.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.text_size.options__h4.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.text_size.options__h3.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.text_size.options__h2.label"
+            },
+            {
+              "value": "h1",
+              "label": "t:general.text_size.options__h1.label"
+            },
+            {
+              "value": "hd2",
+              "label": "t:general.text_size.options__hd2.label"
+            },
+            {
+              "value": "hd1",
+              "label": "t:general.text_size.options__hd1.label"
+            }
+          ]
+        },
+        {
+          "type": "select",
+          "id": "heading_tag",
+          "label": "t:general.heading_tag.label",
+          "default": "h1",
+          "options": [
+            {
+              "value": "h1",
+              "label": "t:general.heading_tag.options__h1.label"
+            },
+            {
+              "value": "h2",
+              "label": "t:general.heading_tag.options__h2.label"
+            },
+            {
+              "value": "h3",
+              "label": "t:general.heading_tag.options__h3.label"
+            },
+            {
+              "value": "h4",
+              "label": "t:general.heading_tag.options__h4.label"
+            },
+            {
+              "value": "h5",
+              "label": "t:general.heading_tag.options__h5.label"
+            },
+            {
+              "value": "h6",
+              "label": "t:general.heading_tag.options__h6.label"
+            }
+          ]
+        },
+        {
+          "type": "checkbox",
+          "id": "show_description",
+          "default": true,
+          "label": "t:sections.main-collection-banner.blocks.collection_info.settings.show_description.label"
+        },
+        {
+          "type": "range",
+          "id": "padding_top",
+          "min": 0,
+          "max": 100,
+          "step": 2,
+          "unit": "px",
+          "label": "t:general.padding.top.label",
+          "default": 50
+        },
+        {
+          "type": "range",
+          "id": "padding_bottom",
+          "min": 0,
+          "max": 100,
+          "step": 2,
+          "unit": "px",
+          "label": "t:general.padding.bottom.label",
+          "default": 50
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

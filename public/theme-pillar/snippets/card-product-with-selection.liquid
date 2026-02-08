@@ -1,0 +1,360 @@
+{%- liquid
+  assign selected_variant = product.selected_or_first_available_variant
+
+  assign show_color_swatches = settings.pcard_enable_color_swatches
+
+  if show_vendor == null
+    assign show_vendor = settings.pcard_show_vendor
+  endif
+
+  if show_type == null
+    assign show_type = settings.pcard_show_type
+  endif
+
+  if show_price == null
+    assign show_price = settings.pcard_show_price
+  endif
+
+  if show_product_option == null
+    assign show_product_option = settings.pcard_show_color_swatch
+  endif
+
+  assign featured_media = selected_variant.featured_media
+  if selected_variant.featured_media == blank
+    assign featured_media = product.featured_media
+  endif
+
+  assign first_media_type = featured_media.media_type
+  if first_media_type == 'model' or first_media_type == 'video'
+    assign featured_media = featured_media.preview_image
+  endif
+
+  if image_ratio == blank
+    assign image_ratio = settings.pcard_image_ratio | default: '1'
+  endif
+  if image_ratio == 'adapt'
+    if featured_media != blank
+      assign image_ratio = featured_media.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+
+  assign second_image = ''
+  if settings.pcard_show_second_img and product.images.size > 1 and product.images[1] != blank
+    assign second_image = product.images[1]
+  endif
+
+  if enable_quick_view == null
+    assign enable_quick_view = settings.pcard_show_quickview_button
+  endif
+
+  if enable_compare_checkbox == null
+    assign enable_compare_checkbox = false
+  endif
+
+  assign mobile_hide_quick_add = settings.pcard_mobile_hide_quick_add
+
+  assign card_wrapper_class = ''
+  if custom_class != blank
+    assign card_wrapper_class = card_wrapper_class | append: ' ' | append: custom_class
+  endif
+  if mobile_hide_quick_add
+    assign card_wrapper_class = card_wrapper_class | append: ' mobile-hide-quick-add'
+  endif
+
+  assign quick_view_suffix = quick_view_suffix | default: ''
+  assign quick_view_modal_id = 'QuickView-' | append: product.id | append: '-' | append: section.id | append: quick_view_suffix
+
+  assign loading = 'lazy'
+  assign fetchpriority = 'low'
+  if section_index < 3 and index == 1
+    assign loading = 'eager'
+    assign fetchpriority = 'high'
+  endif
+
+  if pcard_style == null
+    assign pcard_style = settings.pcard_style
+  endif
+
+  # Update default values here also need to update for pcard-color-swatch.liquid
+  assign image_sizes = image_sizes | default: '450px'
+  assign image_widths = '70, 140, 165, 355, 450, 535, 710, 900, 1070, 1420'
+
+  assign color_scheme_first = settings.color_schemes | first
+  assign parent_color_scheme = parent_color_scheme | default: color_scheme_first
+  assign parent_background = parent_color_scheme.settings.background | downcase
+  assign card_background = settings.pcard_color_scheme.settings.background | downcase
+  assign color_inherit = false
+  if parent_background == card_background
+    assign color_inherit = true
+  endif
+
+  if title_line_limit == blank or title_line_limit == 'inherit'
+    assign title_line_limit = settings.pcard_title_line_limit
+  endif
+-%}
+<div
+  class="product-card product-card-style-{{ pcard_style }}{% if pcard_style == 'card' %} color-{{ settings.pcard_color_scheme }}{% endif %}{{ card_wrapper_class }}{% if list_on_mobile %} product-card-list-on-mobile{% endif %}{% if color_inherit %} color-inherit{% endif %}"
+>
+  <div
+    class="product-card__wrapper h-full"
+    data-product-id="{{ product.id }}"
+  >
+    <div class="product-card__image-wrapper{% if second_image == blank %} product-card__image-wrapper--main-only{% endif %} {% if list_on_mobile %}desktop-{% endif %}color-{{ settings.pcard_overlay_color_scheme }} bg-none">
+      <a href="{{ product.url }}" aria-label="{{ product.title | escape }}" tabindex="-1">
+        <motion-element data-motion="zoom-out-sm" class="block">
+          {%- if featured_media -%}
+            {%- unless first_media_type == 'video' or first_media_type == 'external_video' -%}
+              <div
+                class="media-wrapper product-card__image product-card__image--main"
+                style="--aspect-ratio: {{ image_ratio }}"
+              >
+                {%- assign first_image_widths = image_widths | append: ', ' | append: featured_media.width -%}
+                {{
+                  featured_media
+                  | image_url: width: featured_media.width
+                  | image_tag:
+                    loading: loading,
+                    fetchpriority: fetchpriority,
+                    class: 'motion-reduce',
+                    widths: first_image_widths,
+                    sizes: image_sizes,
+                    is: 'image-lazy'
+                }}
+              </div>
+              {%- unless second_image == blank -%}
+                <div
+                  class="media-wrapper product-card__image product-card__image--second inset-full hidden md:block"
+                  style="--aspect-ratio: {{ image_ratio }}"
+                >
+                  {%- assign second_image_widths = image_widths | append: ', ' | append: second_image.width -%}
+                  {{
+                    second_image
+                    | image_url: width: second_image.width
+                    | image_tag:
+                      loading: 'lazy',
+                      class: 'motion-reduce',
+                      widths: second_image_widths,
+                      sizes: image_sizes,
+                      is: 'image-lazy'
+                  }}
+                </div>
+              {%- endunless -%}
+            {%- else -%}
+              <div class="media media--adapt" style="--media-ratio: {{ image_ratio }};">
+                {% render 'video',
+                  video: product.featured_media,
+                  muted: true,
+                  autoplay: true,
+                  loop: true,
+                  cover_image: featured_media,
+                  show_play_button: false
+                %}
+              </div>
+            {%- endunless -%}
+          {%- else -%}
+            <div class="product-card__image product-card__image--main" style="--aspect-ratio: {{ image_ratio }};">
+              {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg' -}}
+            </div>
+          {%- endif -%}
+        </motion-element>
+      </a>
+      {%- render 'pcard-badges', product: product -%}
+      {%- render 'pcard-flash-sale', product: product -%}
+      {%- if enable_quick_view -%}
+        <button
+          class="product-card__quickview btn btn--icon-circle {{ settings.quickview_button_style }} no-js-hidden"
+          aria-label="{{ 'products.product.quick_view' | t }}"
+          aria-controls="{{ quick_view_modal_id }}"
+          aria-haspopup="dialog"
+        >
+          <span class="btn__text flex gap-1 items-center">{%- render 'icon-search', size: 'large' -%}</span>
+        </button>
+      {%- endif -%}
+      {%- if enable_compare_checkbox -%}
+        <compare-checkbox class="product-card__compare hidden">
+          <label
+            data-tooltip="left"
+            class="flex items-center justify-center cursor-pointer"
+            for="CompareCheckbox-{{ section.id }}-{{ block.id }}-{{ product.id }}"
+          >
+            <input
+              id="CompareCheckbox-{{ section.id }}-{{ block.id }}-{{ product.id }}"
+              class="js-compare-checkbox"
+              type="checkbox"
+              name="product-compare"
+              data-product-id="{{ product.id }}"
+              data-product-url="{{ product.url }}"
+            >
+            <span class="tooltip pointer-events-none">{{- 'products.product.compare' | t -}}</span>
+          </label>
+        </compare-checkbox>
+      {%- endif -%}
+    </div>
+    <div class="product-card__info text-{{ settings.pcard_content_alignment }}">
+      <div class="product-card__info-main flex flex-col gap-1">
+        {%- if show_vendor and product.vendor != blank -%}
+          <p class="product-card__vendor text-sm-extra m-0">
+            <a
+              href="{{ product.vendor | url_for_vendor }}"
+              class="reversed-link"
+              aria-label="{{ 'accessibility.vendor' | t }}{{ product.vendor }}"
+            >
+              {{- product.vendor -}}
+            </a>
+          </p>
+        {%- endif -%}
+        {%- if show_type and product.type != blank -%}
+          <p class="product-card__type text-sm-extra m-0">
+            <a
+              href="{{ product.type | url_for_type }}"
+              class="reversed-link"
+              aria-label="{{ 'accessibility.product_type' | t }}{{ product.type }}"
+            >
+              {{- product.type -}}
+            </a>
+          </p>
+        {%- endif -%}
+        <h3 class="product-card__title text-pcard-title">
+          <a
+            class="reversed-link block{% if title_line_limit != 'none' %} text-limit-{{ title_line_limit }}{% endif %}"
+            href="{{ product.url }}"
+          >
+            <span class="reversed-link__text">{{- product.title -}}</span>
+          </a>
+        </h3>
+        {%- if show_price -%}
+          {% render 'price',
+            product: product,
+            use_variant: true,
+            use_price_at_quantity_break_min: true,
+            alignment: settings.pcard_content_alignment
+          %}
+        {%- endif -%}
+        {%- if show_color_swatches -%}
+          {%- render 'pcard-color-swatch',
+            product: product,
+            image_sizes: image_sizes,
+            image_widths: image_widths,
+            enable_quick_view: enable_quick_view,
+            quick_view_modal_id: quick_view_modal_id
+          -%}
+        {%- endif -%}
+        {% render 'pcard-quantity-break', product: product, block_id: block_id %}
+      </div>
+      {%- liquid
+        assign product_form_id = 'product-form-' | append: section.id | append: block.id | append: product.id
+        assign number_variants = product.variants | size
+        assign hide_select = false
+        if product.has_only_default_variant or number_variants == 1 and selected_variant.available == false
+          assign hide_select = true
+        endif
+      -%}
+      {%- form 'product',
+        product,
+        id: product_form_id,
+        class: 'flex items-center justify-center md:justify-start gap-1',
+        data-type: 'add-to-cart-form',
+        data-product-id: product.id,
+        data-product-url: product.url,
+        is: 'product-bundle-selection'
+      -%}
+        {%- if product.quantity_price_breaks_configured? -%}
+          {%- assign cart_qty = cart | item_count_for_variant: selected_variant.id -%}
+          <div id="QuantityForm-{{ block_id }}" class="product-card__quantity hidden">
+            <div class="product-form__quantity">
+              <label class="quantity__label form__label visually-hidden" for="Quantity-{{ block_id }}">
+                <span class="font-body-bolder">{{ 'products.product.quantity.label' | t }}</span>
+              </label>
+              <quantity-input class="quantity" data-section-id="{{ block_id }}" data-product-id="{{ product.id }}">
+                <button class="quantity__button" name="minus" type="button">
+                  <span class="visually-hidden">
+                    {{- 'products.product.quantity.decrease' | t: product: product.title | escape -}}
+                  </span>
+                  {% render 'icon-minus' %}
+                </button>
+                <input
+                  class="quantity__input"
+                  type="number"
+                  name="quantity"
+                  id="Quantity-{{ block_id }}"
+                  data-cart-quantity="{{ cart_qty }}"
+                  step="{{ selected_variant.quantity_rule.increment }}"
+                  value="{{ selected_variant.quantity_rule.min }}"
+                  data-quantity-variant-id="{{ selected_variant.id }}"
+                  data-min="{{ selected_variant.quantity_rule.min }}"
+                  min="{{ selected_variant.quantity_rule.min }}"
+                  {% if selected_variant.quantity_rule.max != null %}
+                    data-max="{{ selected_variant.quantity_rule.max }}"
+                    max="{{ selected_variant.quantity_rule.max }}"
+                  {% endif %}
+                  inputmode="numeric"
+                  autocomplete="off"
+                  form="{{ product_form_id }}"
+                >
+                <button class="quantity__button" name="plus" type="button">
+                  <span class="visually-hidden">
+                    {{- 'products.product.quantity.increase' | t: product: product.title | escape -}}
+                  </span>
+                  {% render 'icon-plus' %}
+                </button>
+              </quantity-input>
+            </div>
+          </div>
+        {%- endif -%}
+        <div class="select{% if hide_select %} hidden{% endif %}">
+          <select
+            name="id"
+            class="form-control form-control--select"
+            aria-label="{{ 'accessibility.select_variant' | t }}"
+          >
+            {%- for variant in product.variants -%}
+              {%- capture option_ids -%}
+                {%- for option in variant.options -%}
+                  {{- option.id -}}{%- unless forloop.last -%},{%- endunless -%}
+                {%- endfor -%}
+              {%- endcapture -%}
+              <option
+                {% if variant.id == selected_variant.id or number_variants == 1 %}
+                  selected="selected"
+                {% endif %}
+                {% if variant.available == false %}
+                  disabled="disabled"
+                {% endif %}
+                value="{{ variant.id }}"
+                data-price="{{ variant.price }}"
+                data-options-id="{{ option_ids }}"
+              >
+                {{ variant.title }}
+                {%- if variant.available == false %} - {{ 'products.product.sold_out' | t }}{% endif -%}
+              </option>
+            {%- endfor -%}
+          </select>
+          {%- render 'icon-caret-down', size: '2xs' -%}
+        </div>
+        <div class="product-form__buttons flex items-center flex-grow">
+          <button
+            type="submit"
+            name="add"
+            class="product-form__submit btn btn--secondary w-full"
+            {% if selected_variant.available == false %}
+              disabled
+            {% endif %}
+          >
+            <span class="btn__text">
+              {%- if selected_variant.available -%}
+                {{ 'products.product.add_to_cart_short' | t }}
+              {%- else -%}
+                {{ 'products.product.sold_out' | t }}
+              {%- endif -%}
+            </span>
+          </button>
+        </div>
+      {%- endform -%}
+    </div>
+  </div>
+  {%- if settings.pcard_choose_options_actions == 'open_popup' or enable_quick_view -%}
+    {% render 'quick-view-modal', modal_id: quick_view_modal_id, product: product %}
+  {%- endif -%}
+</div>

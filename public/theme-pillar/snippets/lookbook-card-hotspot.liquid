@@ -1,0 +1,80 @@
+{% comment %}
+  Usage:
+  {{ 'component-lookbook-card.css' | asset_url | stylesheet_tag }}
+  {% render 'lookbook-card-hotspot',
+    block: block,
+    image: image,
+    image_ratio: image_ratio,
+    icon_style: icon_style,
+    icon_color: icon_color
+  %}
+{% endcomment %}
+
+{%- liquid
+  assign image_ratio = image_ratio
+  if image_ratio == 'adapt'
+    if image != blank
+      assign image_ratio = image.aspect_ratio
+    else
+      assign image_ratio = '3/4'
+    endif
+  endif
+  assign alt = image.alt | default: shop.name | escape
+  assign lookbook_icon_index = 0
+-%}
+
+<div class="lookbook-card block relative z-0">
+  <div
+    class="lookbook-card__media blocks-radius"
+  >
+    <motion-element class="block h-full" data-motion="zoom-out-sm">
+      <picture
+        class="media-wrapper{% if image == blank %} bg-none{% endif %}"
+        style="--aspect-ratio: {{ image_ratio }};"
+      >
+        {%- if image != blank -%}
+          {{
+            image
+            | image_url: width: 1500
+            | image_tag:
+              loading: 'lazy',
+              class: 'motion-reduce absolute inset-0 w-full h-full',
+              widths: '375, 550, 750, 1100, 1500',
+              is: 'image-lazy',
+              alt: alt
+          }}
+        {%- else -%}
+          {{ 'image' | placeholder_svg_tag: 'placeholder-svg w-full h-full' }}
+        {%- endif -%}
+      </picture>
+    </motion-element>
+  </div>
+
+  {% for i in (1..4) %}
+    {% liquid
+      assign top_key = 'top_' | append: i
+      assign top = block.settings[top_key]
+      assign left_key = 'left_' | append: i
+      assign left = block.settings[left_key]
+      assign product_key = 'product_' | append: i
+      assign product = block.settings[product_key]
+    %}
+
+    {%- capture hotspot_style -%}
+      --top: {{ top }}%; --left: {{ left }}%;
+    {%- endcapture -%}
+    {% if product != blank %}
+      {% render 'lookbook-icon',
+        section_settings: section.settings,
+        block: block,
+        hotspot_style: hotspot_style,
+        use_product: true,
+        product: product,
+        lookbook_icon_index: lookbook_icon_index,
+        icon_style: icon_style,
+        icon_color: icon_color
+      %}
+      {%- assign lookbook_icon_index = lookbook_icon_index | plus: 1 -%}
+    {% endif %}
+  {% endfor %}
+</div>

@@ -1,0 +1,81 @@
+{%- if localization.available_countries.size > 1 -%}
+  {% comment %} <link rel="stylesheet" href="{{ 'component-country-flag.css' | asset_url }}" media="print" onload="this.media='all'"> {% endcomment %}
+  <style>
+    .f-country-flags {
+      --flag-size: 2rem;
+      background-image: var(--background-image);
+      width: var(--flag-size);
+      height: var(--flag-size);
+      flex-shrink: 0;
+      display: inline-block;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    .f-country-flags::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      box-shadow: inset 0 0 0.2rem rgba(var(--color-foreground), 0.3);
+      border-radius: 50%;
+    }
+  </style>
+  {% liquid
+    unless form_id
+      assign random_number = 'now' | date: '%N' | modulo: 10 | plus: 25
+      assign form_id = 'country-' | append: random_number
+    endunless
+  %}
+  <div class="country-switcher {{ class }} no-js-hidden" style="--f-max-width: 220px">
+    <localization-form
+      class="disclosure no-js-hidden disclosure--{{ position | default: 'down' }}{% if plain == true %} disclosure--plain{% endif %}"
+      data-disclosure-country
+    >
+      {%- form 'localization', class: 'selectors-form', id: form_id, data-disclosure-form: '' -%}
+        <h2 class="visually-hidden" id="CountryLabel-{{ form_id }}">
+          {{- 'localization.country_label' | t -}}
+        </h2>
+        <button
+          type="button"
+          class="disclosure__toggle{% if plain == true %} btn--plain{% endif %} text-normal font-body"
+          aria-expanded="false"
+          aria-controls="country-list"
+          aria-describedby="CountryLabel-{{ form_id }}"
+          data-disclosure-toggle
+        >
+          <span class="f-country-flags f-country-flags--{{ localization.country.iso_code }}" style="--background-image: url({{ localization.country | image_url: width: 20 }})"></span>
+          {{ localization.country.name }} ({{ localization.country.currency.iso_code }}
+          {{ localization.country.currency.symbol }})
+          {% render 'icon-caret-up' %}
+        </button>
+        <ul class="disclosure-list v-scrollable text-left">
+          {%- for country in localization.available_countries -%}
+            <li class="disclosure-list__item{% if country.iso_code == localization.country.iso_code %} disclosure-list__item--current{% endif %}">
+              <a
+                class="disclosure-list__option"
+                href="#"
+                {% if country.iso_code == localization.country.iso_code %}
+                  aria-current="true"
+                {% endif %}
+                data-value="{{ country.iso_code }}"
+                data-disclosure-option
+              >
+                <span class="f-country-flags f-country-flags--{{ country.iso_code }}" style="--background-image: url({{ country | image_url: width: 20 }})"></span>
+                {{- country.name -}}
+                <span class="localization-form__currency"
+                  >({{ country.currency.iso_code }}
+                  {{ country.currency.symbol }})</span
+                >
+              </a>
+            </li>
+          {%- endfor -%}
+        </ul>
+        <input type="hidden" name="country_code" value="{{ localization.country.iso_code }}" data-disclosure-input>
+      {%- endform -%}
+    </localization-form>
+  </div>
+{%- endif -%}

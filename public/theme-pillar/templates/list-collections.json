@@ -1,0 +1,1061 @@
+{
+  "sections": {
+    "breadcrumbs_Eqt34R": {
+      "type": "breadcrumbs",
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "start",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "main": {
+      "type": "main-list-collections",
+      "disabled": true,
+      "settings": {
+        "container": "fixed",
+        "sort": "alphabetical",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "title": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "card_color_scheme": "",
+        "card_style": "card",
+        "card_heading_size": "text-base",
+        "card_image_ratio": "adapt",
+        "card_image_width": "full",
+        "rounded_card_image": false,
+        "card_show_border": false,
+        "collections_per_page": 18,
+        "columns_desktop": 6,
+        "column_gap": "medium",
+        "row_gap": "inherit",
+        "grid_bordered": false,
+        "columns_mobile": "1",
+        "padding_top": 0,
+        "padding_bottom": 0
+      }
+    },
+    "collection_list_H8m8LH": {
+      "type": "collection-list",
+      "blocks": {
+        "featured_collection_btEHUn": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_J7Lc8C": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_ymy4XT": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_DJWrVM": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_mg7mNM": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_HnfwK8": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_ard43q": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_riYnHX": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_AkejX9": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_8FihrC": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_LfFA6J": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_CBeWVT": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_cadMke": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "featured_collection_GTNzXV": {
+          "type": "featured_collection",
+          "settings": {
+            "title": ""
+          }
+        }
+      },
+      "block_order": [
+        "featured_collection_btEHUn",
+        "featured_collection_J7Lc8C",
+        "featured_collection_ymy4XT",
+        "featured_collection_DJWrVM",
+        "featured_collection_mg7mNM",
+        "featured_collection_HnfwK8",
+        "featured_collection_ard43q",
+        "featured_collection_riYnHX",
+        "featured_collection_AkejX9",
+        "featured_collection_8FihrC",
+        "featured_collection_LfFA6J",
+        "featured_collection_CBeWVT",
+        "featured_collection_cadMke",
+        "featured_collection_GTNzXV"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "Shop By Category",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--underline",
+        "button_icon": "none",
+        "card_color_scheme": "",
+        "card_style": "card",
+        "card_heading_size": "text-base",
+        "card_image_ratio": "1/1",
+        "card_image_width": "full",
+        "rounded_card_image": false,
+        "card_show_border": true,
+        "columns_desktop": 7,
+        "column_gap": "2xs",
+        "row_gap": "inherit",
+        "grid_bordered": false,
+        "columns_mobile": "2",
+        "swipe_on_mobile": true,
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "image_cards_yE4iNg": {
+      "type": "image-cards",
+      "blocks": {
+        "image_card_qWmweQ": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-top-subheading",
+            "content_alignment": "left",
+            "content_spacing": "extra-small",
+            "content_gap": "fitted",
+            "subheading": "chino pant",
+            "subheading_style": "thick-border",
+            "heading": "Chino Pant",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": false,
+            "badge_color_scheme": "",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "99$",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "enable_preload_image": false
+          }
+        },
+        "image_card_qfyxnQ": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-top-subheading",
+            "content_alignment": "left",
+            "content_spacing": "extra-small",
+            "content_gap": "fitted",
+            "subheading": "sweaters",
+            "subheading_style": "thick-border",
+            "heading": "Retro Sweaters",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": false,
+            "badge_color_scheme": "",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "99$",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "enable_preload_image": false
+          }
+        },
+        "image_card_rR69wD": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-top-subheading",
+            "content_alignment": "left",
+            "content_spacing": "extra-small",
+            "content_gap": "fitted",
+            "subheading": "Puffers",
+            "subheading_style": "thick-border",
+            "heading": "Cotton Made",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": false,
+            "badge_color_scheme": "",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "99$",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "enable_preload_image": false
+          }
+        },
+        "image_card_4XqbBT": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-top-subheading",
+            "content_alignment": "left",
+            "content_spacing": "extra-small",
+            "content_gap": "fitted",
+            "subheading": "shorts",
+            "subheading_style": "thick-border",
+            "heading": "Casual Shorts",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": false,
+            "badge_color_scheme": "",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "99$",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "enable_preload_image": false
+          }
+        },
+        "image_card_yGtdar": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-top-subheading",
+            "content_alignment": "left",
+            "content_spacing": "extra-small",
+            "content_gap": "fitted",
+            "subheading": "Flannel",
+            "subheading_style": "thick-border",
+            "heading": "Made Cotton",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": false,
+            "badge_color_scheme": "",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "99$",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "enable_preload_image": false
+          }
+        },
+        "image_card_X8ixUP": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-top-subheading",
+            "content_alignment": "left",
+            "content_spacing": "extra-small",
+            "content_gap": "fitted",
+            "subheading": "Tees",
+            "subheading_style": "thick-border",
+            "heading": "Souvenir Tee",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": false,
+            "badge_color_scheme": "",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "99$",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "enable_preload_image": false
+          }
+        }
+      },
+      "block_order": [
+        "image_card_qWmweQ",
+        "image_card_qfyxnQ",
+        "image_card_rR69wD",
+        "image_card_4XqbBT",
+        "image_card_yGtdar",
+        "image_card_X8ixUP"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "Explore Popular Collections",
+        "highlight_style": "thick_underline",
+        "highlight_font_style": "normal",
+        "highlight_style_color": "#ffe093",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "description_size": "text-sm",
+        "columns_desktop": 4,
+        "column_gap": "2xs",
+        "row_gap": "inherit",
+        "enable_slider": true,
+        "content_overflow": true,
+        "navigation_position": "bottom",
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "show_progress_bar": false,
+        "padding_top": 60,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "full"
+      }
+    },
+    "promotion_banner_8FWhnd": {
+      "type": "promotion-banner",
+      "blocks": {
+        "subheading_XUNNtC": {
+          "type": "subheading",
+          "settings": {
+            "subheading": "The Last Chance",
+            "subheading_icon": "none"
+          }
+        },
+        "timer_fQnrcx": {
+          "type": "timer",
+          "settings": {
+            "type": "evergreen",
+            "number_size": "h1",
+            "duration": "every_month",
+            "time": "2025/06/28 03:45 PM"
+          }
+        },
+        "text_4r64VC": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Save on trendy clothing, best sellers + more</p>",
+            "text_color": "base-text"
+          }
+        },
+        "code_QHfAXq": {
+          "type": "code",
+          "settings": {
+            "discount_code": "FLASH30",
+            "button_label": "Copy Code: FLASH30",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "subheading_XUNNtC",
+        "timer_fQnrcx",
+        "text_4r64VC",
+        "code_QHfAXq"
+      ],
+      "custom_css": [
+        ".rich-text__text {max-width: 22rem;}"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-3",
+        "layout": "horizontal",
+        "content_alignment": "center",
+        "content_alignment_mobile": "center",
+        "padding_top": 40,
+        "padding_bottom": 0
+      }
+    },
+    "featured_collection_jPWYQD": {
+      "type": "featured-collection",
+      "blocks": {
+        "collection_kfyFnm": {
+          "type": "collection",
+          "settings": {
+            "title": "New Arrivals",
+            "show_banner": false,
+            "color_scheme": "",
+            "card_link": "",
+            "image_overlay_opacity": 0,
+            "content_position": "top-left",
+            "content_alignment": "left",
+            "subheading": "",
+            "subheading_style": "",
+            "heading": "Collections",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "text_size": "text-base",
+            "button_label": "Button label",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "collection_ekKcnR": {
+          "type": "collection",
+          "settings": {
+            "title": "Hot Items",
+            "show_banner": false,
+            "color_scheme": "",
+            "card_link": "",
+            "image_overlay_opacity": 0,
+            "content_position": "top-left",
+            "content_alignment": "left",
+            "subheading": "",
+            "subheading_style": "",
+            "heading": "Collections",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "text_size": "text-base",
+            "button_label": "Button label",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "collection_8ziHc6": {
+          "type": "collection",
+          "settings": {
+            "title": "Best Sellers",
+            "show_banner": false,
+            "color_scheme": "",
+            "card_link": "",
+            "image_overlay_opacity": 0,
+            "content_position": "top-left",
+            "content_alignment": "left",
+            "subheading": "",
+            "subheading_style": "",
+            "heading": "Collections",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "text_size": "text-base",
+            "button_label": "Button label",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "collection_kfyFnm",
+        "collection_ekKcnR",
+        "collection_8ziHc6"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "The Winter Lineup",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--underline",
+        "button_icon": "none",
+        "limit": 10,
+        "columns": 5,
+        "column_gap": "medium",
+        "row_gap": "inherit",
+        "enable_slider": false,
+        "content_overflow": true,
+        "navigation_position": "bottom",
+        "pcard_image_ratio": "",
+        "columns_mobile": "2",
+        "swipe_on_mobile": true,
+        "show_progress_bar": false,
+        "padding_top": 40,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "custom_content_GRAteK": {
+      "type": "custom-content",
+      "blocks": {
+        "image_card_p46rfA": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-bottom-button",
+            "content_alignment": "left",
+            "content_spacing": "small",
+            "content_gap": "fitted",
+            "subheading": "warm greetings",
+            "subheading_style": "",
+            "heading": "Fleece Favorites",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h1",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": true,
+            "badge_color_scheme": "scheme-8",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "30%",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "width": "50%",
+            "alignment": "center",
+            "block_custom_class": "",
+            "enable_preload_image": false
+          }
+        },
+        "image_card_adeKLe": {
+          "type": "image_card",
+          "settings": {
+            "color_scheme": "scheme-inverse",
+            "image_ratio": "adapt",
+            "image_overlay_opacity": 30,
+            "content_position": "split-bottom-button",
+            "content_alignment": "left",
+            "content_spacing": "small",
+            "content_gap": "fitted",
+            "subheading": "holiday ‘24 collection",
+            "subheading_style": "",
+            "heading": "Lived & Loved",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h1",
+            "heading_size_mobile": "inherit",
+            "heading_size_custom": 18,
+            "description": "",
+            "button_label": "Shop Now",
+            "button_style": "btn--primary",
+            "button_icon": "none",
+            "show_badge": true,
+            "badge_color_scheme": "scheme-8",
+            "badge_shape": "circle",
+            "badge_position": "top-right",
+            "badge_subtext": "Save",
+            "badge_text": "30%",
+            "color_scheme_mobile": "scheme-inverse",
+            "show_text_below": false,
+            "content_alignment_mobile": "left",
+            "width": "50%",
+            "alignment": "center",
+            "block_custom_class": "",
+            "enable_preload_image": false
+          }
+        }
+      },
+      "block_order": [
+        "image_card_p46rfA",
+        "image_card_adeKLe"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "enable_sticky_column": false,
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h1",
+        "description": "",
+        "text_size": "text-base",
+        "column_gap": "2xs",
+        "row_gap": "large",
+        "swipe_on_mobile": false,
+        "columns_mobile": "1",
+        "padding_top": 60,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "collection_cards_idHrAj": {
+      "type": "collection-cards",
+      "blocks": {
+        "collection_EyznYc": {
+          "type": "collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "collection_bTCHFP": {
+          "type": "collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "collection_Fw4rGR": {
+          "type": "collection",
+          "settings": {
+            "title": "Hats"
+          }
+        },
+        "collection_KNqDEV": {
+          "type": "collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "collection_HGEKPf": {
+          "type": "collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "collection_pwgi3p": {
+          "type": "collection",
+          "settings": {
+            "title": ""
+          }
+        },
+        "collection_GhjrBi": {
+          "type": "collection",
+          "settings": {
+            "title": "Pants"
+          }
+        }
+      },
+      "block_order": [
+        "collection_EyznYc",
+        "collection_bTCHFP",
+        "collection_Fw4rGR",
+        "collection_KNqDEV",
+        "collection_HGEKPf",
+        "collection_pwgi3p",
+        "collection_GhjrBi"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "Shop By Campaign",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "text_size": "text-sm",
+        "columns_desktop": 4,
+        "column_gap": "medium",
+        "row_gap": "inherit",
+        "enable_slider": true,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "card_color_scheme": "scheme-12",
+        "image_ratio": "3/4",
+        "show_product_count": true,
+        "padding_top": 60,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "rich_text_mGby8X": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_WTnT4q": {
+          "type": "heading",
+          "settings": {
+            "heading": "About Mason",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h3"
+          }
+        },
+        "text_E3qLUr": {
+          "type": "text",
+          "settings": {
+            "text": "<p>From classic cotton and wool to advanced performance fabrics like spandex blends and moisture-wicking synthetics, each material brings its own advantages—softness, durability, breathability, or stretch. These choices shape not just how clothing feels, but how it functions in daily life.<br/></p><p>Selecting apparel goes beyond chasing trends; it’s about curating a wardrobe that reflects your personality while balancing comfort, practicality, and style. Minimalist pieces offer clean elegance, while retro prints, bold patterns, or textured knits speak to a more expressive taste. Whether you’re drawn to timeless staples or eye-catching statements, understanding fabric and form helps you choose clothing, hats, and socks that match your lifestyle and individuality.</p>",
+            "text_size": "text-base",
+            "text_line_limit": "5-lines",
+            "button_style": "btn--underline",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "heading_WTnT4q",
+        "text_E3qLUr"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-11",
+        "use_color_scheme_in_container": true,
+        "content_spacing": "standard",
+        "content_alignment": "left",
+        "padding_top": 60,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "buttons_with_icon_T4hV9C": {
+      "type": "buttons-with-icon",
+      "blocks": {
+        "button_item_4VEFYE": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Eco knit Cardigan",
+            "icon": "none"
+          }
+        },
+        "button_item_pQgVPP": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Cashmere Sweater",
+            "icon": "check"
+          }
+        },
+        "button_item_ihgiKk": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Dresses & Skirts",
+            "icon": "check"
+          }
+        },
+        "button_item_Gk4RJd": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Cold Weather",
+            "icon": "check"
+          }
+        },
+        "button_item_AQLJtE": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Cold Weather",
+            "icon": "check"
+          }
+        },
+        "button_item_jrmHmw": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Accessories",
+            "icon": "check"
+          }
+        },
+        "button_item_7qNBnx": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Fleece Jackets",
+            "icon": "check"
+          }
+        },
+        "button_item_hi7hPU": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Shorts",
+            "icon": "check"
+          }
+        },
+        "button_item_xVibpH": {
+          "type": "button_item",
+          "settings": {
+            "button_label": "Graphic Tees",
+            "icon": "check"
+          }
+        }
+      },
+      "block_order": [
+        "button_item_4VEFYE",
+        "button_item_pQgVPP",
+        "button_item_ihgiKk",
+        "button_item_Gk4RJd",
+        "button_item_AQLJtE",
+        "button_item_jrmHmw",
+        "button_item_7qNBnx",
+        "button_item_hi7hPU",
+        "button_item_xVibpH"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-12",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "Explore Popular Search",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "item_alignment": "left",
+        "item_button_style": "btn--icon",
+        "item_button_font": "button",
+        "enable_slider": true,
+        "swipe_on_mobile": true,
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 60,
+        "padding_bottom": 60
+      }
+    },
+    "scrolling_promotion_xUVnGr": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "text_AVXdcR": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_9iXhEj": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_mKrceG": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_36qhNV": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_VebcNw": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_BgMmVc": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        }
+      },
+      "block_order": [
+        "text_AVXdcR",
+        "text_9iXhEj",
+        "text_mKrceG",
+        "text_36qhNV",
+        "text_VebcNw",
+        "text_BgMmVc"
+      ],
+      "settings": {
+        "color_scheme": "scheme-3",
+        "direction": "left",
+        "pause_on_hover": true,
+        "speed": 0.2,
+        "h_spacing": 80,
+        "show_section_divider": false,
+        "padding_top": 16,
+        "padding_bottom": 16
+      }
+    }
+  },
+  "order": [
+    "breadcrumbs_Eqt34R",
+    "main",
+    "collection_list_H8m8LH",
+    "image_cards_yE4iNg",
+    "promotion_banner_8FWhnd",
+    "featured_collection_jPWYQD",
+    "custom_content_GRAteK",
+    "collection_cards_idHrAj",
+    "rich_text_mGby8X",
+    "buttons_with_icon_T4hV9C",
+    "scrolling_promotion_xUVnGr"
+  ]
+}

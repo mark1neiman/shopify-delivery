@@ -1,0 +1,165 @@
+{%- liquid
+  assign collection_title = title | default: collection.title
+  assign default_label = 'onboarding.collection_title' | t
+  assign collection_title_default = collection_title | default: default_label
+
+  unless featured_image
+    if collection.image
+      assign featured_image = collection.image
+    else
+      assign featured_image = collection.products.first.featured_media.preview_image
+    endif
+  endunless
+
+  assign image_ratio = image_ratio | default: 'adapt'
+  if image_ratio == 'adapt'
+    if featured_image != blank
+      assign image_ratio = featured_image.aspect_ratio
+    else
+      assign image_ratio = '1'
+    endif
+  endif
+
+  if image_sizes == blank
+    if image_width == 'medium'
+      assign image_sizes = '(max-width:767px) 60px, 80px'
+    elsif image_width == 'large'
+      assign image_sizes = '(max-width:767px) 70px, 120px'
+    else
+      assign image_sizes = '450px'
+    endif
+  endif
+-%}
+
+<div class="collection-item h-full blocks-radius color-{{ color_scheme }}">
+  <div class="collection-item__wrapper flex flex-col gap-3 lg:gap-5">
+    <div class="collection-item--gallery">
+      <div class="collection-item--main flex-1">
+        <div class="media-wrapper hover-wrapper blocks-radius{% if featured_image == blank %} bg-none{% endif %}">
+          <motion-element data-motion="zoom-out-sm" class="block">
+            {%- if featured_image != blank -%}
+              <a
+                {% if collection != blank %}
+                  href="{{ collection.url }}"
+                {% else %}
+                  role="link" aria-disabled="true"
+                {% endif %}
+                {% unless featured_image != blank %}
+                  aria-label="{{ collection_title_default }}"
+                {% endunless %}
+                style="--aspect-ratio: {{ image_ratio }};"
+                class="block"
+              >
+                {%- liquid
+                  assign image_widths = '60, 70, 80, 120, 140, 160, 240, 320, 450, 535, 710, 800, 900,' | append: featured_image.width
+                  assign alt_image = featured_image.alt | default: collection_title_default | escape
+                -%}
+                {{
+                  featured_image
+                  | image_url: width: featured_image.width
+                  | image_tag:
+                    loading: 'lazy',
+                    class: 'motion-reduce hover-scale-up',
+                    widths: image_widths,
+                    sizes: image_sizes,
+                    is: 'image-lazy',
+                    alt: alt_image
+                }}
+              </a>
+            {%- else -%}
+              <div class="collection-item__placeholder hover-scale-up">
+                {{ 'collection-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
+              </div>
+            {%- endif -%}
+          </motion-element>
+        </div>
+      </div>
+      <div class="collection-item--thumb grid gap-1">
+        {%- assign metafield_images = collection.metafields.foxtheme['collection-thumbnails'].value -%}
+        {%- assign thumb_count = 0 -%}
+        {%- assign image_widths = '60, 70, 80, 120, 140,' | append: featured_image.width -%}
+
+        {%- if collection == blank or collection.all_products_count == 0 -%}
+          {%- for i in (1..3) -%}
+            <div class="flex-1 overflow-hidden relative blocks-radius hover-wrapper">
+              <div class="collection-item__placeholder hover-scale-up">
+                {{ 'product-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
+              </div>
+            </div>
+          {%- endfor -%}
+        {%- else -%}
+          {%- for image in metafield_images limit: 3 -%}
+            <div class="flex-1 overflow-hidden relative blocks-radius hover-wrapper">
+              {{
+                image
+                | image_url: width: featured_image.width
+                | image_tag:
+                  loading: 'lazy',
+                  class: 'motion-reduce hover-scale-up',
+                  widths: image_widths,
+                  sizes: image_sizes,
+                  is: 'image-lazy',
+                  alt: collection_title_default
+              }}
+            </div>
+            {%- assign thumb_count = thumb_count | plus: 1 -%}
+          {%- endfor -%}
+
+          {%- if thumb_count < 3 -%}
+            {%- assign remaining_thumbs = 3 | minus: thumb_count -%}
+            {%- for product in collection.products limit: remaining_thumbs -%}
+              {%- unless metafield_images[forloop.index0] -%}
+                <a
+                  href="{{ product.url }}"
+                  role="link"
+                  aria-disabled="true"
+                  aria-label="{{ product.title }}"
+                  class="flex-1 overflow-hidden relative blocks-radius hover-wrapper"
+                >
+                  {{
+                    product.featured_media.preview_image
+                    | image_url: width: featured_image.width
+                    | image_tag:
+                      loading: 'lazy',
+                      class: 'motion-reduce hover-scale-up',
+                      widths: image_widths,
+                      sizes: image_sizes,
+                      is: 'image-lazy',
+                      alt: product.title
+                  }}
+                </a>
+                {%- assign thumb_count = thumb_count | plus: 1 -%}
+              {%- endunless -%}
+            {%- endfor -%}
+          {%- endif -%}
+        {%- endif -%}
+      </div>
+    </div>
+    <div class="flex flex-row items-center gap-3">
+      <div class="flex flex-1 flex-col gap-1">
+        <h3 class="font-semibold text-lg">{{ collection_title_default }}</h3>
+        {% if show_product_count %}
+          <p class="text-base text-subtext m-0">
+            {{ collection.all_products_count | default: 0 }}
+            {{ 'collections.general.items' | t }}
+          </p>
+        {% endif %}
+      </div>
+      <a
+        {% if collection != blank %}
+          href="{{ collection.url }}"
+        {% else %}
+          role="link" aria-disabled="true"
+        {% endif %}
+        class="btn btn--primary btn--small"
+        {% unless featured_image != blank %}
+          aria-label="{{ collection_title_default }}"
+        {% endunless %}
+      >
+        <span class="btn__text flex gap-1 items-center">
+          {{- 'products.product.shop' | t -}}
+        </span>
+      </a>
+    </div>
+  </div>
+</div>

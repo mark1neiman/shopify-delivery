@@ -1,0 +1,46 @@
+{%- if settings.enable_product_compare -%}
+  <compare-bar class="compare-bar left-0 right-0 z-10 page-width color-{{ settings.overlay_color_scheme }}">
+    <div class="compare-bar__inner flex flex-wrap md:flex-nowrap items-center gap-x-6">
+      <div class="compare-bar__actions-wrap flex md:order-last items-center justify-between gap-x-6 shrink-0 flex-grow">
+        <div class="compare-bar__count shrink-0 flex">
+          {{- 'products.product.compare' | t -}}
+          &nbsp;(<span class="compare-bar__counter">0</span
+          ><span class="total">/{{ settings.max_products_in_compare }}</span>)
+        </div>
+        <div class="compare-bar__actions flex items-center gap-3 shrink-0">
+          <button
+            class="compare-bar__open btn btn--primary"
+            aria-controls="CompareDrawer"
+            aria-haspopup="dialog"
+            disabled
+          >
+            <span class="btn__text flex gap-1 items-center">{{- 'products.product.compare' | t -}}</span>
+          </button>
+          <button
+            class="compare-bar__toggle-list btn--plain inline-flex md:hidden relative"
+            aria-label="{{ 'products.compare.toggle_compare_list' | t }}"
+          >
+            {%- render 'icon-caret-up', size: 'medium' -%}
+          </button>
+          <button class="hidden md:inline-flex compare-bar__clear btn btn--link">
+            {{- 'products.facets.clear_all' | t -}}
+          </button>
+        </div>
+      </div>
+      <div class="compare-bar__list-wrap h-scrollable h-scrollable--nice">
+        <ul class="compare-bar__list inline-flex items-center gap-3 no-empty">
+          <li class="compare-bar__item compare-bar__item-placeholder"></li>
+          <li class="compare-bar__item compare-bar__item-placeholder"></li>
+          <li class="compare-bar__item compare-bar__item-placeholder"></li>
+          <li class="compare-bar__item compare-bar__item-placeholder"></li>
+          <li class="compare-bar__item compare-bar__item-placeholder"></li>
+        </ul>
+      </div>
+      <div class="compare-bar__clear-mobile w-full flex md:hidden justify-end">
+        <button class="compare-bar__clear btn btn--link">
+          {{- 'products.facets.clear_all' | t -}}
+        </button>
+      </div>
+    </div>
+  </compare-bar>
+{%- endif -%}

@@ -1,0 +1,51 @@
+.stf-card__avatar {
+  width: 4rem;
+}
+.stf-card__info {
+  margin-block-end: 1.2rem;
+}
+.stf-card__product {
+  --buttons-width: 3.2rem;
+  margin-block-start: 1.6rem;
+}
+@media (max-width: 767.98px) {
+  .stf-card__product {
+    margin-block-start: 1.2rem;
+  }
+}
+.stf-card__product-media {
+  width: 4rem;
+}
+.stf-card--has-bg {
+  padding: 1.6rem;
+}
+@media (max-width: 767.98px) {
+  .stf-card--has-bg {
+    padding: 1.2rem;
+  }
+}
+.stf-card__play-button {
+  width: 6rem;
+  aspect-ratio: 1;
+  color: rgb(var(--color-button-text));
+  background-color: rgba(var(--color-button), 0.3);
+}
+.stf-card__image {
+  opacity: 1;
+  transition: 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stf-card__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.stf-card__video {
+  opacity: 0;
+  transition: 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stf-card.is-hovering:has(.stf-card__video[loaded]) .stf-card__video {
+  opacity: 1;
+}
+.stf-card.is-hovering:has(.stf-card__video[loaded]) .stf-card__image {
+  opacity: 0;
+}

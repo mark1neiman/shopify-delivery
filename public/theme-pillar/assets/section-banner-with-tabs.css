@@ -1,0 +1,175 @@
+.banner-with-tabs .media--adapt {
+  height: 100%;
+}
+.banner-with-tabs__tabs {
+  --header-padding-bottom: 2.4rem;
+  --header-padding-bottom-mobile: 1.6rem;
+}
+.banner-with-tabs__tabs.tabs__header {
+  margin-bottom: 0;
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs__tabs.tabs__header {
+    width: 100%;
+  }
+}
+.banner-with-tabs__tabs .tabs__nav-wrap {
+  position: relative;
+}
+.banner-with-tabs__tabs .tabs__nav-wrap:before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  width: 0.2rem;
+  height: 100%;
+  background-color: rgba(var(--color-foreground), 0.2);
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs__tabs .tabs__nav-wrap {
+    white-space: nowrap;
+    justify-content: unset;
+    max-width: unset;
+    --f-column-gap: .8rem;
+  }
+  .banner-with-tabs__tabs .tabs__nav-wrap:before {
+    display: none;
+  }
+}
+.banner-with-tabs__tabs .tabs__tab {
+  --buttons-gap: 1.6rem;
+  color: rgba(var(--color-foreground), 0.5);
+  padding-block: 1.6rem;
+  padding-inline-start: 1.2rem;
+}
+.banner-with-tabs__tabs .tabs__tab:after {
+  display: none;
+}
+.banner-with-tabs__tabs .tabs__tab:before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0;
+  width: 0.2rem;
+  height: 100%;
+  background-color: rgba(var(--color-foreground), 1);
+  opacity: 0;
+  transition: all 0.4s;
+}
+.banner-with-tabs__tabs .tabs__tab[aria-selected=true] {
+  color: rgba(var(--color-foreground), 1);
+}
+.banner-with-tabs__tabs .tabs__tab[aria-selected=true]:before {
+  opacity: 1;
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs__tabs .tabs__tab {
+    --buttons-gap: .8rem;
+    --buttons-border-width: 0.1rem;
+    height: var(--buttons-height);
+    padding-inline: 1.6rem !important;
+    border-radius: var(--buttons-radius, 0);
+    border: var(--buttons-border-width) solid rgba(var(--color-foreground), 0.5) !important;
+  }
+  .banner-with-tabs__tabs .tabs__tab .btn__icon {
+    --icon-size: 2rem;
+  }
+  .banner-with-tabs__tabs .tabs__tab[aria-selected=true] {
+    background: rgb(var(--color-button)) !important;
+    border-color: rgb(var(--color-button)) !important;
+    color: rgb(var(--color-button-text));
+  }
+  .banner-with-tabs__tabs .tabs__tab[aria-selected=true]:before {
+    opacity: 1;
+  }
+  .banner-with-tabs__tabs .tabs__tab:before {
+    display: none;
+  }
+}
+.banner-with-tabs__tabs .tabs__tab-name {
+  color: inherit;
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs__tabs .tabs__tab-name {
+    font-size: var(--font-body-size);
+  }
+}
+.banner-with-tabs__cards {
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .banner-with-tabs__cards {
+    width: var(--card-width, clamp(24.5rem, 17vw, 31rem));
+    max-width: 100%;
+  }
+}
+.banner-with-tabs__cards .card-media--boxed {
+  height: 100%;
+}
+.banner-with-tabs__cards .tabs__content {
+  opacity: var(--card-opacity, 0.4);
+  transform: var(--card-transform);
+  z-index: var(--card-z-index);
+  transition: all 0.5s ease-in-out;
+}
+.banner-with-tabs__cards .tabs__content.active {
+  opacity: 1 !important;
+  transform: none !important;
+  z-index: 9 !important;
+}
+.banner-with-tabs__cards .tabs__content.active .card-media__content {
+  opacity: 1;
+}
+@media (min-width: 768px) {
+  .banner-with-tabs__cards .tabs__content .card-media__content {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs__cards .tabs__content {
+    transform: none !important;
+  }
+}
+.banner-with-tabs__content {
+  background: transparent;
+  padding-block: 4.8rem;
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs__content {
+    padding-block: 3rem;
+  }
+}
+.banner-with-tabs__banners {
+  min-height: var(--height, auto);
+  height: auto;
+}
+.banner-with-tabs__banner {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.5s ease-in-out;
+}
+.banner-with-tabs__banner.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+@media (max-width: 767.98px) {
+  .banner-with-tabs .mb\:media--adapt {
+    height: 100%;
+  }
+}
+
+.no-js .tabs__nav-wrap {
+  display: none !important;
+}
+.no-js .banner-with-tabs__cards {
+  display: block;
+}
+.no-js .banner-with-tabs__cards .tabs__content {
+  --card-opacity: 1;
+}
+.no-js .banner-with-tabs__cards .card-media__content {
+  opacity: 1;
+}

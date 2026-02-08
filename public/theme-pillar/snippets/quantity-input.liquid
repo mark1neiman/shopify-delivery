@@ -1,0 +1,40 @@
+{% comment %}
+  Quantity input
+
+  Accepts:
+  - min: {Number} Min (optional)
+
+  Usage:
+  {% render 'quantity-input' variant: variant %}
+{% endcomment %}
+
+<quantity-selector class="quantity{% if class != blank %} {{ class }}{% endif %}">
+  <button class="quantity__button" name="minus" type="button">
+    <span class="visually-hidden">
+      {{- 'products.product.quantity.decrease' | t: product: variant.title | escape -}}
+    </span>
+    {% render 'icon-minus' %}
+  </button>
+  <input
+    class="quantity__input"
+    type="number"
+    name="{{ name | default: 'quantity' }}"
+    id="Quantity-{{ section_id | append: index }}"
+    min="{{ min | default: 0 }}"
+    value="{{ value | default: 1 }}"
+    {% if form_id %}
+      form="{{ form_id }}"
+    {% endif %}
+    {% if input_label != blank %}
+      aria-label="{{ 'products.product.quantity.input_label' | t: product: input_label | escape }}"
+    {% endif %}
+    data-index="{{ index | plus: 1 }}"
+    is="quantity-input"
+  >
+  <button class="quantity__button" name="plus" type="button">
+    <span class="visually-hidden">
+      {{- 'products.product.quantity.increase' | t: product: variant.title | escape -}}
+    </span>
+    {% render 'icon-plus' %}
+  </button>
+</quantity-selector>

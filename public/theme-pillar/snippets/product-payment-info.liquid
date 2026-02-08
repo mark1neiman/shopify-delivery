@@ -1,0 +1,30 @@
+{%- if block.settings.heading != blank or block.settings.description != blank or block.settings.show_payment_icons -%}
+  <div class="product__payment-info flex flex-col gap-4 blocks-radius color-{{ block.settings.color_scheme }}">
+    {%- if block.settings.heading != blank -%}
+      <div class="product__promotion-alert-heading {{ block.settings.heading_size }}">
+        {% render 'highlight-text',
+          hl_text: block.settings.heading,
+          hl_style: block.settings.highlight_style,
+          hl_font_style: block.settings.highlight_font_style,
+          hl_style_color: block.settings.highlight_style_color,
+          hl_text_color: block.settings.highlight_text_color
+        %}
+      </div>
+    {%- endif -%}
+    {%- if block.settings.show_payment_icons -%}
+      <span class="visually-hidden">{{ 'general.payment.methods' | t }}</span>
+      <ul class="list flex flex-wrap" role="list">
+        {%- for type in shop.enabled_payment_types -%}
+          <li class="flex items-center">
+            {{ type | payment_type_svg_tag: class: 'icon icon--full-color' }}
+          </li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+    {%- if block.settings.description != blank -%}
+      <div class="product__promotion-alert-heading rte text-subtext">
+        {{ block.settings.description }}
+      </div>
+    {%- endif -%}
+  </div>
+{%- endif -%}

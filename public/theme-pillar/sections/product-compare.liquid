@@ -1,0 +1,295 @@
+<compare-drawer
+  class="drawer drawer--loading modal compare-drawer"
+  id="CompareDrawer"
+  shopify-design-mode
+  hidden
+>
+  <div class="fixed-overlay" aria-controls="CompareDrawer"></div>
+  <div class="drawer__inner color-{{ settings.overlay_color_scheme }}">
+    <button
+      class="drawer__close-btn"
+      aria-controls="CompareDrawer"
+      aria-label="{{ 'accessibility.close' | t }}"
+    >
+      {% render 'icon-close', size: 'large' %}
+    </button>
+    {%- render 'loading-spinner', class: 'loading__spinner drawer__loading-spinner' -%}
+    <div class="drawer__body v-scrollable h-full">
+      <h3 class="compare-drawer__title h3 text-center">{{- 'products.compare.modal_title' | t -}}</h3>
+      <div class="compare-table-container h-scrollable relative z-0">
+        <table class="compare-table text-subtext">
+          {%- for block in section.blocks -%}
+            <tr data-compare-key="{{ block.type }}">
+              <td class="td-label background-1 text-body">
+                {%- case block.type -%}
+                  {%- when 'price' -%}
+                    {{ 'products.product.price.label' | t }}
+                  {%- when 'description' -%}
+                    {{ 'products.product.description' | t }}
+                  {%- when 'vendor' -%}
+                    {{ 'products.product.vendor' | t }}
+                  {%- when 'type' -%}
+                    {{ 'products.product.type' | t }}
+                  {%- when 'variants' -%}
+                    {{ 'products.product.product_variants' | t }}
+                {%- endcase -%}
+              </td>
+            </tr>
+          {%- endfor -%}
+        </table>
+      </div>
+    </div>
+  </div>
+  <template id="MainProduct-compare__rows">
+    <table>
+      <tr>
+        {%- if product != blank -%}
+          {%- for block in section.blocks -%}
+            <td data-compare-key="{{ block.type }}">
+              {%- case block.type -%}
+                {%- when 'info' -%}
+                  {%- liquid
+                    assign featured_media = product.featured_media
+                    if featured_media.media_type == 'model' or featured_media.media_type == 'video'
+                      assign featured_media = product.featured_media.preview_image
+                    endif
+                  -%}
+                  <div class="product-featured-image relative">
+                    <div
+                      class="media-wrapper hover-wrapper blocks-radius{% if settings.compare_show_image_border %} border-thin{% endif %}"
+                      style="--aspect-ratio: 1;"
+                    >
+                      {%- if featured_media -%}
+                        {{
+                          featured_media
+                          | image_url: width: featured_media.width
+                          | image_tag:
+                            loading: 'lazy',
+                            fetchpriority: 'low',
+                            class: 'motion-reduce hover-scale-up',
+                            widths: '170, 340',
+                            sizes: '170px',
+                            is: 'image-lazy'
+                        }}
+                      {%- else -%}
+                        {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg w-full h-full hover-scale-up' -}}
+                      {%- endif -%}
+                    </div>
+                    <button
+                      is="compare-remove"
+                      data-product-id="{{ product.id }}"
+                      class="compare-table--remove btn btn--white"
+                      aria-label="{{ 'products.compare.remove' | t }}"
+                    >
+                      {% render 'icon-close', size: 'extra-small' %}
+                    </button>
+                  </div>
+                  <div class="compare-table__col-info text-center">
+                    <h3 class="text-pcard-title">
+                      <a class="reversed-link block" href="{{ product.url }}">
+                        <span class="reversed-link__text">{{- product.title -}}</span>
+                      </a>
+                    </h3>
+                    {%- if block.settings.show_view_details_button -%}
+                      <a href="{{ product.url }}" class="btn btn--primary btn--small">
+                        <span class="btn__text flex gap-1 items-center">
+                          {{- 'products.product.view_details' | t -}}
+                        </span>
+                      </a>
+                    {%- endif -%}
+                  </div>
+                {%- when 'price' -%}
+                  {% render 'price', product: product %}
+                {%- when 'description' -%}
+                  {%- if product.description != blank -%}
+                    {%- if block.settings.show_view_more_button and block.settings.text_line_limit != 'none' -%}
+                      <read-more
+                        class="read-more__text"
+                        data-toggle-class="text-limit-{{ block.settings.text_line_limit }}"
+                        data-show-text="{{ 'accessibility.view_more' | t }}"
+                        data-hide-text="{{ 'accessibility.view_less' | t }}"
+                      >
+                        <div class="read-more__content rte">
+                          {{- product.description -}}
+                        </div>
+                        <button class="read-more__toggle btn btn--underline">
+                          <span class="btn__text">{{ 'accessibility.view_more' | t }}</span>
+                        </button>
+                      </read-more>
+                    {%- else -%}
+                      <div class="rte text-limit-{{ block.settings.text_line_limit }}">
+                        {{- product.description -}}
+                      </div>
+                    {%- endif -%}
+                  {%- endif -%}
+                {%- when 'vendor' -%}
+                  {{- product.vendor -}}
+                {%- when 'type' -%}
+                  {{- product.type -}}
+                {%- when 'variants' -%}
+                  {%- unless product.has_only_default_variant -%}
+                    {% render 'product-compare-variants', product: product %}
+                  {%- endunless -%}
+              {%- endcase -%}
+            </td>
+          {%- endfor -%}
+        {%- endif -%}
+      </tr>
+    </table>
+  </template>
+  {%- if request.design_mode -%}
+    <template id="MainProduct-compare__placeholder">
+      <table>
+        <tr>
+          {%- for block in section.blocks -%}
+            <td data-compare-key="{{ block.type }}">
+              {%- case block.type -%}
+                {%- when 'info' -%}
+                  <div class="product-featured-image relative">
+                    <div
+                      class="media-wrapper hover-wrapper blocks-radius{% if settings.compare_show_image_border %} border-thin{% endif %}"
+                      style="--aspect-ratio: 1;"
+                    >
+                      {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg w-full h-full hover-scale-up' -}}
+                    </div>
+                    <button
+                      class="compare-table--remove btn btn--white"
+                      aria-label="{{ 'products.compare.remove' | t }}"
+                    >
+                      {% render 'icon-close', size: 'extra-small' %}
+                    </button>
+                  </div>
+                  <div class="compare-table__col-info text-center">
+                    <h3 class="text-pcard-title">
+                      <a class="reversed-link block" role="button">
+                        <span class="reversed-link__text">{{- 'onboarding.product_title' | t -}}</span>
+                      </a>
+                    </h3>
+                    {%- if block.settings.show_view_details_button -%}
+                      <a role="button" class="btn btn--primary btn--small">
+                        <span class="btn__text flex gap-1 items-center">
+                          {{- 'products.product.view_details' | t -}}
+                        </span>
+                      </a>
+                    {%- endif -%}
+                  </div>
+                {%- when 'price' -%}
+                  {% render 'price' %}
+                {%- when 'description' -%}
+                  {%- if block.settings.show_view_more_button and block.settings.text_line_limit != 'none' -%}
+                    <read-more
+                      class="read-more__text"
+                      data-toggle-class="text-limit-{{ block.settings.text_line_limit }}"
+                      data-show-text="{{ 'accessibility.view_more' | t }}"
+                      data-hide-text="{{ 'accessibility.view_less' | t }}"
+                    >
+                      <div class="read-more__content rte">
+                        {{- 'onboarding.product_description' | t -}}
+                      </div>
+                      <button class="read-more__toggle btn btn--underline">
+                        <span class="btn__text">{{ 'accessibility.view_more' | t }}</span>
+                      </button>
+                    </read-more>
+                  {%- else -%}
+                    <div class="rte text-limit-{{ block.settings.text_line_limit }}">
+                      {{- 'onboarding.product_description' | t -}}
+                    </div>
+                  {%- endif -%}
+                {%- else -%}
+                  N/A
+              {%- endcase -%}
+            </td>
+          {%- endfor -%}
+        </tr>
+      </table>
+    </template>
+  {%- endif -%}
+</compare-drawer>
+{% schema %}
+{
+  "name": "t:sections.product-compare.name",
+  "class": "section-group-overlay-product-compare",
+  "blocks": [
+    {
+      "type": "info",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.info.name",
+      "settings": [
+        {
+          "type": "checkbox",
+          "id": "show_view_details_button",
+          "label": "t:sections.product-compare.blocks.info.settings.show_view_details_button.label",
+          "default": true
+        }
+      ]
+    },
+    {
+      "type": "description",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.description.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "text_line_limit",
+          "label": "t:general.text_line_limit.label",
+          "options": [
+            {
+              "value": "none",
+              "label": "t:general.text_line_limit.options__none.label"
+            },
+            {
+              "value": "1-line",
+              "label": "t:general.text_line_limit.options__1.label"
+            },
+            {
+              "value": "2-lines",
+              "label": "t:general.text_line_limit.options__2.label"
+            },
+            {
+              "value": "3-lines",
+              "label": "t:general.text_line_limit.options__3.label"
+            },
+            {
+              "value": "4-lines",
+              "label": "t:general.text_line_limit.options__4.label"
+            },
+            {
+              "value": "5-lines",
+              "label": "t:general.text_line_limit.options__5.label"
+            }
+          ],
+          "default": "3-lines"
+        },
+        {
+          "type": "checkbox",
+          "id": "show_view_more_button",
+          "label": "t:general.show_view_more_button.label",
+          "info": "t:general.show_view_more_button.info",
+          "default": false
+        }
+      ]
+    },
+    {
+      "type": "price",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.price.name"
+    },
+    {
+      "type": "vendor",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.vendor.name"
+    },
+    {
+      "type": "type",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.type.name"
+    },
+    {
+      "type": "variants",
+      "limit": 1,
+      "name": "t:sections.product-compare.blocks.variants.name"
+    }
+  ],
+  "settings": []
+}
+{% endschema %}

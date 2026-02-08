@@ -1,0 +1,36 @@
+<div class="custom-card custom-card--small blocks-radius">
+  <a href="{{ link }}" class="custom-card__wrapper flex flex-col">
+    <div class="custom-card__media media-wrapper hover-wrapper">
+      {{
+        image
+        | image_url: width: 1100
+        | image_tag:
+          loading: 'lazy',
+          class: 'motion-reduce hover-scale-up',
+          widths: '165, 360, 535, 750, 940, 1100',
+          is: 'image-lazy'
+      }}
+    </div>
+    {%- if heading != blank or description != blank -%}
+      <div class="custom-card__info blocks-radius-bottom-left-right md:flex items-center gap-2 z-1">
+        <div class="custom-card__summary flex-1">
+          <h3 class="custom-card__title {{ heading_size }}">{{ heading }}</h3>
+          <div class="text-subtext rte">{{ description }}</div>
+        </div>
+        <button class="btn btn--icon-circle btn--secondary hidden lg:flex" aria-label="{{ heading }}">
+          <svg
+            class="icon icon--medium rtl-flip-x"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path d="M5 15L15 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6.875 5H15V13.125" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    {%- endif -%}
+  </a>
+</div>

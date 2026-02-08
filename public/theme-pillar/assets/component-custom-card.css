@@ -1,0 +1,11 @@
+.custom-card {
+  border: 0.1rem solid rgba(var(--color-border), var(--color-border-alpha, 1));
+}
+.custom-card__info {
+  padding-block: var(--padding-y, 2.4rem);
+  padding-inline: var(--padding-x, 2.4rem);
+}
+.custom-card--small {
+  --padding-y: 1.6rem;
+  --padding-x: 1.6rem;
+}

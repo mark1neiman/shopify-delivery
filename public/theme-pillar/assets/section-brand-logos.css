@@ -1,0 +1,90 @@
+.brand-logos .grid-bordered {
+  overflow: hidden;
+  position: relative;
+}
+.brand-logos .grid-bordered:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(var(--color-border), var(--color-border-alpha, 1));
+  border-radius: inherit;
+}
+.brand-logos .grid-bordered .f-grid {
+  --f-column-gap: 0 !important;
+  --f-row-gap: 0 !important;
+  --f-row-gap-mobile: 0 !important;
+  --f-column-gap-mobile: 0 !important;
+}
+.brand-logos .grid-bordered .brand-logos__wrapper {
+  position: relative;
+  height: 100%;
+  border-radius: 0;
+  border: 0;
+}
+.brand-logos .grid-bordered .brand-logos__wrapper:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-inline-end: 1px solid rgba(var(--color-border), var(--color-border-alpha, 1));
+  border-block-end: 1px solid rgba(var(--color-border), var(--color-border-alpha, 1));
+}
+@media (min-width: 1280px) {
+  .brand-logos .grid-bordered .brand-logos__wrapper.desktop-hide-border:before {
+    border-inline-end-width: 0;
+  }
+}
+@media (min-width: 1024px) and (max-width: 1279.98px) {
+  .brand-logos .grid-bordered .brand-logos__wrapper.laptop-hide-border:before {
+    border-inline-end-width: 0;
+  }
+}
+@media (min-width: 768px) and (max-width: 1023.98px) {
+  .brand-logos .grid-bordered .brand-logos__wrapper.tablet-hide-border:before {
+    border-inline-end-width: 0;
+  }
+}
+@media (max-width: 767.98px) {
+  .brand-logos .grid-bordered .brand-logos__wrapper.mobile-hide-border:before {
+    border-inline-end-width: 0;
+  }
+}
+.brand-logos--padding-none {
+  --pd-y: 0;
+  --pd-x: 0;
+}
+.brand-logos--padding-small {
+  --pd-y: 2rem;
+  --pd-x: 1.5rem;
+}
+.brand-logos--padding-medium {
+  --pd-y: 2.4rem;
+  --pd-x: 2rem;
+}
+.brand-logos__wrapper {
+  padding: var(--pd-y, 0rem) var(--pd-x, 0rem);
+}
+.brand-logos--image-full .brand-logos__image {
+  width: 100%;
+}
+.brand-logos--image-large .media-wrapper {
+  width: 13rem;
+  max-width: 100%;
+}
+@media (max-width: 767.98px) {
+  .brand-logos--image-large .media-wrapper {
+    width: 11rem;
+  }
+}
+.brand-logos--image-medium .media-wrapper {
+  width: 8rem;
+  max-width: 100%;
+}
+@media (max-width: 767.98px) {
+  .brand-logos--image-medium .media-wrapper {
+    width: 6rem;
+  }
+}

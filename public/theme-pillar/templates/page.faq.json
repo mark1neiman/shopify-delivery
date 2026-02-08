@@ -1,0 +1,565 @@
+{
+  "sections": {
+    "breadcrumbs_RzgTi9": {
+      "type": "breadcrumbs",
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "start",
+        "padding_top": 20,
+        "padding_bottom": 20
+      }
+    },
+    "multicolumn_icon_Xp8nB6": {
+      "type": "multicolumn-icon",
+      "blocks": {
+        "column_Qkh4X8": {
+          "type": "column",
+          "settings": {
+            "icon": "none",
+            "max_width": 50,
+            "max_width_mb": 50,
+            "title": "Shipping",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "heading_font": "heading",
+            "text": "<p>We offer fast and reliable shipping options to ensure your order.</p>",
+            "text_size": "text-base",
+            "button_label": "Learn More",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "column_LargLx": {
+          "type": "column",
+          "settings": {
+            "icon": "none",
+            "max_width": 50,
+            "max_width_mb": 50,
+            "title": "Returns & Refunds",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "heading_font": "heading",
+            "text": "<p>Shop confidently with our easy, hassle-free returns policy.</p>",
+            "text_size": "text-base",
+            "button_label": "Learn More",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "column_dxdfie": {
+          "type": "column",
+          "settings": {
+            "icon": "none",
+            "max_width": 50,
+            "max_width_mb": 50,
+            "title": "Secure Payment",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "heading_font": "heading",
+            "text": "<p>Safe and secure payment methods for your peace of mind.</p>",
+            "text_size": "text-base",
+            "button_label": "Learn More",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "column_efzrcV": {
+          "type": "column",
+          "settings": {
+            "icon": "none",
+            "max_width": 50,
+            "max_width_mb": 50,
+            "title": "Warranty",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "heading_font": "heading",
+            "text": "<p>Quality assured with our limited warranty on select products.</p>",
+            "text_size": "text-base",
+            "button_label": "Learn More",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        },
+        "column_f876QF": {
+          "type": "column",
+          "settings": {
+            "icon": "none",
+            "max_width": 50,
+            "max_width_mb": 50,
+            "title": "Track Order",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h5",
+            "heading_font": "heading",
+            "text": "<p>Stay updated on your order's journey from our warehouse to your door.</p>",
+            "text_size": "text-base",
+            "button_label": "Learn More",
+            "button_style": "btn--primary",
+            "button_icon": "none"
+          }
+        }
+      },
+      "block_order": [
+        "column_Qkh4X8",
+        "column_LargLx",
+        "column_dxdfie",
+        "column_efzrcV",
+        "column_f876QF"
+      ],
+      "settings": {
+        "container": "fixed",
+        "color_scheme": "scheme-1",
+        "header_layout": "vertical",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h1",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--underline",
+        "button_icon": "none",
+        "enable_sticky": false,
+        "card_color_scheme": "scheme-11",
+        "content_alignment": "center",
+        "image_position": "top",
+        "icon_color": "#1d349a",
+        "columns_desktop": 5,
+        "column_gap": "2xs",
+        "row_gap": "inherit",
+        "show_divider_col": false,
+        "columns_mobile": "1",
+        "swipe_on_mobile": true,
+        "show_section_divider": false,
+        "divider_width": "fixed",
+        "padding_top": 0,
+        "padding_bottom": 0
+      }
+    },
+    "main": {
+      "type": "main-page",
+      "custom_css": [],
+      "settings": {
+        "container": "fixed",
+        "text_alignment": "center",
+        "padding_top": 60,
+        "padding_bottom": 32
+      }
+    },
+    "collapsible_tabs_phAkEE": {
+      "type": "collapsible-tabs",
+      "blocks": {
+        "heading_grWd8w": {
+          "type": "heading",
+          "settings": {
+            "sub_heading": "",
+            "heading": "Orders & Purchases",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2"
+          }
+        },
+        "collapsible_item_TJLChi": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How do I cancel or edit an order?",
+            "content": "<p>Unfortunately, we cannot cancel orders due to a change of mind. However, we understand that mistakes happen. If you need to edit your order information, such as the delivery address or contact number, please contact our customer service as soon as possible.<br/>Here’s what you can do:</p><ul><li>Contact our customer service via email address, or Live Chat.</li><li>Have your order number ready when contacting customer service.</li><li>We cannot guarantee changes to orders after 24 hours of placement. This is because orders may be processed once received</li></ul>",
+            "custom_liquid": "",
+            "page": "",
+            "open": true,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_KhUxbM": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How can I track my order?",
+            "content": "<p>You can track your order by checking the shipping confirmation email, which contains a tracking number and a link to the courier's website. Alternatively, log in to your account on our website, navigate to \"My Orders,\" and click on the tracking link provided for your order.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_n78gVi": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "What if there is a problem with my order?",
+            "content": "<p>If there is an issue with your order, please contact our customer service team as soon as possible. You can reach us via email, phone, or through the contact form on our website. Provide your order number and a brief description of the problem so we can assist you quickly.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_PPefFd": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "I didn't receive all off my order?",
+            "content": "<p>If part of your order is missing, please check the shipping confirmation email to see if the items were sent separately. If all items should have arrived together or if you have concerns, contact our customer service team with your order number. We’ll investigate and resolve the issue promptly.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        }
+      },
+      "block_order": [
+        "heading_grWd8w",
+        "collapsible_item_TJLChi",
+        "collapsible_item_KhUxbM",
+        "collapsible_item_n78gVi",
+        "collapsible_item_PPefFd"
+      ],
+      "custom_css": [],
+      "settings": {
+        "container": "narrow",
+        "color_scheme": "",
+        "header_layout": "vertical",
+        "section_header_alignment": "center",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h1",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--primary",
+        "button_icon": "none",
+        "column_gap": "small",
+        "row_gap": "inherit",
+        "item_style": "standard",
+        "item_color_scheme": "",
+        "item_heading_font": "heading",
+        "item_heading_size": "h5",
+        "item_icon_size": "extra-large",
+        "padding_top": 0,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "collapsible_tabs_hBEiYB": {
+      "type": "collapsible-tabs",
+      "blocks": {
+        "heading_r7Lc7A": {
+          "type": "heading",
+          "settings": {
+            "sub_heading": "",
+            "heading": "Returns & Exchange",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2"
+          }
+        },
+        "collapsible_item_EPtxMc": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "What is your returns policy?",
+            "content": "<p>We offer a 30-day return policy for most products. Items must be in their original condition, unused, and with all packaging intact. Please refer to our Returns Policy page for more details on eligible products.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_yLq86G": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How do I initiate a return?",
+            "content": "<p>To start a return, contact our support team with your order number and reason for return. We’ll provide detailed instructions, including where to send your item.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_DGi3rB": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "Can I exchange an item instead of returning it?",
+            "content": "<p>Yes, exchanges are available for most products within 30 days of receipt. Simply let us know the item you’d like to exchange for, and we’ll guide you through the process.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_e3AFh9": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How long does it take to process my return or exchange?",
+            "content": "<p>Once we receive your returned item, processing typically takes 5-7 business days. Refunds will be issued to your original payment method, or the exchanged item will be shipped promptly.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        }
+      },
+      "block_order": [
+        "heading_r7Lc7A",
+        "collapsible_item_EPtxMc",
+        "collapsible_item_yLq86G",
+        "collapsible_item_DGi3rB",
+        "collapsible_item_e3AFh9"
+      ],
+      "settings": {
+        "container": "narrow",
+        "color_scheme": "",
+        "header_layout": "vertical",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--primary",
+        "button_icon": "none",
+        "column_gap": "large",
+        "row_gap": "inherit",
+        "item_style": "standard",
+        "item_color_scheme": "",
+        "item_heading_font": "heading",
+        "item_heading_size": "h5",
+        "item_icon_size": "extra-large",
+        "padding_top": 40,
+        "padding_bottom": 0,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "collapsible_tabs_qwFcff": {
+      "type": "collapsible-tabs",
+      "blocks": {
+        "heading_dqyYMq": {
+          "type": "heading",
+          "settings": {
+            "sub_heading": "",
+            "heading": "Shipping & Tracking",
+            "highlight_style": "none",
+            "highlight_font_style": "italic",
+            "highlight_style_color": "",
+            "highlight_text_color": "",
+            "heading_size": "h2"
+          }
+        },
+        "collapsible_item_MmXRTz": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "How long does shipping take?",
+            "content": "<p>Shipping typically takes 3-5 business days after your order is processed. In total, you can expect to receive your order within 7-10 business days. Delivery times may vary depending on your location and the shipping method chosen at checkout.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_tWNUeL": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "Do you offer expedited shipping?",
+            "content": "<p>Yes, we offer expedited shipping options at checkout. Delivery times for these services are faster, typically within 1-3 business days after processing. Additional charges may apply.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        },
+        "collapsible_item_WdQxcf": {
+          "type": "collapsible_item",
+          "settings": {
+            "icon": "none",
+            "heading": "Can I change my shipping address after placing an order?",
+            "content": "<p>If your order hasn’t been processed yet, you can contact our support team to update your shipping address. Once the order is shipped, we’re unable to make changes.</p>",
+            "custom_liquid": "",
+            "page": "",
+            "open": false,
+            "use_subtext_color": true
+          }
+        }
+      },
+      "block_order": [
+        "heading_dqyYMq",
+        "collapsible_item_MmXRTz",
+        "collapsible_item_tWNUeL",
+        "collapsible_item_WdQxcf"
+      ],
+      "settings": {
+        "container": "narrow",
+        "color_scheme": "",
+        "header_layout": "vertical",
+        "section_header_alignment": "left",
+        "section_header_alignment_mobile": "inherit",
+        "subheading": "",
+        "heading": "",
+        "highlight_style": "none",
+        "highlight_font_style": "italic",
+        "highlight_style_color": "",
+        "highlight_text_color": "",
+        "heading_size": "h2",
+        "description": "",
+        "text_size": "text-base",
+        "button_label": "",
+        "button_link": "",
+        "button_style": "btn--primary",
+        "button_icon": "none",
+        "column_gap": "large",
+        "row_gap": "inherit",
+        "item_style": "standard",
+        "item_color_scheme": "",
+        "item_heading_font": "heading",
+        "item_heading_size": "h5",
+        "item_icon_size": "extra-large",
+        "padding_top": 40,
+        "padding_bottom": 60,
+        "show_section_divider": false,
+        "divider_width": "fixed"
+      }
+    },
+    "scrolling_promotion_7gUeJB": {
+      "type": "scrolling-promotion",
+      "blocks": {
+        "text_9nmHcm": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_UKDNQb": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_tdr7wE": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_bMPi7D": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Fast Delivery",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_zQqqQD": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "30 Days Free Returns",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        },
+        "text_RjpD6r": {
+          "type": "text",
+          "settings": {
+            "text_link": "",
+            "text": "Secure Payment",
+            "text_size": "h4",
+            "text_opacity": 100,
+            "use_custom_color": false,
+            "custom_color": "#000000"
+          }
+        }
+      },
+      "block_order": [
+        "text_9nmHcm",
+        "text_UKDNQb",
+        "text_tdr7wE",
+        "text_bMPi7D",
+        "text_zQqqQD",
+        "text_RjpD6r"
+      ],
+      "settings": {
+        "color_scheme": "scheme-3",
+        "direction": "left",
+        "pause_on_hover": true,
+        "speed": 0.2,
+        "h_spacing": 80,
+        "show_section_divider": false,
+        "padding_top": 16,
+        "padding_bottom": 16
+      }
+    }
+  },
+  "order": [
+    "breadcrumbs_RzgTi9",
+    "multicolumn_icon_Xp8nB6",
+    "main",
+    "collapsible_tabs_phAkEE",
+    "collapsible_tabs_hBEiYB",
+    "collapsible_tabs_qwFcff",
+    "scrolling_promotion_7gUeJB"
+  ]
+}

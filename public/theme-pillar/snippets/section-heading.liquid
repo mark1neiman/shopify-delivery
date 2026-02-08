@@ -1,0 +1,116 @@
+{% comment %}
+  Renders a section heading
+
+  Accepts:
+  - section_settings: {Object} Section settings
+  - header_alignment: {String} Text aligment on desktop devices (optional)
+  - header_alignment_mobile: {String} Text aligment on mobile devices (optional)
+  - header_layout: {String} Vertical or horizontal layout to display (optional)
+  - spacing: {String} Spacing between section heading and section content. Accept 'large', 'normal' (optional)
+  - description: {String} Custom text of description if given (optional)
+  - button_visible: {Boolean} Whether to show given button on section header (optional)
+  - button_hide_on_mobile: {Boolean} Whether to hide given button on section header on mobile (optional)
+  - button_label: {String} Text of button to show (optional)
+  - button_link: {String} Link of button to show (optional)
+  - button_style: {String} Style of button to show (optional)
+  - custom_css_class: {String} Adds a custom css class to the wrap element (optional)
+
+  Usage:
+  {% render 'section-heading', section_settings: section.settings %}
+{% endcomment %}
+{%- if section_settings.heading != blank
+  or section_settings.subheading != blank
+  or section_settings.description != blank
+-%}
+  {%- liquid
+    if header_alignment == blank
+      assign header_alignment = section_settings.section_header_alignment
+    endif
+
+    if header_alignment_mobile == blank
+      assign header_alignment_mobile = section_settings.section_header_alignment_mobile
+    endif
+
+    if header_alignment_mobile == 'inherit'
+      assign header_alignment_mobile = header_alignment
+    endif
+
+    if description == blank
+      assign description = section_settings.description | default: ''
+    endif
+    if description_size == blank
+      assign description_size = section_settings.text_size | default: 'text-base'
+    endif
+
+    assign description_color = section_settings.text_color | default: 'text-subtext'
+
+    if header_layout == blank
+      assign header_layout = section_settings.header_layout | default: 'vertical'
+    endif
+
+    assign header_class = 'section__header--' | append: header_layout
+
+    unless custom_css_class == blank
+      assign custom_css_class = custom_css_class | prepend: ' '
+    endunless
+
+    if side_button == null
+      assign side_button = true
+    endif
+
+    assign motion_delay = motion_delay | default: 50
+  -%}
+  <div class="section__header s__header {{ header_class }} spacing--{{ spacing | default: 'normal' }} rich-text rich-text--tight md:text-{{ header_alignment }} text-{{ header_alignment_mobile }}{% if side_button %} flex{% else %} block{% endif %} flex-col items-{{ header_alignment_mobile | replace: 'left', 'start' | replace: 'right', 'end' }} md:items-center{% unless header_alignment == 'center' %} md:flex-row{{ header_alignment | replace: 'left','' | replace: 'right','-reverse' }} gap-x-4{% endunless %}{{ custom_css_class }}">
+    <div class="section__header--text s__header--text rich-text rich-text--tight flex-1">
+      {%- if section_settings.subheading != blank -%}
+        <motion-element
+          class="section__subheading text-subheading rich-text__subheading block{% if section_settings.subheading_size %} {{ section_settings.subheading_size }}{% endif %}"
+          data-motion="fade-up"
+          data-motion-delay="{{ motion_delay }}"
+        >
+          {{- section_settings.subheading -}}
+        </motion-element>
+        {%- assign motion_delay = motion_delay | plus: 50 -%}
+      {%- endif -%}
+      {%- if section_settings.heading != blank -%}
+        <h2 class="section__heading rich-text__heading{% if section_settings.heading_size %} {{ section_settings.heading_size }}{% endif %}">
+          <motion-element class="block" data-motion="fade-up" data-motion-delay="{{ motion_delay }}">
+            {% render 'highlight-text',
+              hl_text: section_settings.heading,
+              hl_style: section_settings.highlight_style,
+              hl_font_style: section_settings.highlight_font_style,
+              hl_style_color: section_settings.highlight_style_color,
+              hl_text_color: section_settings.highlight_text_color
+            %}
+          </motion-element>
+        </h2>
+        {%- assign motion_delay = motion_delay | plus: 50 -%}
+      {%- endif -%}
+      {%- if description != blank -%}
+        <motion-element
+          class="section__description rich-text__text block rte {{ description_size }} {{ description_color }}"
+          data-motion="fade-up"
+          data-motion-delay="{{ motion_delay }}"
+        >
+          {{- description -}}
+        </motion-element>
+        {%- assign motion_delay = motion_delay | plus: 50 -%}
+      {%- endif -%}
+    </div>
+    {%- if button_visible and button_label != blank -%}
+      <motion-element
+        class="section__header--buttons s__header--buttons rich-text__button{% if button_hide_on_mobile %} hidden md:block{% else %} block{% endif %}{% if header_alignment != 'center' and side_button %} !md:mt-0{% endif %}"
+        data-motion="fade-up"
+        data-motion-delay="{{ motion_delay }}"
+      >
+        {% render 'button',
+          button_style: button_style,
+          button_link: button_link,
+          button_label: button_label,
+          button_icon: button_icon
+        %}
+      </motion-element>
+      {%- assign motion_delay = motion_delay | plus: 50 -%}
+    {%- endif -%}
+  </div>
+{%- endif -%}
