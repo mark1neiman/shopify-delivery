@@ -349,7 +349,7 @@ export async function action({ request }: ActionFunctionArgs) {
     }
     shippingLine {
       title
-      price { amount currencyCode }
+      price
     }
     lineItems(first: 50) {
       nodes {
