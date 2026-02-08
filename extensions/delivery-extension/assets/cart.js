@@ -149,6 +149,42 @@
     });
   }
 
+  function findPriceNodes(lineNode) {
+    if (!lineNode) return [];
+    const selectors = [
+      "[data-cart-item-regular-price]",
+      "[data-cart-item-final-price]",
+      "[data-cart-item-price]",
+      "[class*='price__regular']",
+      "[class*='price-item']",
+      "[class*='cart-item__price']",
+      "[class*='CartItem__Price']",
+      "[class*='price']",
+    ];
+    const nodes = [];
+    selectors.forEach((sel) => {
+      lineNode.querySelectorAll(sel).forEach((el) => nodes.push(el));
+    });
+    return nodes;
+  }
+
+  function updateLinePriceDisplay(lineNode, isFree) {
+    if (!lineNode) return;
+    const nodes = findPriceNodes(lineNode);
+    if (!nodes.length) return;
+
+    nodes.forEach((node) => {
+      const original = node.getAttribute("data-mk-original-price");
+      if (isFree) {
+        if (!original) node.setAttribute("data-mk-original-price", node.textContent || "");
+        node.textContent = "FREE";
+      } else if (original !== null) {
+        node.textContent = original;
+        node.removeAttribute("data-mk-original-price");
+      }
+    });
+  }
+
   function renderBreakdown(pricing) {
     // Optional: put <div id="CartDrawer-PricingBreakdown"></div> in drawer,
     // or use any existing container.
@@ -430,6 +466,7 @@
   // ---------- core ----------
   let inFlight = false;
   let debounceTimer = null;
+  let suppressMutationsUntil = 0;
 
   async function refreshPricing() {
     if (inFlight) return;
@@ -444,21 +481,27 @@
         return;
       }
 
+      const payloadItems = cart.items
+        .filter((it) => !(it?.properties && String(it.properties._mk_gift) === "1"))
+        .map((it) => ({
+          variantId: toGid(it.variant_id),
+          quantity: Number(it.quantity || 0),
+        }))
+        .filter((x) => x.variantId && x.quantity > 0);
+
+      if (!payloadItems.length) {
+        console.info("[cart.js] no non-gift items, skipping prepare preview");
+        return;
+      }
+
       const payload = {
         mode: "preview",
         customerId: null,
-        items: cart.items
-          .map((it) => ({
-            variantId: toGid(it.variant_id),
-            quantity: Number(it.quantity || 0),
-          }))
-          .filter((x) => x.variantId && x.quantity > 0),
+        items: payloadItems,
         shipping: null,
         promoCode: attrs.itella_promo_code || null,
         freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
       };
-
-      if (!payload.items.length) return;
 
       // DEBUG
       console.log("[cart.js] preview payload -> /apps/checkout/prepare", payload);
@@ -491,6 +534,8 @@
       // ✅ auto add/remove gift products in Shopify cart
       await syncGifts(cart, pricing);
 
+      suppressMutationsUntil = Date.now() + 1000;
+
       renderBreakdown(pricing);
       dispatchCampaignPayload(buildCampaignPayload(pricing, cart));
 
@@ -510,11 +555,14 @@
         const badgeContainer = ensureBadgeContainer(node);
         renderBadges(badgeContainer, line);
 
-        if (line.isFree || (line.freeUnits && line.freeUnits > 0)) {
+        const isFreeLine = line.isFree || (line.freeUnits && line.freeUnits > 0) || line.isGiftLine;
+        if (isFreeLine) {
           node.setAttribute("data-line-free", "true");
         } else {
           node.removeAttribute("data-line-free");
         }
+
+        updateLinePriceDisplay(node, isFreeLine);
       }
     } catch (e) {
       console.warn("[cart.js] refreshPricing error:", e);
@@ -524,6 +572,7 @@
   }
 
   function scheduleRefresh() {
+    if (Date.now() < suppressMutationsUntil) return;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(refreshPricing, 250);
   }
