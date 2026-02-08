@@ -6,6 +6,8 @@
 // - Robust against non-JSON (e.g., HTML error pages)
 
 (function () {
+  if (window.__mk_cart_preview_loaded) return;
+  window.__mk_cart_preview_loaded = true;
   const PREVIEW_ENDPOINT = "/apps/checkout/prepare";
 
   function toGid(variantId) {
@@ -185,6 +187,76 @@
     `;
   }
 
+  function buildCampaignPayload(pricing, cart) {
+    const gifts = (pricing?.lines || [])
+      .filter((line) => line && line.isGiftLine)
+      .map((line) => {
+        const numericId = gidToNumericVariantId(line.variantId);
+        const cartItem = (cart?.items || []).find((it) => Number(it.variant_id) === Number(numericId));
+        const label =
+          Array.isArray(line.appliedCampaignLabels) && line.appliedCampaignLabels.length
+            ? line.appliedCampaignLabels.join(", ")
+            : "";
+
+        return {
+          title: cartItem?.product_title || cartItem?.title || (label ? `Gift: ${label}` : "Gift"),
+          quantity: Number(line.quantity || 1),
+          image: cartItem?.image || cartItem?.featured_image?.url || "",
+          url: cartItem?.url || cartItem?.product_url || "",
+          note: label || undefined,
+        };
+      });
+
+    return { gifts };
+  }
+
+  function dispatchCampaignPayload(payload) {
+    try {
+      if (window.MKCartCampaignUI?.render) {
+        window.MKCartCampaignUI.render(payload);
+      } else {
+        window.dispatchEvent(new CustomEvent("mk:cart-pricing", { detail: payload }));
+      }
+    } catch (e) {
+      console.warn("[cart.js] campaign UI dispatch error", e);
+    }
+  }
+
+  function logCampaignSummary(pricing) {
+    if (!pricing) return;
+
+    const applied = Array.isArray(pricing.appliedCampaigns) ? pricing.appliedCampaigns : [];
+    const needsChoice = Boolean(pricing.needsFreeChoice);
+    const choiceContext = pricing.choiceContext || null;
+
+    const lineSummaries = (pricing.lines || []).map((line) => ({
+      variantId: line.variantId,
+      quantity: line.quantity,
+      isGiftLine: Boolean(line.isGiftLine),
+      freeUnits: Number(line.freeUnits || 0),
+      appliedCampaignLabels: Array.isArray(line.appliedCampaignLabels) ? line.appliedCampaignLabels : [],
+      appliedCampaignIds: Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [],
+      appliedPromoCode: line.appliedPromoCode || null,
+    }));
+
+    console.groupCollapsed("[cart.js] campaign summary");
+    console.log("Applied campaigns:", applied.length ? applied : "none");
+    console.log(
+      "Campaign benefits (lines):",
+      lineSummaries.filter(
+        (l) =>
+          l.isGiftLine ||
+          l.freeUnits > 0 ||
+          l.appliedCampaignLabels.length > 0 ||
+          l.appliedCampaignIds.length > 0,
+      ),
+    );
+    if (needsChoice) {
+      console.warn("[cart.js] needs free choice for campaign:", choiceContext || "unknown");
+    }
+    console.groupEnd();
+  }
+
   async function safeReadJsonResponse(res) {
     const ct = String(res.headers.get("content-type") || "");
     if (!ct.includes("application/json")) {
@@ -338,7 +410,10 @@
       const cart = await readCart();
       const attrs = cart.attributes || {};
 
-      if (!cart?.items?.length) return;
+      if (!cart?.items?.length) {
+        console.info("[cart.js] no items in cart, skipping prepare preview");
+        return;
+      }
 
       const payload = {
         mode: "preview",
@@ -365,16 +440,21 @@
         body: JSON.stringify(payload),
       });
 
+      if (!res.ok) {
+        console.warn("[cart.js] prepare preview failed", res.status);
+      }
+
       const data = await safeReadJsonResponse(res);
       if (!data) return;
 
-      if (data.ok === false) {
-        console.warn("[cart.js] prepare returned ok:false", data.error || data);
+      if (data.ok === false || data.error) {
+        console.warn("[cart.js] prepare returned error", data.error || data);
         return;
       }
 
       const pricing = data?.pricing;
       console.log("[cart.js] preview response pricing:", pricing);
+      logCampaignSummary(pricing);
 
       if (!pricing?.lines?.length) return;
 
@@ -382,6 +462,7 @@
       await syncGifts(cart, pricing);
 
       renderBreakdown(pricing);
+      dispatchCampaignPayload(buildCampaignPayload(pricing, cart));
 
       // try render badges per line (best effort)
       const nodeMap = findLineNodesMap();
@@ -429,10 +510,15 @@
     targets.forEach((t) => observer.observe(t, { childList: true, subtree: true }));
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+      scheduleRefresh();
+      watchMutations();
+    });
+  } else {
     scheduleRefresh();
     watchMutations();
-  });
+  }
 
   document.addEventListener("cart:updated", scheduleRefresh);
   document.addEventListener("cart:refresh", scheduleRefresh);
