@@ -363,29 +363,6 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   } catch {}
 
-  try {
-    console.log("[prepare] draft order input (masked)", {
-      hasDraftOrderId: !!draftOrderId,
-      email: maskEmail(safeTrim(input.email)),
-      shippingAddress: input.shippingAddress
-        ? {
-            ...input.shippingAddress,
-            phone: maskPhone(safeTrim(input.shippingAddress.phone)),
-          }
-        : null,
-      shippingLine: input.shippingLine || null,
-      customAttributes: (input.customAttributes || []).map((attr: any) => ({
-        key: attr.key,
-        value: maskAttributeValue(String(attr.key), String(attr.value ?? "")),
-      })),
-      lineItems: (input.lineItems || []).map((item: any) => ({
-        variantId: item.variantId,
-        quantity: item.quantity,
-        priceOverride: item.priceOverride || null,
-      })),
-    });
-  } catch {}
-
   const draftOrderFields = `
     id
     invoiceUrl
