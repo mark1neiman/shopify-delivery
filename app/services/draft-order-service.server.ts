@@ -1,6 +1,11 @@
 import { adminGraphql } from "../shipping.server";
 import type { PricedLine, PricingBreakdown, AppliedCampaign } from "./pricing-engine.server";
-import type { ShippingLine, ShippingSelection } from "./shipping-service.server";
+type ShippingLine = {
+  title: string;
+  price: number;
+};
+
+type ShippingSelection = Record<string, any>;
 
 type CreateDraftOrderInput = {
   lines: PricedLine[];
