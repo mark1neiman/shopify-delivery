@@ -559,6 +559,16 @@
       }
     }
 
+    function pickItellaAttributes(attrs) {
+      const out = {};
+      Object.keys(attrs || {}).forEach((key) => {
+        if (String(key || "").startsWith("itella_")) {
+          out[key] = attrs[key];
+        }
+      });
+      return out;
+    }
+
     async function createDraftOrder() {
       console.log("[itella] createDraftOrder called", new Date().toISOString());
 
@@ -566,6 +576,10 @@
       if (!cart?.items?.length) return null;
 
       const attrs = await readCartAttributes();
+
+      const deliveryTitle = (attrs.itella_delivery_title || "").trim();
+      const deliveryPrice = (attrs.itella_delivery_price || "").trim();
+      const deliveryCurrency = (attrs.itella_delivery_currency || "").trim();
 
       const payload = {
         mode: "checkout",
@@ -583,6 +597,29 @@
                 : "pickup",
           pickupPointId: attrs.itella_pickup_id || null,
         },
+        email: (attrs.itella_recipient_email || "").trim() || null,
+        shippingAddress: {
+          name: (attrs.itella_recipient_name || "").trim(),
+          address1: (attrs.itella_recipient_address1 || "").trim(),
+          city: (attrs.itella_recipient_city || "").trim(),
+          zip: (attrs.itella_recipient_zip || "").trim(),
+          countryCode: (attrs.itella_pickup_country || "").trim(),
+          phone: combinePhone(
+            attrs.itella_recipient_phone_code || "",
+            attrs.itella_recipient_phone || "",
+          ),
+        },
+        delivery: {
+          title: deliveryTitle || null,
+          price: deliveryPrice || null,
+          currency: deliveryCurrency || null,
+          provider: attrs.itella_pickup_provider || null,
+          pickupId: attrs.itella_pickup_id || null,
+          pickupName: attrs.itella_pickup_name || null,
+          pickupAddress: attrs.itella_pickup_address || null,
+          country: attrs.itella_pickup_country || null,
+        },
+        attributes: pickItellaAttributes(attrs),
         promoCode: (attrs.itella_promo_code || "").trim() || null,
         freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
       };

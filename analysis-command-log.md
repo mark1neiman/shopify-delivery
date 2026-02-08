@@ -22,6 +22,12 @@ Commands run during repository analysis:
 - sed -n '1,260p' app/services/campaigns.server.ts
 - sed -n '260,520p' app/services/campaigns.server.ts
 - apply_patch <<'PATCH'
+- apply_patch <<'PATCH'
+- apply_patch <<'PATCH'
+- nl -ba app/routes/apps.checkout.prepare.ts | sed -n '1,260p'
+- nl -ba extensions/delivery-extension/assets/itella-pickup.js | sed -n '540,700p'
+- nl -ba extensions/delivery-extension/assets/cart.js | sed -n '200,340p'
+- nl -ba extensions/delivery-extension/assets/cart.js | sed -n '430,520p'
 - rg -n "variant IDs|variant ID|variant GID|Variant" app/routes -g"*.tsx"
 - apply_patch <<'PATCH'
 - cat README.md
@@ -48,6 +54,88 @@ Commands run during repository analysis:
 - cat app/routes/apps.draft-order.ts
 - ls app/routes/_index
 - cat app/routes/_index/route.tsx
+- find app extensions -type f -maxdepth 4
+- sed -n '1,200p' app/shopify.server.ts
+- sed -n '1,200p' app/root.tsx
+- sed -n '1,200p' app/routes.ts
+- sed -n '1,200p' app/entry.server.tsx
+- sed -n '1,200p' app/db.server.ts
+- sed -n '1,200p' app/globals.d.ts
+- sed -n '1,200p' app/shipping.server.ts
+- sed -n '200,400p' app/shipping.server.ts
+- sed -n '1,200p' app/services/shipping-service.server.ts
+- sed -n '1,200p' app/services/pricing-engine.server.ts
+- sed -n '200,400p' app/services/pricing-engine.server.ts
+- sed -n '400,800p' app/services/pricing-engine.server.ts
+- sed -n '1,200p' app/services/campaigns-metaobjects.server.ts
+- sed -n '200,400p' app/services/campaigns-metaobjects.server.ts
+- sed -n '1,200p' app/services/campaigns.server.ts
+- sed -n '200,400p' app/services/campaigns.server.ts
+- sed -n '1,200p' app/services/promo-codes.server.ts
+- sed -n '1,200p' app/services/draft-order-service.server.ts
+- sed -n '1,200p' app/routes/_index/route.tsx
+- sed -n '1,200p' app/routes/_index/styles.module.css
+- sed -n '1,200p' app/routes/app.tsx
+- sed -n '1,200p' app/routes/app._index.tsx
+- sed -n '200,400p' app/routes/app._index.tsx
+- sed -n '1,200p' app/routes/app.additional.tsx
+- sed -n '1,200p' app/routes/app.api.variants.tsx
+- sed -n '1,200p' app/routes/app.campaigns.tsx
+- sed -n '200,400p' app/routes/app.campaigns.tsx
+- sed -n '400,800p' app/routes/app.campaigns.tsx
+- sed -n '800,1200p' app/routes/app.campaigns.tsx
+- sed -n '1,200p' app/routes/app.campaigns.$id.tsx
+- sed -n '1,200p' app/routes/app.pickup-settings.tsx
+- sed -n '200,400p' app/routes/app.pickup-settings.tsx
+- sed -n '400,800p' app/routes/app.pickup-settings.tsx
+- sed -n '1,200p' app/routes/app.promo-codes.tsx
+- sed -n '1,200p' app/routes/auth.$.tsx
+- sed -n '1,200p' app/routes/auth.login/route.tsx
+- sed -n '1,200p' app/routes/auth.login/error.server.tsx
+- sed -n '1,200p' app/routes/webhooks.app.uninstalled.tsx
+- sed -n '1,200p' app/routes/webhooks.app.scopes_update.tsx
+- sed -n '1,200p' app/routes/apps.checkout.pickup-config.ts
+- sed -n '1,200p' app/routes/apps.checkout.prepare.ts
+- sed -n '200,400p' app/routes/apps.checkout.prepare.ts
+- sed -n '1,200p' app/routes/apps.pickup-config.ts
+- sed -n '1,200p' app/routes/apps.pickup-config.draft-order.ts
+- sed -n '1,200p' app/routes/apps.draft-order.ts
+- sed -n '200,400p' app/routes/apps.draft-order.ts
+- sed -n '1,200p' extensions/thank-you-ui/README.md
+- sed -n '1,200p' extensions/thank-you-ui/src/Checkout.jsx
+- cat extensions/thank-you-ui/locales/en.default.json
+- cat extensions/thank-you-ui/locales/fr.json
+- cat extensions/thank-you-ui/shopify.extension.toml
+- rg -n "createDraftOrder|checkout prepare|PREPARE_ENDPOINT" extensions/delivery-extension/assets/itella-pickup.js app/routes/apps.checkout.prepare.ts
+- sed -n '540,660p' extensions/delivery-extension/assets/itella-pickup.js
+- sed -n '120,260p' app/routes/apps.checkout.prepare.ts
+- sed -n '160,300p' extensions/delivery-extension/assets/cart.js
+- apply_patch <<'PATCH'
+- cat extensions/thank-you-ui/package.json
+- cat extensions/thank-you-ui/tsconfig.json
+- cat extensions/thank-you-ui/shopify.d.ts
+- sed -n '1,200p' extensions/delivery-extension/shopify.extension.toml
+- sed -n '1,200p' extensions/delivery-extension/blocks/itella-pickup.liquid
+- sed -n '200,400p' extensions/delivery-extension/blocks/itella-pickup.liquid
+- sed -n '1,200p' extensions/delivery-extension/assets/cart.js
+- sed -n '200,400p' extensions/delivery-extension/assets/cart.js
+- sed -n '400,800p' extensions/delivery-extension/assets/cart.js
+- sed -n '1,200p' extensions/delivery-extension/assets/cart-campaign-ui.js
+- sed -n '200,400p' extensions/delivery-extension/assets/cart-campaign-ui.js
+- sed -n '1,200p' extensions/delivery-extension/assets/itella-pickup.js
+- sed -n '200,400p' extensions/delivery-extension/assets/itella-pickup.js
+- sed -n '400,800p' extensions/delivery-extension/assets/itella-pickup.js
+- sed -n '800,1200p' extensions/delivery-extension/assets/itella-pickup.js
+- sed -n '1200,1600p' extensions/delivery-extension/assets/itella-pickup.js
+- sed -n '1,200p' extensions/delivery-extension/snippets/stars.liquid
+- sed -n '1,200p' extensions/delivery-extension/snippets/cart-drawer.liquid
+- cat extensions/delivery-extension/locales/en.default.json
+- for f in $(find app extensions -type f -maxdepth 4 | sort); do echo "### $f"; nl -ba "$f" | tail -n 1; done
+- nl -ba analysis-command-log.md | tail -n 20
+- xxd -g 1 extensions/.gitkeep
+- od -An -tx1 extensions/.gitkeep
+- nl -ba extensions/.gitkeep
+- nl -ba analysis-command-log.md | tail -n 30
 - cat app/routes/_index/styles.module.css
 - cat app/routes.ts
 - cat app/entry.server.tsx
