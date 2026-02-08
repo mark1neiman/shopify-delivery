@@ -24,6 +24,7 @@ Commands run during repository analysis:
 - apply_patch <<'PATCH'
 - apply_patch <<'PATCH'
 - apply_patch <<'PATCH'
+- apply_patch <<'PATCH'
 - nl -ba app/routes/apps.checkout.prepare.ts | sed -n '1,260p'
 - nl -ba extensions/delivery-extension/assets/itella-pickup.js | sed -n '540,700p'
 - nl -ba extensions/delivery-extension/assets/cart.js | sed -n '200,340p'

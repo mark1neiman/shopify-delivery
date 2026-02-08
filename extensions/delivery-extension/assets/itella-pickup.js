@@ -1190,6 +1190,7 @@
 
           // 2) Create/update draft
           const draftOrder = await createDraftOrder();
+          console.log("[itella] draft order response:", draftOrder);
           const invoiceUrl = (draftOrder?.invoiceUrl || "").trim();
           if (invoiceUrl) {
             window.location.href = invoiceUrl;
