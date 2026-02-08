@@ -187,6 +187,41 @@
     `;
   }
 
+  function buildCampaignPayload(pricing, cart) {
+    const gifts = (pricing?.lines || [])
+      .filter((line) => line && line.isGiftLine)
+      .map((line) => {
+        const numericId = gidToNumericVariantId(line.variantId);
+        const cartItem = (cart?.items || []).find((it) => Number(it.variant_id) === Number(numericId));
+        const label =
+          Array.isArray(line.appliedCampaignLabels) && line.appliedCampaignLabels.length
+            ? line.appliedCampaignLabels.join(", ")
+            : "";
+
+        return {
+          title: cartItem?.product_title || cartItem?.title || (label ? `Gift: ${label}` : "Gift"),
+          quantity: Number(line.quantity || 1),
+          image: cartItem?.image || cartItem?.featured_image?.url || "",
+          url: cartItem?.url || cartItem?.product_url || "",
+          note: label || undefined,
+        };
+      });
+
+    return { gifts };
+  }
+
+  function dispatchCampaignPayload(payload) {
+    try {
+      if (window.MKCartCampaignUI?.render) {
+        window.MKCartCampaignUI.render(payload);
+      } else {
+        window.dispatchEvent(new CustomEvent("mk:cart-pricing", { detail: payload }));
+      }
+    } catch (e) {
+      console.warn("[cart.js] campaign UI dispatch error", e);
+    }
+  }
+
   function logCampaignSummary(pricing) {
     if (!pricing) return;
 
@@ -427,6 +462,7 @@
       await syncGifts(cart, pricing);
 
       renderBreakdown(pricing);
+      dispatchCampaignPayload(buildCampaignPayload(pricing, cart));
 
       // try render badges per line (best effort)
       const nodeMap = findLineNodesMap();
