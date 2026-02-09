@@ -436,12 +436,16 @@ function buildCampaignPayload(pricing, cart) {
         url,
         note: "FREE",
         isGift: true,
+        variantId: numericId ? String(numericId) : undefined,
+        totalQuantity: quantity,
       });
       return;
     }
 
     // Base lines that participate in campaigns
     const campaignIds = Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [];
+    const campaignQuantities =
+      line.campaignQuantities && typeof line.campaignQuantities === "object" ? line.campaignQuantities : null;
     if (!campaignIds.length) return;
 
     const freeUnits = Number(line.freeUnits || 0);
@@ -451,7 +455,13 @@ function buildCampaignPayload(pricing, cart) {
       if (!block) return;
 
       // Keep your existing semantics (show quantity participating)
-      const campaignQuantity = freeUnits > 0 ? Math.min(freeUnits, quantity) : quantity;
+      const campaignQuantityRaw = campaignQuantities?.[String(campaignId)] ?? null;
+      const campaignQuantity =
+        Number.isFinite(Number(campaignQuantityRaw)) && Number(campaignQuantityRaw) > 0
+          ? Number(campaignQuantityRaw)
+          : freeUnits > 0
+            ? Math.min(freeUnits, quantity)
+            : quantity;
       if (campaignQuantity <= 0) return;
 
       const noteParts = [];
@@ -465,6 +475,8 @@ function buildCampaignPayload(pricing, cart) {
         url,
         note: noteParts.join(" · ") || undefined,
         isGift: false,
+        variantId: numericId ? String(numericId) : undefined,
+        totalQuantity: quantity,
       });
     });
   });
