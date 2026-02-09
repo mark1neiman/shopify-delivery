@@ -195,6 +195,28 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     });
   }
 
+  function lockGiftLineControls(lineRoot) {
+    if (!lineRoot) return;
+    lineRoot.setAttribute("data-mk-gift-line", "true");
+
+    lineRoot.querySelectorAll("input.quantity__input, input[name='updates[]']").forEach((input) => {
+      input.setAttribute("disabled", "true");
+      input.setAttribute("aria-disabled", "true");
+      input.readOnly = true;
+    });
+
+    lineRoot.querySelectorAll("button.quantity__button").forEach((button) => {
+      button.setAttribute("disabled", "true");
+      button.setAttribute("aria-disabled", "true");
+    });
+
+    lineRoot.querySelectorAll(".cart-item__remove, .btn-remove, [is='cart-remove-item']").forEach((button) => {
+      button.setAttribute("aria-disabled", "true");
+      button.style.pointerEvents = "none";
+      button.style.opacity = "0.5";
+    });
+  }
+
   function renderBreakdown(pricing) {
     // Optional: put <div id="CartDrawer-PricingBreakdown"></div> in drawer,
     // or use any existing container.
@@ -234,11 +256,20 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
   }
 
   function buildCampaignPayload(pricing, cart) {
+    const cartItems = Array.isArray(cart?.items) ? cart.items : [];
+    const cartItemByVariantId = new Map();
+
+    cartItems.forEach((it) => {
+      const key = Number(it.variant_id);
+      if (!Number.isFinite(key)) return;
+      if (!cartItemByVariantId.has(key)) cartItemByVariantId.set(key, it);
+    });
+
     const gifts = (pricing?.lines || [])
       .filter((line) => line && line.isGiftLine)
       .map((line) => {
         const numericId = gidToNumericVariantId(line.variantId);
-        const cartItem = (cart?.items || []).find((it) => Number(it.variant_id) === Number(numericId));
+        const cartItem = cartItemByVariantId.get(Number(numericId));
         const label =
           Array.isArray(line.appliedCampaignLabels) && line.appliedCampaignLabels.length
             ? line.appliedCampaignLabels.join(", ")
@@ -250,10 +281,79 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
           image: cartItem?.image || cartItem?.featured_image?.url || "",
           url: cartItem?.url || cartItem?.product_url || "",
           note: label || undefined,
+          isGift: true,
         };
       });
 
-    return { gifts };
+    const appliedCampaigns = Array.isArray(pricing?.appliedCampaigns) ? pricing.appliedCampaigns : [];
+    const blocks = appliedCampaigns.map((campaign) => ({
+      id: String(campaign.id || ""),
+      label: campaign.label || campaign.id || "Campaign",
+      type: campaign.type || "",
+      items: [],
+    }));
+
+    const blocksById = new Map();
+    blocks.forEach((block) => blocksById.set(block.id, block));
+
+    (pricing?.lines || []).forEach((line) => {
+      if (!line) return;
+
+      const numericId = gidToNumericVariantId(line.variantId);
+      const cartItem = cartItemByVariantId.get(Number(numericId));
+      const title = cartItem?.product_title || cartItem?.title || "Campaign item";
+      const image = cartItem?.image || cartItem?.featured_image?.url || "";
+      const url = cartItem?.url || cartItem?.product_url || "";
+      const freeUnits = Number(line.freeUnits || 0);
+
+      if (line.isGiftLine) {
+        const block = blocksById.get(String(line.giftCampaignId || ""));
+        if (!block) return;
+        const quantity = Number(line.quantity || 0);
+        if (quantity <= 0) return;
+
+        block.items.push({
+          title,
+          quantity,
+          image,
+          url,
+          note: "FREE",
+          isGift: true,
+        });
+        return;
+      }
+
+      const campaignIds = Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [];
+      if (!campaignIds.length) return;
+
+      const quantity = Number(line.quantity || 0);
+      if (quantity <= 0) return;
+
+      campaignIds.forEach((campaignId) => {
+        const block = blocksById.get(String(campaignId || ""));
+        if (!block) return;
+
+        const campaignQuantity = freeUnits > 0 ? freeUnits : quantity;
+        if (campaignQuantity <= 0) return;
+
+        const noteParts = [];
+        if (freeUnits > 0) noteParts.push(`Free units: ${freeUnits}`);
+        if (quantity > campaignQuantity) noteParts.push(`Total in cart: ${quantity}`);
+
+        block.items.push({
+          title,
+          quantity: campaignQuantity,
+          image,
+          url,
+          note: noteParts.join(" · ") || undefined,
+          isGift: false,
+        });
+      });
+    });
+
+    const campaignBlocks = blocks.filter((block) => block.items.length > 0);
+
+    return { gifts, campaignBlocks };
   }
 
   function dispatchCampaignPayload(payload) {
@@ -596,6 +696,25 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
         }
 
         updateLinePriceDisplay(node, isFreeLine);
+      }
+
+      const giftVariantGids = new Set(
+        (cart.items || [])
+          .filter((it) => it?.properties && String(it.properties._mk_gift) === "1")
+          .map((it) => toGid(it.variant_id)),
+      );
+
+      for (const giftGid of giftVariantGids) {
+        const giftNode = nodeMap.get(giftGid);
+        if (!giftNode) continue;
+
+        const giftRoot =
+          giftNode.closest(".cart-item") ||
+          giftNode.closest("[data-cart-item]") ||
+          giftNode.closest("tr") ||
+          giftNode;
+
+        lockGiftLineControls(giftRoot);
       }
     } catch (e) {
       console.warn("[cart.js] refreshPricing error:", e);

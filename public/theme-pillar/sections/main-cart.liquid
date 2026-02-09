@@ -142,7 +142,11 @@
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody data-mk-cart-tbody>
+                <tr data-mk-campaigns-start></tr>
+                <tr data-mk-campaigns-end></tr>
+                <tr data-mk-gifts-start></tr>
+                <tr data-mk-gifts-end></tr>
                 {%- for item in cart.items -%}
                   {%- liquid
                     assign is_gift_wrap_item = false
