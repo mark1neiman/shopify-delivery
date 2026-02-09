@@ -335,6 +335,10 @@
   }
 
   function applyPayloadToAllCarts(payload) {
+    const payloadKey = buildPayloadKey(payload || {});
+    if (window.__MK_CART_CAMPAIGN_LAST_KEY__ === payloadKey) return;
+    window.__MK_CART_CAMPAIGN_LAST_KEY__ = payloadKey;
+
     qsa(document, SELECTORS.cartRoot).forEach((cartRoot) => {
       insertCampaignBlocks(cartRoot, payload?.campaignBlocks);
       if (payload?.showVirtualGifts) {

@@ -496,8 +496,9 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     return res.json();
   }
 
-  function findGiftLineIndex(cart, numericVariantId, campaignId) {
+  function findGiftLineIndexes(cart, numericVariantId, campaignId) {
     const items = cart?.items || [];
+    const indexes = [];
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       if (!it) continue;
@@ -509,9 +510,9 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
       const camp = it.properties?._mk_campaign_id ? String(it.properties._mk_campaign_id) : "";
       if (camp !== String(campaignId || "")) continue;
 
-      return i + 1; // 1-based
+      indexes.push(i + 1);
     }
-    return null;
+    return indexes;
   }
 
   let giftSyncInFlight = false;
@@ -519,6 +520,7 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
   async function syncGifts(cart, pricing) {
     if (giftSyncInFlight) return;
     giftSyncInFlight = true;
+    let latestCart = cart;
 
     try {
       const desiredLines = (pricing?.lines || []).filter((l) => l && l.isGiftLine);
@@ -549,16 +551,26 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
 
         if (desiredQty <= 0) continue;
 
-        if (curQty === 0) {
+        const indexes = findGiftLineIndexes(latestCart, numericId, campaignId);
+
+        if (indexes.length === 0) {
           await cartAddGift(numericId, desiredQty, campaignId);
+          latestCart = await readCart();
           continue;
         }
 
         if (curQty !== desiredQty) {
-          const latest = await readCart();
-          const lineIndex = findGiftLineIndex(latest, numericId, campaignId);
-          if (lineIndex) {
-            await cartChangeLine(lineIndex, desiredQty);
+          const lineIndex = indexes[0];
+          await cartChangeLine(lineIndex, desiredQty);
+          latestCart = await readCart();
+        }
+
+        let latestIndexes = findGiftLineIndexes(latestCart, numericId, campaignId);
+        if (latestIndexes.length > 1) {
+          const extras = latestIndexes.slice(1).sort((a, b) => b - a);
+          for (const extraIndex of extras) {
+            await cartChangeLine(extraIndex, 0);
+            latestCart = await readCart();
           }
         }
       }
@@ -570,10 +582,14 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
         const [numericIdStr, campaignId] = k.split("::");
         const numericId = Number(numericIdStr);
 
-        const latest = await readCart();
-        const lineIndex = findGiftLineIndex(latest, numericId, campaignId);
-        if (lineIndex) {
-          await cartChangeLine(lineIndex, 0);
+        let indexes = findGiftLineIndexes(latestCart, numericId, campaignId);
+        while (indexes.length > 0) {
+          const toRemove = indexes.sort((a, b) => b - a);
+          for (const index of toRemove) {
+            await cartChangeLine(index, 0);
+            latestCart = await readCart();
+          }
+          indexes = findGiftLineIndexes(latestCart, numericId, campaignId);
         }
       }
     } catch (e) {
@@ -581,6 +597,7 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     } finally {
       giftSyncInFlight = false;
     }
+    return latestCart;
   }
 
   // ---------- core ----------
@@ -652,12 +669,12 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
       if (!pricing?.lines?.length) return;
 
       // ✅ auto add/remove gift products in Shopify cart
-      await syncGifts(cart, pricing);
+      const syncedCart = (await syncGifts(cart, pricing)) || cart;
 
       suppressMutationsUntil = Date.now() + 1000;
 
       renderBreakdown(pricing);
-      dispatchCampaignPayload(buildCampaignPayload(pricing, cart));
+      dispatchCampaignPayload(buildCampaignPayload(pricing, syncedCart));
 
       // try render badges per line (best effort)
       const nodeMap = findLineNodesMap();
@@ -689,7 +706,7 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
         }
         if (!node) continue;
 
-       const lineRoot =
+        const lineRoot =
           node.closest(".cart-item") ||
           node.closest("[data-cart-item]") ||
           node.closest("tr") ||
