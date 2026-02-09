@@ -94,8 +94,13 @@
       if (!root) return;
 
       // try to find variant from nearby link
-      const a = root.querySelector("a[href*='variant=']");
-      const numeric = a ? extractVariantIdFromHref(a.getAttribute("href") || "") : null;
+const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || "").replace(/[^\d]/g, "");
+      let numeric = inputVariantId || "";
+      if (!numeric) {
+        // try to find variant from nearby link
+        const a = root.querySelector("a[href*='variant=']");
+        numeric = a ? extractVariantIdFromHref(a.getAttribute("href") || "") : "";
+      }
       if (!numeric) return;
 
       const gid = toGid(numeric);
@@ -554,17 +559,40 @@
       });
 
       for (const [variantGid, line] of lineMap.entries()) {
-        const node = nodeMap.get(variantGid);
+        let node = nodeMap.get(variantGid);
+        if (!node) {
+          const numericId = gidToNumericVariantId(variantGid);
+          if (numericId) {
+            const inputMatch = document.querySelector(
+              `input[data-quantity-variant-id='${numericId}'], input[data-quantity-variant-id='${String(
+                numericId,
+              )}']`,
+            );
+            if (inputMatch) {
+              node =
+                inputMatch.closest(".cart-item") ||
+                inputMatch.closest("[data-cart-item]") ||
+                inputMatch.closest("tr") ||
+                inputMatch.parentElement;
+            }
+          }
+        }
         if (!node) continue;
 
-        const badgeContainer = ensureBadgeContainer(node);
+       const lineRoot =
+          node.closest(".cart-item") ||
+          node.closest("[data-cart-item]") ||
+          node.closest("tr") ||
+          node;
+
+        const badgeContainer = ensureBadgeContainer(lineRoot);
         renderBadges(badgeContainer, line);
 
         const isFreeLine = line.isFree || (line.freeUnits && line.freeUnits > 0) || line.isGiftLine;
         if (isFreeLine) {
-          node.setAttribute("data-line-free", "true");
+          lineRoot.setAttribute("data-line-free", "true");
         } else {
-          node.removeAttribute("data-line-free");
+          lineRoot.removeAttribute("data-line-free");
         }
 
         updateLinePriceDisplay(node, isFreeLine);
