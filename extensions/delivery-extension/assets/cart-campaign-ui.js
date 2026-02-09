@@ -39,36 +39,6 @@
     }
   }
 
-  function normalizeGifts(gifts) {
-    const safeGifts = Array.isArray(gifts) ? gifts : [];
-    const byKey = new Map();
-
-    safeGifts.forEach((gift) => {
-      if (!gift) return;
-      const title = String(gift.title || "");
-      if (!title) return;
-      const url = String(gift.url || "");
-      const note = String(gift.note || "");
-      const image = String(gift.image || "");
-      const key = `${title}::${url}::${note}`;
-      const existing = byKey.get(key);
-      if (!existing) {
-        byKey.set(key, {
-          ...gift,
-          title,
-          url,
-          note,
-          image,
-          quantity: Number(gift.quantity || 0),
-        });
-        return;
-      }
-      existing.quantity += Number(gift.quantity || 0);
-    });
-
-    return Array.from(byKey.values()).filter((gift) => Number(gift.quantity || 0) > 0);
-  }
-
   function buildGiftRow({ title, quantity, image, url, note }) {
     const safeTitle = escapeHtml(title);
     const qty = Number(quantity || 1);
@@ -189,7 +159,7 @@
   }
 
   function insertGiftsRows(cartRoot, gifts) {
-    const safeGifts = normalizeGifts(gifts);
+    const safeGifts = Array.isArray(gifts) ? gifts : [];
 
     const tbody = cartRoot.querySelector(SELECTORS.tbody);
     if (tbody) {
@@ -225,33 +195,6 @@
       .join("");
 
     end.insertAdjacentHTML("beforebegin", rowsHtml);
-  }
-
-  function buildPayloadKey(payload) {
-    const gifts = normalizeGifts(payload?.gifts);
-    const blocks = Array.isArray(payload?.campaignBlocks) ? payload.campaignBlocks : [];
-    const showVirtualGifts = Boolean(payload?.showVirtualGifts);
-
-    const giftsKey = gifts
-      .map((gift) => `${gift.title || ""}|${gift.url || ""}|${gift.note || ""}|${gift.quantity || 0}`)
-      .join("~");
-
-    const blocksKey = blocks
-      .map((block) => {
-        const items = Array.isArray(block.items) ? block.items : [];
-        const itemsKey = items
-          .map(
-            (item) =>
-              `${item.title || ""}|${item.url || ""}|${item.note || ""}|${item.quantity || 0}|${
-                item.isGift ? "1" : "0"
-              }`,
-          )
-          .join("~");
-        return `${block.id || ""}|${block.label || ""}|${block.type || ""}|${itemsKey}`;
-      })
-      .join("||");
-
-    return `${showVirtualGifts ? "1" : "0"}::${giftsKey}::${blocksKey}`;
   }
 
   function buildCampaignBlockHtml(block) {
@@ -398,11 +341,7 @@
 
     qsa(document, SELECTORS.cartRoot).forEach((cartRoot) => {
       insertCampaignBlocks(cartRoot, payload?.campaignBlocks);
-      if (payload?.showVirtualGifts) {
-        insertGiftsRows(cartRoot, payload?.gifts);
-      } else {
-        insertGiftsRows(cartRoot, []);
-      }
+      insertGiftsRows(cartRoot, payload?.gifts);
       renderSidebar(cartRoot, payload);
     });
   }
