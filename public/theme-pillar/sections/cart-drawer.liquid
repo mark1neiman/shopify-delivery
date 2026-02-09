@@ -140,7 +140,11 @@
               endif
             -%}
             <cart-items class="flex-grow">
-              <ul role="list" class="flex flex-col gap-6">
+              <ul role="list" class="flex flex-col gap-6" data-mk-cart-list>
+                <li data-mk-campaigns-start></li>
+                <li data-mk-campaigns-end></li>
+                <li data-mk-gifts-start></li>
+                <li data-mk-gifts-end></li>
                 {%- for item in cart.items -%}
                   {%- liquid
                     if item.variant.inventory_management != blank and item.variant.inventory_policy == 'deny'
