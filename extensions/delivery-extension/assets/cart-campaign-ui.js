@@ -341,7 +341,11 @@
 
     qsa(document, SELECTORS.cartRoot).forEach((cartRoot) => {
       insertCampaignBlocks(cartRoot, payload?.campaignBlocks);
-      insertGiftsRows(cartRoot, payload?.gifts);
+      if (payload?.showVirtualGifts) {
+        insertGiftsRows(cartRoot, payload?.gifts);
+      } else {
+        insertGiftsRows(cartRoot, []);
+      }
       renderSidebar(cartRoot, payload);
     });
   }

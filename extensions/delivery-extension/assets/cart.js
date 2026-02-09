@@ -217,6 +217,12 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     });
   }
 
+  function hideGiftLine(lineRoot) {
+    if (!lineRoot) return;
+    lineRoot.setAttribute("data-mk-gift-hidden", "true");
+    lineRoot.style.display = "none";
+  }
+
 
   function renderBreakdown(pricing) {
     // Optional: put <div id="CartDrawer-PricingBreakdown"></div> in drawer,
@@ -353,8 +359,11 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     });
 
     const campaignBlocks = blocks.filter((block) => block.items.length > 0);
+    const hasGiftItems = cartItems.some(
+      (item) => item?.properties && String(item.properties._mk_gift) === "1",
+    );
 
-    return { gifts, campaignBlocks };
+    return { gifts, campaignBlocks, hasGiftItems, showVirtualGifts: !hasGiftItems };
   }
 
   function dispatchCampaignPayload(payload) {
@@ -716,32 +725,25 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
         updateLinePriceDisplay(node, isFreeLine);
       }
 
-      (cart.items || [])
-        .filter((it) => it?.properties && String(it.properties._mk_gift) === "1")
-        .forEach((giftItem) => {
-          const index = Number(giftItem.index || 0);
-          let giftRoot = null;
+      const giftVariantGids = new Set(
+        (cart.items || [])
+          .filter((it) => it?.properties && String(it.properties._mk_gift) === "1")
+          .map((it) => toGid(it.variant_id)),
+      );
 
-          if (index) {
-            giftRoot =
-              document.getElementById(`CartItem-${index}`) ||
-              document.getElementById(`CartDrawer-Item-${index}`);
-          }
+      for (const giftGid of giftVariantGids) {
+        const giftNode = nodeMap.get(giftGid);
+        if (!giftNode) continue;
 
-          if (!giftRoot) {
-            const giftNode = nodeMap.get(toGid(giftItem.variant_id));
-            giftRoot =
-              giftNode?.closest(".cart-item") ||
-              giftNode?.closest("[data-cart-item]") ||
-              giftNode?.closest("tr") ||
-              giftNode ||
-              null;
-          }
+        const giftRoot =
+          giftNode.closest(".cart-item") ||
+          giftNode.closest("[data-cart-item]") ||
+          giftNode.closest("tr") ||
+          giftNode;
 
-          if (!giftRoot) return;
-
-          lockGiftLineControls(giftRoot);
-        });
+        lockGiftLineControls(giftRoot);
+        hideGiftLine(giftRoot);
+      }
     } catch (e) {
       console.warn("[cart.js] refreshPricing error:", e);
     } finally {
