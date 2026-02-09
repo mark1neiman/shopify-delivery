@@ -19,6 +19,7 @@ export type PricedLine = {
   // ✅ NEW: explicit gift line (so storefront can auto-add/remove gifts)
   isGiftLine?: boolean;
   giftCampaignId?: string;
+  campaignQuantities?: Record<string, number>;
 };
 
 export type PricingBreakdown = {
@@ -91,6 +92,7 @@ type LineState = {
   // ✅ NEW: gift marker
   isGiftLine?: boolean;
   giftCampaignId?: string;
+  campaignQuantities?: Map<string, number>;
 };
 
 type PriceMap = Map<string, { amount: number; currencyCode: string }>;
@@ -348,6 +350,28 @@ function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaig
   }
 }
 
+function addCampaignQuantity(line: LineState, campaign: Campaign, quantity: number) {
+  if (quantity <= 0) return;
+  line.appliedCampaignIds.add(campaign.id);
+  line.appliedCampaignLabels.add(campaign.label);
+  if (!line.campaignQuantities) line.campaignQuantities = new Map();
+  const current = line.campaignQuantities.get(campaign.id) || 0;
+  line.campaignQuantities.set(campaign.id, current + quantity);
+}
+
+function allocateCampaignUnits(lines: LineState[], requiredCount: number, campaign: Campaign) {
+  if (requiredCount <= 0) return;
+  let remaining = requiredCount;
+
+  for (const line of lines) {
+    if (remaining <= 0) break;
+    const used = Math.min(line.quantity, remaining);
+    if (used <= 0) continue;
+    addCampaignQuantity(line, campaign, used);
+    remaining -= used;
+  }
+}
+
 function distributeDiscount(lines: LineState[], discountAmount: number, campaign?: Campaign) {
   if (discountAmount <= 0) return;
 
@@ -459,6 +483,7 @@ function buildLines(lines: LineState[]): PricedLine[] {
       // ✅ NEW
       isGiftLine: Boolean(line.isGiftLine),
       giftCampaignId: line.giftCampaignId,
+      campaignQuantities: line.campaignQuantities ? Object.fromEntries(line.campaignQuantities) : undefined,
     };
   });
 }
@@ -533,6 +558,7 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity) continue;
 
+      allocateCampaignUnits(eligible, campaign.buyQuantity, campaign);
       createGiftLine(linesMap, campaign, campaign.freeVariantId, priceMap, 1);
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
@@ -554,6 +580,7 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const chosen = toGid(input.freeChoiceVariantId);
       if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
 
+      allocateCampaignUnits(eligible, campaign.buyQuantity, campaign);
       createGiftLine(linesMap, campaign, chosen, priceMap, 1);
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
