@@ -206,26 +206,60 @@
         const safeTitle = escapeHtml(item.title || "Item");
         const qty = Number(item.quantity || 0);
         const note = item.note ? `<div class="text-sm text-subtext">${escapeHtml(item.note)}</div>` : "";
+        const img = item.image ? String(item.image) : "";
+        const link = item.url ? String(item.url) : "";
+
+        const mediaHtml = img
+          ? `<a class="cart-item__media blocks-radius media-wrapper" href="${escapeHtml(
+              link || "#",
+            )}" tabindex="-1" aria-label="${safeTitle}">
+                <img src="${escapeHtml(
+                  img,
+                )}" alt="${safeTitle}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" />
+             </a>`
+          : "";
+
+        const titleHtml = link
+          ? `<a href="${escapeHtml(link)}" class="cart-item__title text-pcard-title reversed-link">${safeTitle}</a>`
+          : `<span class="cart-item__title text-pcard-title">${safeTitle}</span>`;
+
         const badge = item.isGift
-          ? `<span class="blocks-radius" style="padding:.1rem .4rem;font-size:11px;font-weight:700;border:1px solid currentColor;opacity:.85;">FREE</span>`
-          : `<span class="blocks-radius" style="padding:.1rem .4rem;font-size:11px;font-weight:600;border:1px dashed currentColor;opacity:.8;">Campaign</span>`;
+          ? `<span class="blocks-radius" style="padding:.2rem .5rem;font-size:12px;font-weight:700;border:1px solid currentColor;opacity:.9;">FREE</span>`
+          : `<span class="blocks-radius" style="padding:.2rem .5rem;font-size:12px;font-weight:600;border:1px dashed currentColor;opacity:.85;">Campaign</span>`;
 
         return `
-<div class="flex items-start justify-between gap-3">
-  <div class="grid gap-1">
-    <div class="text-sm font-body-bolder">${safeTitle}</div>
-    <div class="text-sm text-subtext">Qty: ${qty}</div>
-    ${note}
+<div class="cart-item__product flex items-start md:items-center gap-3 md:gap-6">
+  ${mediaHtml}
+  <div class="cart-item__product--info flex flex-col items-start gap-3 flex-grow">
+    <div class="flex justify-between w-full md:grid gap-3">
+      <div class="grid gap-1 w-full">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="block">${titleHtml}</div>
+          ${badge}
+        </div>
+        ${note}
+        <div class="text-sm text-subtext">Qty: ${qty}</div>
+      </div>
+      <div class="grid gap-2 hidden lg:grid">
+        <div class="cart-item__prices">
+          <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
+            <span>FREE</span>
+          </div>
+        </div>
+      </div>
+      <span class="items-start justify-center relative flex md:hidden btn-remove" aria-hidden="true" style="opacity:.35;pointer-events:none;">
+        <!-- empty -->
+      </span>
+    </div>
   </div>
-  ${badge}
 </div>`;
       })
       .join("");
 
     return `
-<div style="padding:10px;border:1px dashed rgba(0,0,0,.15);border-radius:12px;display:grid;gap:8px;background:rgba(0,0,0,.02);">
+<div style="padding:12px;border:1px dashed rgba(0,0,0,.15);border-radius:12px;display:grid;gap:12px;background:rgba(0,0,0,.02);">
   <div class="font-body-bolder">Campaign: ${label}${type}</div>
-  <div style="display:grid;gap:8px;">
+  <div style="display:grid;gap:12px;">
     ${itemsHtml}
   </div>
 </div>`;
