@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "429e20fdc94c0aca6bf240260d416aa2"
-name = "Delivery app"
+name = "NANAILS Delivery + campaings"
 application_url = "https://delivery.nanails.eu"
 embedded = true
 

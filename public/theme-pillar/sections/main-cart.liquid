@@ -149,6 +149,7 @@
                     if gift_wrap_id != null and item.id == gift_wrap_id
                       assign is_gift_wrap_item = true
                     endif
+                    assign is_mk_gift = item.properties._mk_gift
 
                     assign has_qty_rules = false
                     if item.variant.quantity_rule.increment > 1 or item.variant.quantity_rule.min > 1 or item.variant.quantity_rule.max != null
@@ -299,27 +300,31 @@
                                   {%- endif -%}
                                   <div class="cart-item__prices">
                                     <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder{% if item.original_price != item.final_price %} price--on-sale{% endif %}">
-                                      {%- liquid
-                                        assign money_price = item.original_price | money
-                                        if settings.currency_code_enabled
-                                          assign money_price = item.original_price | money_with_currency
-                                        endif
-                                      -%}
-                                      {%- if item.original_price != item.final_price -%}
-                                        <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
-                                        <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
-                                        <span class="price__regular">
-                                          {%- liquid 
-                                            if settings.currency_code_enabled
-                                              echo item.final_price | money_with_currency
-                                            else
-                                              echo item.final_price | money
-                                            endif  
-                                          -%}
-                                        </span>
-                                        <s class="price__sale font-body text-subtext">{{ money_price }}</s>
+                                     {%- if is_mk_gift -%}
+                                        FREE
                                       {%- else -%}
-                                        {{- money_price -}}
+                                        {%- liquid
+                                          assign money_price = item.original_price | money
+                                          if settings.currency_code_enabled
+                                            assign money_price = item.original_price | money_with_currency
+                                          endif
+                                        -%}
+                                        {%- if item.original_price != item.final_price -%}
+                                          <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
+                                          <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
+                                          <span class="price__regular">
+                                            {%- liquid 
+                                              if settings.currency_code_enabled
+                                                echo item.final_price | money_with_currency
+                                              else
+                                                echo item.final_price | money
+                                              endif  
+                                            -%}
+                                          </span>
+                                          <s class="price__sale font-body text-subtext">{{ money_price }}</s>
+                                        {%- else -%}
+                                          {{- money_price -}}
+                                        {%- endif -%}
                                       {%- endif -%}
             
                                       {%- if item.variant.available and item.unit_price_measurement -%}
@@ -479,27 +484,31 @@
                                     {%- endif -%}
                                     <div class="cart-item__prices">
                                       <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder{% if item.original_price != item.final_price %} price--on-sale{% endif %}">
-                                        {%- liquid
-                                          assign money_price = item.original_price | money
-                                          if settings.currency_code_enabled
-                                            assign money_price = item.original_price | money_with_currency
-                                          endif
-                                        -%}
-                                        {%- if item.original_price != item.final_price -%}
-                                          <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
-                                          <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
-                                          <span class="price__regular">
-                                            {%- liquid 
-                                              if settings.currency_code_enabled
-                                                echo item.final_price | money_with_currency
-                                              else
-                                                echo item.final_price | money
-                                              endif  
-                                            -%}
-                                          </span>
-                                          <s class="price__sale font-body text-subtext">{{ money_price }}</s>
+                                         {%- if is_mk_gift -%}
+                                          FREE
                                         {%- else -%}
-                                          {{- money_price -}}
+                                          {%- liquid
+                                            assign money_price = item.original_price | money
+                                            if settings.currency_code_enabled
+                                              assign money_price = item.original_price | money_with_currency
+                                            endif
+                                          -%}
+                                          {%- if item.original_price != item.final_price -%}
+                                            <span class="visually-hidden">{{ 'products.product.price.regular_price' | t }}</span>
+                                            <span class="visually-hidden">{{ 'products.product.price.sale_price' | t }}</span>
+                                            <span class="price__regular">
+                                              {%- liquid 
+                                                if settings.currency_code_enabled
+                                                  echo item.final_price | money_with_currency
+                                                else
+                                                  echo item.final_price | money
+                                                endif  
+                                              -%}
+                                            </span>
+                                            <s class="price__sale font-body text-subtext">{{ money_price }}</s>
+                                          {%- else -%}
+                                            {{- money_price -}}
+                                          {%- endif -%}
                                         {%- endif -%}
               
                                         {%- if item.variant.available and item.unit_price_measurement -%}
@@ -652,13 +661,17 @@
     
                         <td class="cart-item__total hidden lg:table-cell">
                           <span class="font-body-bolder">
-                            {%- liquid
-                              if settings.currency_code_enabled
-                                echo item.final_line_price | money_with_currency
-                              else
-                                echo item.final_line_price | money
-                              endif
-                            -%}
+                       {%- if is_mk_gift -%}
+                              FREE
+                            {%- else -%}
+                              {%- liquid
+                                if settings.currency_code_enabled
+                                  echo item.final_line_price | money_with_currency
+                                else
+                                  echo item.final_line_price | money
+                                endif
+                              -%}
+                            {%- endif -%}
                           </span>
                         </td>
                       </tr>
