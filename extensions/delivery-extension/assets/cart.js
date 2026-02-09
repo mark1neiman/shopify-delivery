@@ -707,25 +707,33 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
         updateLinePriceDisplay(node, isFreeLine);
       }
 
-      const giftVariantGids = new Set(
-        (cart.items || [])
-          .filter((it) => it?.properties && String(it.properties._mk_gift) === "1")
-          .map((it) => toGid(it.variant_id)),
-      );
+      (cart.items || [])
+        .filter((it) => it?.properties && String(it.properties._mk_gift) === "1")
+        .forEach((giftItem) => {
+          const index = Number(giftItem.index || 0);
+          let giftRoot = null;
 
-      for (const giftGid of giftVariantGids) {
-        const giftNode = nodeMap.get(giftGid);
-        if (!giftNode) continue;
+          if (index) {
+            giftRoot =
+              document.getElementById(`CartItem-${index}`) ||
+              document.getElementById(`CartDrawer-Item-${index}`);
+          }
 
-        const giftRoot =
-          giftNode.closest(".cart-item") ||
-          giftNode.closest("[data-cart-item]") ||
-          giftNode.closest("tr") ||
-          giftNode;
+          if (!giftRoot) {
+            const giftNode = nodeMap.get(toGid(giftItem.variant_id));
+            giftRoot =
+              giftNode?.closest(".cart-item") ||
+              giftNode?.closest("[data-cart-item]") ||
+              giftNode?.closest("tr") ||
+              giftNode ||
+              null;
+          }
 
-        lockGiftLineControls(giftRoot);
-        hideGiftLine(giftRoot);
-      }
+          if (!giftRoot) return;
+
+          lockGiftLineControls(giftRoot);
+          hideGiftLine(giftRoot);
+        });
     } catch (e) {
       console.warn("[cart.js] refreshPricing error:", e);
     } finally {
