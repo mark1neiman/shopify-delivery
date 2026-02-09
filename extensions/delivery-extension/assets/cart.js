@@ -217,6 +217,12 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     });
   }
 
+  function hideGiftLine(lineRoot) {
+    if (!lineRoot) return;
+    lineRoot.setAttribute("data-mk-gift-hidden", "true");
+    lineRoot.style.display = "none";
+  }
+
   function renderBreakdown(pricing) {
     // Optional: put <div id="CartDrawer-PricingBreakdown"></div> in drawer,
     // or use any existing container.
@@ -352,8 +358,11 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     });
 
     const campaignBlocks = blocks.filter((block) => block.items.length > 0);
+    const hasGiftItems = cartItems.some(
+      (item) => item?.properties && String(item.properties._mk_gift) === "1",
+    );
 
-    return { gifts, campaignBlocks };
+    return { gifts, campaignBlocks, hasGiftItems, showVirtualGifts: !hasGiftItems };
   }
 
   function dispatchCampaignPayload(payload) {
@@ -715,6 +724,7 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
           giftNode;
 
         lockGiftLineControls(giftRoot);
+        hideGiftLine(giftRoot);
       }
     } catch (e) {
       console.warn("[cart.js] refreshPricing error:", e);
