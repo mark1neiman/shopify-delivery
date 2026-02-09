@@ -309,9 +309,25 @@
   }
 
   window.MKCartCampaignUI = window.MKCartCampaignUI || {};
-  window.MKCartCampaignUI.render = (payload) => {
+  let renderInProgress = false;
+
+  function safeRender(payload) {
+    if (renderInProgress) return;
+    renderInProgress = true;
     try {
       applyPayloadToAllCarts(payload || {});
+    } catch (e) {
+      console.warn("[MKCartCampaignUI] render error", e);
+    } finally {
+      setTimeout(() => {
+        renderInProgress = false;
+      }, 0);
+    }
+  }
+
+  window.MKCartCampaignUI.render = (payload) => {
+    try {
+      safeRender(payload);
     } catch (e) {
       console.warn("[MKCartCampaignUI] render error", e);
     }
@@ -322,6 +338,7 @@
   });
 
   function reapplyLast() {
+    if (renderInProgress) return;
     const last = window.__MK_CART_PRICING_LAST__;
     if (last) window.MKCartCampaignUI.render(last);
   }
@@ -336,6 +353,7 @@
   EVENTS.forEach((ev) => window.addEventListener(ev, () => setTimeout(reapplyLast, 0)));
 
   const mo = new MutationObserver(() => {
+    if (renderInProgress) return;
     Promise.resolve().then(reapplyLast);
   });
 
