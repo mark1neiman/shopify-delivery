@@ -90,6 +90,8 @@
                   url: it?.url ?? "",
                   note: it?.note ?? "",
                   isGift: !!it?.isGift,
+                  variantId: it?.variantId ?? "",
+                  totalQuantity: Number(it?.totalQuantity || 0),
                 }))
               : [],
           }))
@@ -270,6 +272,8 @@
         const safeTitle = escapeHtml(item.title || "Item");
         const qty = Number(item.quantity || 0);
         const note = item.note ? `<div class="text-sm text-subtext">${escapeHtml(item.note)}</div>` : "";
+        const variantId = item.variantId ? String(item.variantId) : "";
+        const totalQuantity = Number(item.totalQuantity || 0);
         const img = item.image ? String(item.image) : "";
         const link = item.url ? String(item.url) : "";
 
@@ -291,6 +295,27 @@
           ? `<span class="blocks-radius" style="padding:.2rem .5rem;font-size:12px;font-weight:700;border:1px solid currentColor;opacity:.9;">FREE</span>`
           : `<span class="blocks-radius" style="padding:.2rem .5rem;font-size:12px;font-weight:600;border:1px dashed currentColor;opacity:.85;">Campaign</span>`;
 
+        const priceHtml = item.isGift
+          ? `<div class="cart-item__prices">
+          <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
+            <span>FREE</span>
+          </div>
+        </div>`
+          : "";
+
+        const qtyControls = !item.isGift && variantId && Number.isFinite(totalQuantity)
+          ? `<div class="flex items-center gap-2 text-sm">
+              <span class="text-subtext">Total:</span>
+              <button type="button" data-mk-campaign-qty="dec" data-variant-id="${escapeHtml(
+                variantId,
+              )}" data-current-qty="${totalQuantity}" aria-label="Decrease quantity" style="width:28px;height:28px;border:1px solid rgba(0,0,0,.2);border-radius:999px;display:inline-flex;align-items:center;justify-content:center;">−</button>
+              <span data-mk-campaign-qty-value>${totalQuantity}</span>
+              <button type="button" data-mk-campaign-qty="inc" data-variant-id="${escapeHtml(
+                variantId,
+              )}" data-current-qty="${totalQuantity}" aria-label="Increase quantity" style="width:28px;height:28px;border:1px solid rgba(0,0,0,.2);border-radius:999px;display:inline-flex;align-items:center;justify-content:center;">+</button>
+            </div>`
+          : "";
+
         return `
 <div class="cart-item__product flex items-start md:items-center gap-3 md:gap-6">
   ${mediaHtml}
@@ -303,14 +328,9 @@
         </div>
         ${note}
         <div class="text-sm text-subtext">Qty: ${qty}</div>
+        ${qtyControls}
       </div>
-      <div class="grid gap-2 hidden lg:grid">
-        <div class="cart-item__prices">
-          <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
-            <span>FREE</span>
-          </div>
-        </div>
-      </div>
+      <div class="grid gap-2 hidden lg:grid">${priceHtml}</div>
       <span class="items-start justify-center relative flex md:hidden btn-remove" aria-hidden="true" style="opacity:.35;pointer-events:none;">
         <!-- empty -->
       </span>
@@ -443,6 +463,33 @@
 
   window.MKCartCampaignUI = window.MKCartCampaignUI || {};
   let renderInProgress = false;
+
+  async function updateCartQuantity(variantId, nextQty) {
+    const res = await fetch("/cart/change.js", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ id: Number(variantId), quantity: Number(nextQty) }),
+    });
+    if (!res.ok) throw new Error("cart/change.js failed");
+    return res.json();
+  }
+
+  document.addEventListener("click", async (event) => {
+    const btn = event.target?.closest?.("[data-mk-campaign-qty]");
+    if (!btn) return;
+    const action = btn.getAttribute("data-mk-campaign-qty");
+    const variantId = btn.getAttribute("data-variant-id") || "";
+    const currentQty = Number(btn.getAttribute("data-current-qty") || 0);
+    if (!variantId || !Number.isFinite(currentQty)) return;
+
+    const nextQty = action === "dec" ? Math.max(0, currentQty - 1) : currentQty + 1;
+    try {
+      await updateCartQuantity(variantId, nextQty);
+      document.dispatchEvent(new Event("cart:updated"));
+    } catch (e) {
+      console.warn("[MKCartCampaignUI] failed to update quantity", e);
+    }
+  });
 
   function safeRender(payload) {
     if (renderInProgress) return;

@@ -266,6 +266,73 @@ function cleanupOldBadges() {
     });
   }
 
+  function setLinePriceOverride(lineNode, html) {
+    if (!lineNode) return;
+    const nodes = findPriceNodes(lineNode);
+    if (!nodes.length) return;
+
+    nodes.forEach((node) => {
+      const original = node.getAttribute("data-mk-original-html");
+      if (!original) node.setAttribute("data-mk-original-html", node.innerHTML || "");
+      node.innerHTML = html;
+    });
+  }
+
+  function restoreLinePrice(lineNode) {
+    if (!lineNode) return;
+    const nodes = findPriceNodes(lineNode);
+    if (!nodes.length) return;
+
+    nodes.forEach((node) => {
+      const original = node.getAttribute("data-mk-original-html");
+      if (original !== null) {
+        node.innerHTML = original;
+        node.removeAttribute("data-mk-original-html");
+      }
+    });
+  }
+
+  function setLineQuantityDisplay(lineRoot, remainingQty) {
+    if (!lineRoot) return;
+    lineRoot.setAttribute("data-mk-campaign-line", "true");
+    lineRoot.setAttribute("data-mk-remaining-qty", String(remainingQty));
+
+    lineRoot.querySelectorAll("input.quantity__input, input[name='updates[]']").forEach((input) => {
+      if (!input.getAttribute("data-mk-original-qty")) {
+        input.setAttribute("data-mk-original-qty", input.value || "");
+      }
+      input.value = String(remainingQty);
+      input.setAttribute("readonly", "true");
+      input.setAttribute("aria-readonly", "true");
+    });
+
+    lineRoot.querySelectorAll("button.quantity__button").forEach((button) => {
+      button.setAttribute("disabled", "true");
+      button.setAttribute("aria-disabled", "true");
+    });
+  }
+
+  function restoreLineQuantityDisplay(lineRoot) {
+    if (!lineRoot) return;
+    lineRoot.removeAttribute("data-mk-campaign-line");
+    lineRoot.removeAttribute("data-mk-remaining-qty");
+
+    lineRoot.querySelectorAll("input.quantity__input, input[name='updates[]']").forEach((input) => {
+      const original = input.getAttribute("data-mk-original-qty");
+      if (original !== null) {
+        input.value = original;
+        input.removeAttribute("data-mk-original-qty");
+      }
+      input.removeAttribute("readonly");
+      input.removeAttribute("aria-readonly");
+    });
+
+    lineRoot.querySelectorAll("button.quantity__button").forEach((button) => {
+      button.removeAttribute("disabled");
+      button.removeAttribute("aria-disabled");
+    });
+  }
+
   function lockGiftLineControls(lineRoot) {
     if (!lineRoot) return;
     lineRoot.setAttribute("data-mk-gift-line", "true");
@@ -436,12 +503,16 @@ function buildCampaignPayload(pricing, cart) {
         url,
         note: "FREE",
         isGift: true,
+        variantId: numericId ? String(numericId) : undefined,
+        totalQuantity: quantity,
       });
       return;
     }
 
     // Base lines that participate in campaigns
     const campaignIds = Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [];
+    const campaignQuantities =
+      line.campaignQuantities && typeof line.campaignQuantities === "object" ? line.campaignQuantities : null;
     if (!campaignIds.length) return;
 
     const freeUnits = Number(line.freeUnits || 0);
@@ -451,7 +522,13 @@ function buildCampaignPayload(pricing, cart) {
       if (!block) return;
 
       // Keep your existing semantics (show quantity participating)
-      const campaignQuantity = freeUnits > 0 ? Math.min(freeUnits, quantity) : quantity;
+      const campaignQuantityRaw = campaignQuantities?.[String(campaignId)] ?? null;
+      const campaignQuantity =
+        Number.isFinite(Number(campaignQuantityRaw)) && Number(campaignQuantityRaw) > 0
+          ? Number(campaignQuantityRaw)
+          : freeUnits > 0
+            ? Math.min(freeUnits, quantity)
+            : quantity;
       if (campaignQuantity <= 0) return;
 
       const noteParts = [];
@@ -465,6 +542,8 @@ function buildCampaignPayload(pricing, cart) {
         url,
         note: noteParts.join(" · ") || undefined,
         isGift: false,
+        variantId: numericId ? String(numericId) : undefined,
+        totalQuantity: quantity,
       });
     });
   });
@@ -843,6 +922,32 @@ mkBeginLoading(mainCart);
         }
 
         updateLinePriceDisplay(node, isFreeLine);
+
+        if (!line.isGiftLine) {
+          const campaignQuantities =
+            line.campaignQuantities && typeof line.campaignQuantities === "object" ? line.campaignQuantities : null;
+          const allocated = campaignQuantities
+            ? Object.values(campaignQuantities).reduce((acc, v) => acc + Number(v || 0), 0)
+            : 0;
+          const remainingQty = Math.max(0, Number(line.quantity || 0) - allocated);
+
+          if (allocated > 0 && remainingQty >= 0 && lineRoot) {
+            if (remainingQty < Number(line.quantity || 0)) {
+              setLineQuantityDisplay(lineRoot, remainingQty);
+              if (!isFreeLine && Number.isFinite(Number(line.finalUnitPrice))) {
+                const currency = pricing.currencyCode || "EUR";
+                const remainingTotal = Number(line.finalUnitPrice) * remainingQty;
+                setLinePriceOverride(lineRoot, formatMoney(remainingTotal, currency));
+              }
+            } else {
+              restoreLineQuantityDisplay(lineRoot);
+              if (!isFreeLine) restoreLinePrice(lineRoot);
+            }
+          } else {
+            restoreLineQuantityDisplay(lineRoot);
+            if (!isFreeLine) restoreLinePrice(lineRoot);
+          }
+        }
       }
 
 // ✅ hide real gift lines in DOM (stable by line index)
