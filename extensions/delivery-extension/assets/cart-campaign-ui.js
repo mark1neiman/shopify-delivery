@@ -291,6 +291,14 @@
           ? `<span class="blocks-radius" style="padding:.2rem .5rem;font-size:12px;font-weight:700;border:1px solid currentColor;opacity:.9;">FREE</span>`
           : `<span class="blocks-radius" style="padding:.2rem .5rem;font-size:12px;font-weight:600;border:1px dashed currentColor;opacity:.85;">Campaign</span>`;
 
+        const priceHtml = item.isGift
+          ? `<div class="cart-item__prices">
+          <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
+            <span>FREE</span>
+          </div>
+        </div>`
+          : "";
+
         return `
 <div class="cart-item__product flex items-start md:items-center gap-3 md:gap-6">
   ${mediaHtml}
@@ -304,13 +312,7 @@
         ${note}
         <div class="text-sm text-subtext">Qty: ${qty}</div>
       </div>
-      <div class="grid gap-2 hidden lg:grid">
-        <div class="cart-item__prices">
-          <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
-            <span>FREE</span>
-          </div>
-        </div>
-      </div>
+      <div class="grid gap-2 hidden lg:grid">${priceHtml}</div>
       <span class="items-start justify-center relative flex md:hidden btn-remove" aria-hidden="true" style="opacity:.35;pointer-events:none;">
         <!-- empty -->
       </span>
