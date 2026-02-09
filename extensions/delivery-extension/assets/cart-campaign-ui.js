@@ -34,9 +34,73 @@
     let n = startEl.nextSibling;
     while (n && n !== endEl) {
       const next = n.nextSibling;
+      // Удаляем только элементы (TR/LI/...), текстовые узлы можно игнорировать
       if (n.nodeType === 1) n.remove();
       n = next;
     }
+  }
+
+  // --- IMPORTANT: was missing in your file (caused render to silently fail) ---
+  function stableStringify(obj) {
+    // Безопасная JSON-сериализация со стабильным порядком ключей
+    const seen = new WeakSet();
+    return JSON.stringify(obj, function (key, value) {
+      if (value && typeof value === "object") {
+        if (seen.has(value)) return undefined;
+        seen.add(value);
+
+        if (Array.isArray(value)) return value;
+
+        // сортируем ключи
+        const out = {};
+        Object.keys(value)
+          .sort()
+          .forEach((k) => {
+            out[k] = value[k];
+          });
+        return out;
+      }
+      return value;
+    });
+  }
+
+  function buildPayloadKey(payload) {
+    // Берём только то, что влияет на DOM-рендер.
+    const p = payload || {};
+    const keyObj = {
+      showVirtualGifts: !!p.showVirtualGifts,
+      gifts: Array.isArray(p.gifts)
+        ? p.gifts.map((g) => ({
+            title: g?.title ?? "",
+            quantity: Number(g?.quantity || 0),
+            image: g?.image ?? "",
+            url: g?.url ?? "",
+            note: g?.note ?? "",
+          }))
+        : [],
+      campaignBlocks: Array.isArray(p.campaignBlocks)
+        ? p.campaignBlocks.map((b) => ({
+            label: b?.label ?? "",
+            type: b?.type ?? "",
+            items: Array.isArray(b?.items)
+              ? b.items.map((it) => ({
+                  title: it?.title ?? "",
+                  quantity: Number(it?.quantity || 0),
+                  image: it?.image ?? "",
+                  url: it?.url ?? "",
+                  note: it?.note ?? "",
+                  isGift: !!it?.isGift,
+                }))
+              : [],
+          }))
+        : [],
+      breakdownHtml: typeof p.breakdownHtml === "string" ? p.breakdownHtml : "",
+      campaignsHtml: typeof p.campaignsHtml === "string" ? p.campaignsHtml : "",
+    };
+
+    // Если HTML большой — всё равно ок, но ключ будет большим.
+    // Можно урезать хэшированием, но пока оставим так для простоты/дебага.
+    return stableStringify(keyObj);
   }
 
   function buildGiftRow({ title, quantity, image, url, note }) {
@@ -334,18 +398,45 @@
     });
   }
 
+  // MK FIX: inject CSS to hide old badge pills if some other script still creates them
+  (function ensureHideBadgePillsCss() {
+    if (document.getElementById("mk-hide-discount-badges-css")) return;
+    const style = document.createElement("style");
+    style.id = "mk-hide-discount-badges-css";
+    style.textContent = `
+      [data-discount-badges="1"] { display:none !important; }
+    `;
+    document.head.appendChild(style);
+  })();
+
   function applyPayloadToAllCarts(payload) {
-    const payloadKey = buildPayloadKey(payload || {});
-    if (window.__MK_CART_CAMPAIGN_LAST_KEY__ === payloadKey) return;
-    window.__MK_CART_CAMPAIGN_LAST_KEY__ = payloadKey;
+    let payloadKey = "";
+    try {
+      payloadKey = buildPayloadKey(payload || {});
+    } catch (e) {
+      // Никогда не ломаем рендер из-за ключа
+      console.warn("[MKCartCampaignUI] buildPayloadKey failed, skipping cache", e);
+      payloadKey = "";
+    }
+
+    if (payloadKey && window.__MK_CART_CAMPAIGN_LAST_KEY__ === payloadKey) return;
+    if (payloadKey) window.__MK_CART_CAMPAIGN_LAST_KEY__ = payloadKey;
+
+    const campaignBlocks = Array.isArray(payload?.campaignBlocks) ? payload.campaignBlocks : [];
 
     qsa(document, SELECTORS.cartRoot).forEach((cartRoot) => {
-      insertCampaignBlocks(cartRoot, payload?.campaignBlocks);
-      if (payload?.showVirtualGifts) {
+      insertCampaignBlocks(cartRoot, campaignBlocks);
+
+      // MK FIX: If we have campaign blocks, NEVER render gifts to avoid duplicates.
+      // (gift items are already displayed inside campaign block items)
+      const allowVirtualGifts = Boolean(payload?.showVirtualGifts) && campaignBlocks.length === 0;
+
+      if (allowVirtualGifts) {
         insertGiftsRows(cartRoot, payload?.gifts);
       } else {
         insertGiftsRows(cartRoot, []);
       }
+
       renderSidebar(cartRoot, payload);
     });
   }
@@ -367,9 +458,15 @@
     }
   }
 
+  // keep last payload
+  const origRender = function (payload) {
+    safeRender(payload);
+  };
+
   window.MKCartCampaignUI.render = (payload) => {
+    window.__MK_CART_PRICING_LAST__ = payload || {};
     try {
-      safeRender(payload);
+      origRender(payload);
     } catch (e) {
       console.warn("[MKCartCampaignUI] render error", e);
     }
@@ -385,35 +482,49 @@
     if (last) window.MKCartCampaignUI.render(last);
   }
 
-  const origRender = window.MKCartCampaignUI.render;
-  window.MKCartCampaignUI.render = (payload) => {
-    window.__MK_CART_PRICING_LAST__ = payload || {};
-    origRender(payload);
-  };
-
   const EVENTS = ["cart:updated", "cart:change", "cart:refresh", "ajaxCart:rendered", "shopify:section:load"];
   EVENTS.forEach((ev) => window.addEventListener(ev, () => setTimeout(reapplyLast, 0)));
 
-  const mo = new MutationObserver(() => {
+  // Observe existing cart roots AND cart roots created later (drawer/sections)
+  const observedRoots = new WeakSet();
+
+  function observeRoot(root) {
+    if (!root || observedRoots.has(root)) return;
+    observedRoots.add(root);
+    try {
+      cartObserver.observe(root, { childList: true, subtree: true });
+    } catch (_) {}
+  }
+
+  function scanAndObserveRoots() {
+    qsa(document, SELECTORS.cartRoot).forEach(observeRoot);
+  }
+
+  const cartObserver = new MutationObserver(() => {
     if (renderInProgress) return;
     Promise.resolve().then(reapplyLast);
   });
 
-  function startObserver() {
-    qsa(document, SELECTORS.cartRoot).forEach((root) => {
-      try {
-        mo.observe(root, { childList: true, subtree: true });
-      } catch (_) {}
-    });
+  const rootSpawnerObserver = new MutationObserver(() => {
+    // кто-то пересоздал cart drawer / main-cart / sections
+    scanAndObserveRoots();
+    setTimeout(reapplyLast, 0);
+  });
+
+  function startObservers() {
+    scanAndObserveRoots();
+    try {
+      rootSpawnerObserver.observe(document.documentElement || document.body, { childList: true, subtree: true });
+    } catch (_) {}
   }
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
-      startObserver();
+      startObservers();
       reapplyLast();
     });
   } else {
-    startObserver();
+    startObservers();
     reapplyLast();
   }
 })();

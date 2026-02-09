@@ -39,6 +39,72 @@
     return n.toFixed(2);
   }
 
+function getMainCartRoot() {
+  return (
+    document.querySelector("main-cart[id^='MainCart-']") ||
+    document.querySelector("main-cart") ||
+    null
+  );
+}
+
+function ensureMkOverlay(cartRoot) {
+  if (!cartRoot) return null;
+  let overlay = cartRoot.querySelector(".mk-cart-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "mk-cart-overlay";
+    overlay.style.cssText = `
+      position:absolute;inset:0;display:grid;place-items:center;
+      background:rgba(255,255,255,.65);backdrop-filter:blur(2px);
+      opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:50;
+    `;
+    overlay.innerHTML = `
+      <div style="display:grid;gap:10px;justify-items:center;">
+        <div class="loading-spinner"></div>
+        <div style="font-size:12px;opacity:.75;">Updating…</div>
+      </div>
+    `;
+    // cartRoot должен быть relative
+    const cs = getComputedStyle(cartRoot);
+    if (cs.position === "static") cartRoot.style.position = "relative";
+    cartRoot.appendChild(overlay);
+  }
+  return overlay;
+}
+
+function mkBeginLoading(cartRoot) {
+  if (!cartRoot) return;
+
+  ensureMkOverlay(cartRoot);
+
+  // freeze height (чтобы не прыгало при вставке/удалении строк)
+  const h = cartRoot.getBoundingClientRect().height;
+  cartRoot.style.minHeight = Math.max(200, Math.round(h)) + "px";
+
+  cartRoot.setAttribute("data-mk-loading", "1");
+  const overlay = cartRoot.querySelector(".mk-cart-overlay");
+  if (overlay) {
+    overlay.style.opacity = "1";
+    overlay.style.pointerEvents = "auto";
+  }
+}
+
+function mkEndLoading(cartRoot) {
+  if (!cartRoot) return;
+
+  cartRoot.removeAttribute("data-mk-loading");
+  const overlay = cartRoot.querySelector(".mk-cart-overlay");
+  if (overlay) {
+    overlay.style.opacity = "0";
+    overlay.style.pointerEvents = "none";
+  }
+
+  requestAnimationFrame(() => {
+    cartRoot.style.minHeight = "";
+  });
+}
+
+
   // ---------- DOM helpers (best effort) ----------
   function extractVariantIdFromHref(href) {
     try {
@@ -129,6 +195,11 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     target.appendChild(c);
     return c;
   }
+function cleanupOldBadges() {
+  document.querySelectorAll("[data-discount-badges='1']").forEach((n) => {
+    try { n.remove(); } catch {}
+  });
+}
 
   function renderBadges(container, line) {
     if (!container) return;
@@ -222,6 +293,44 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     lineRoot.setAttribute("data-mk-gift-hidden", "true");
     lineRoot.style.display = "none";
   }
+function findLineRootByLineIndex(lineIndex1Based) {
+  // Main cart table uses <tr id="CartItem-{{ index }}">
+  const byId = document.getElementById(`CartItem-${lineIndex1Based}`);
+  if (byId) return byId;
+
+  // fallback: many themes keep data-index on remove buttons/inputs
+  const byDataIndex =
+    document.querySelector(`[data-index="${lineIndex1Based}"]`) ||
+    document.querySelector(`[data-line="${lineIndex1Based}"]`);
+
+  if (byDataIndex) {
+    return (
+      byDataIndex.closest(".cart-item") ||
+      byDataIndex.closest("tr") ||
+      byDataIndex.closest("li") ||
+      byDataIndex
+    );
+  }
+
+  return null;
+}
+
+function hideGiftLinesInDomByCart(cart) {
+  const items = Array.isArray(cart?.items) ? cart.items : [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const isGift = it?.properties && String(it.properties._mk_gift) === "1";
+    if (!isGift) continue;
+
+    const lineIndex = i + 1; // Shopify cart line is 1-based
+    const lineRoot = findLineRootByLineIndex(lineIndex);
+
+    if (!lineRoot) continue;
+
+    lockGiftLineControls(lineRoot);
+    hideGiftLine(lineRoot);
+  }
+}
 
 
   function renderBreakdown(pricing) {
@@ -262,109 +371,116 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     `;
   }
 
-  function buildCampaignPayload(pricing, cart) {
-    const cartItems = Array.isArray(cart?.items) ? cart.items : [];
-    const cartItemByVariantId = new Map();
+function buildCampaignPayload(pricing, cart) {
+  const cartItems = Array.isArray(cart?.items) ? cart.items : [];
 
-    cartItems.forEach((it) => {
-      const key = Number(it.variant_id);
-      if (!Number.isFinite(key)) return;
-      if (!cartItemByVariantId.has(key)) cartItemByVariantId.set(key, it);
-    });
+  // map variant_id -> cart item (first match)
+  const cartItemByVariantId = new Map();
+  cartItems.forEach((it) => {
+    const key = Number(it.variant_id);
+    if (!Number.isFinite(key)) return;
+    if (!cartItemByVariantId.has(key)) cartItemByVariantId.set(key, it);
+  });
 
-    const gifts = (pricing?.lines || [])
-      .filter((line) => line && line.isGiftLine)
-      .map((line) => {
-        const numericId = gidToNumericVariantId(line.variantId);
-        const cartItem = cartItemByVariantId.get(Number(numericId));
-        const label =
-          Array.isArray(line.appliedCampaignLabels) && line.appliedCampaignLabels.length
-            ? line.appliedCampaignLabels.join(", ")
-            : "";
+  const appliedCampaigns = Array.isArray(pricing?.appliedCampaigns) ? pricing.appliedCampaigns : [];
 
-        return {
-          title: cartItem?.product_title || cartItem?.title || (label ? `Gift: ${label}` : "Gift"),
-          quantity: Number(line.quantity || 1),
-          image: cartItem?.image || cartItem?.featured_image?.url || "",
-          url: cartItem?.url || cartItem?.product_url || "",
-          note: label || undefined,
-          isGift: true,
-        };
-      });
+  // 1) collect all campaign ids from lines (including giftCampaignId)
+  const idSet = new Set();
+  (pricing?.lines || []).forEach((line) => {
+    if (!line) return;
+    const ids = Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [];
+    ids.forEach((id) => id && idSet.add(String(id)));
+    if (line.isGiftLine && line.giftCampaignId) idSet.add(String(line.giftCampaignId));
+  });
 
-    const appliedCampaigns = Array.isArray(pricing?.appliedCampaigns) ? pricing.appliedCampaigns : [];
-    const blocks = appliedCampaigns.map((campaign) => ({
-      id: String(campaign.id || ""),
-      label: campaign.label || campaign.id || "Campaign",
-      type: campaign.type || "",
+  // 2) include meta from appliedCampaigns
+  appliedCampaigns.forEach((c) => c?.id && idSet.add(String(c.id)));
+
+  // 3) build blocks
+  const blocks = Array.from(idSet).map((id) => {
+    const meta = appliedCampaigns.find((c) => String(c?.id) === String(id));
+    return {
+      id: String(id),
+      label: meta?.label || meta?.id || `Campaign ${id}`,
+      type: meta?.type || "",
       items: [],
-    }));
+    };
+  });
 
-    const blocksById = new Map();
-    blocks.forEach((block) => blocksById.set(block.id, block));
+  const blocksById = new Map();
+  blocks.forEach((b) => blocksById.set(String(b.id), b));
 
-    (pricing?.lines || []).forEach((line) => {
-      if (!line) return;
+  // 4) fill items from pricing.lines
+  (pricing?.lines || []).forEach((line) => {
+    if (!line) return;
 
-      const numericId = gidToNumericVariantId(line.variantId);
-      const cartItem = cartItemByVariantId.get(Number(numericId));
-      const title = cartItem?.product_title || cartItem?.title || "Campaign item";
-      const image = cartItem?.image || cartItem?.featured_image?.url || "";
-      const url = cartItem?.url || cartItem?.product_url || "";
-      const freeUnits = Number(line.freeUnits || 0);
+    const numericId = gidToNumericVariantId(line.variantId);
+    const cartItem = numericId ? cartItemByVariantId.get(Number(numericId)) : null;
 
-      if (line.isGiftLine) {
-        const block = blocksById.get(String(line.giftCampaignId || ""));
-        if (!block) return;
-        const quantity = Number(line.quantity || 0);
-        if (quantity <= 0) return;
+    const title = cartItem?.product_title || cartItem?.title || "Campaign item";
+    const image = cartItem?.image || cartItem?.featured_image?.url || "";
+    const url = cartItem?.url || cartItem?.product_url || "";
 
-        block.items.push({
-          title,
-          quantity,
-          image,
-          url,
-          note: "FREE",
-          isGift: true,
-        });
-        return;
-      }
+    const quantity = Number(line.quantity || 0);
+    if (quantity <= 0) return;
 
-      const campaignIds = Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [];
-      if (!campaignIds.length) return;
+    // Gift lines => show ONLY inside campaign block (NOT in global gifts list)
+    if (line.isGiftLine) {
+      const block = blocksById.get(String(line.giftCampaignId || ""));
+      if (!block) return;
 
-      const quantity = Number(line.quantity || 0);
-      if (quantity <= 0) return;
+      block.items.push({
+        title,
+        quantity,
+        image,
+        url,
+        note: "FREE",
+        isGift: true,
+      });
+      return;
+    }
 
-      campaignIds.forEach((campaignId) => {
-        const block = blocksById.get(String(campaignId || ""));
-        if (!block) return;
+    // Base lines that participate in campaigns
+    const campaignIds = Array.isArray(line.appliedCampaignIds) ? line.appliedCampaignIds : [];
+    if (!campaignIds.length) return;
 
-        const campaignQuantity = freeUnits > 0 ? freeUnits : quantity;
-        if (campaignQuantity <= 0) return;
+    const freeUnits = Number(line.freeUnits || 0);
 
-        const noteParts = [];
-        if (freeUnits > 0) noteParts.push(`Free units: ${freeUnits}`);
-        if (quantity > campaignQuantity) noteParts.push(`Total in cart: ${quantity}`);
+    campaignIds.forEach((campaignId) => {
+      const block = blocksById.get(String(campaignId || ""));
+      if (!block) return;
 
-        block.items.push({
-          title,
-          quantity: campaignQuantity,
-          image,
-          url,
-          note: noteParts.join(" · ") || undefined,
-          isGift: false,
-        });
+      // Keep your existing semantics (show quantity participating)
+      const campaignQuantity = freeUnits > 0 ? Math.min(freeUnits, quantity) : quantity;
+      if (campaignQuantity <= 0) return;
+
+      const noteParts = [];
+      if (freeUnits > 0) noteParts.push(`Free units: ${freeUnits}`);
+      if (quantity > campaignQuantity) noteParts.push(`Total in cart: ${quantity}`);
+
+      block.items.push({
+        title,
+        quantity: campaignQuantity,
+        image,
+        url,
+        note: noteParts.join(" · ") || undefined,
+        isGift: false,
       });
     });
+  });
 
-    const campaignBlocks = blocks.filter((block) => block.items.length > 0);
-    const hasGiftItems = cartItems.some(
-      (item) => item?.properties && String(item.properties._mk_gift) === "1",
-    );
+  const campaignBlocks = blocks.filter((b) => Array.isArray(b.items) && b.items.length > 0);
 
-    return { gifts, campaignBlocks, hasGiftItems, showVirtualGifts: !hasGiftItems };
-  }
+  // IMPORTANT: disable global gifts rendering => removes duplicate virtual gift row
+  return {
+    gifts: [],
+    campaignBlocks,
+    showVirtualGifts: false,
+    breakdownHtml: "",
+    campaignsHtml: "",
+  };
+}
+
 
   function dispatchCampaignPayload(payload) {
     try {
@@ -521,6 +637,7 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     if (giftSyncInFlight) return;
     giftSyncInFlight = true;
     let latestCart = cart;
+    suppressMutationsUntil = Date.now() + 1800;
 
     try {
       const desiredLines = (pricing?.lines || []).filter((l) => l && l.isGiftLine);
@@ -607,6 +724,10 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
 
   async function refreshPricing() {
     if (inFlight) return;
+const mainCart = getMainCartRoot();
+cleanupOldBadges();
+
+mkBeginLoading(mainCart);
 
     inFlight = true;
     try {
@@ -712,8 +833,7 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
           node.closest("tr") ||
           node;
 
-        const badgeContainer = ensureBadgeContainer(lineRoot);
-        renderBadges(badgeContainer, line);
+
 
         const isFreeLine = line.isFree || (line.freeUnits && line.freeUnits > 0) || line.isGiftLine;
         if (isFreeLine) {
@@ -725,28 +845,16 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
         updateLinePriceDisplay(node, isFreeLine);
       }
 
-      const giftVariantGids = new Set(
-        (cart.items || [])
-          .filter((it) => it?.properties && String(it.properties._mk_gift) === "1")
-          .map((it) => toGid(it.variant_id)),
-      );
+// ✅ hide real gift lines in DOM (stable by line index)
+hideGiftLinesInDomByCart(syncedCart);
+setTimeout(() => {
+  try { hideGiftLinesInDomByCart(syncedCart); } catch {}
+}, 0);
 
-      for (const giftGid of giftVariantGids) {
-        const giftNode = nodeMap.get(giftGid);
-        if (!giftNode) continue;
-
-        const giftRoot =
-          giftNode.closest(".cart-item") ||
-          giftNode.closest("[data-cart-item]") ||
-          giftNode.closest("tr") ||
-          giftNode;
-
-        lockGiftLineControls(giftRoot);
-        hideGiftLine(giftRoot);
-      }
     } catch (e) {
       console.warn("[cart.js] refreshPricing error:", e);
     } finally {
+      mkEndLoading(getMainCartRoot());
       inFlight = false;
     }
   }
@@ -757,17 +865,42 @@ const inputVariantId = String(inp.getAttribute("data-quantity-variant-id") || ""
     debounceTimer = setTimeout(refreshPricing, 250);
   }
 
-  function watchMutations() {
-    const targets = [
-      document.getElementById("CartDrawer"),
-      document.querySelector("cart-drawer"),
-      document.querySelector("main"),
-      document.body,
-    ].filter(Boolean);
-
-    const observer = new MutationObserver(scheduleRefresh);
-    targets.forEach((t) => observer.observe(t, { childList: true, subtree: true }));
+function isMkMutation(records) {
+  for (const r of records) {
+    const nodes = [...(r.addedNodes || []), ...(r.removedNodes || [])];
+    for (const n of nodes) {
+      if (!n || n.nodeType !== 1) continue;
+      if (
+        n.hasAttribute?.("data-mk-virtual-gift") ||
+        n.hasAttribute?.("data-mk-campaign-block") ||
+        n.closest?.("[data-mk-virtual-gift],[data-mk-campaign-block]")
+      ) {
+        return true;
+      }
+    }
   }
+  return false;
+}
+
+function watchMutations() {
+  const targets = [
+    getMainCartRoot(),
+    document.getElementById("CartDrawer"),
+    document.querySelector("cart-drawer"),
+    document.querySelector("#CartDrawer"),
+  ].filter(Boolean);
+
+  if (!targets.length) return;
+
+  const observer = new MutationObserver((records) => {
+    if (Date.now() < suppressMutationsUntil) return;
+    if (isMkMutation(records)) return; // игнорим наши вставки
+    scheduleRefresh();
+  });
+
+  targets.forEach((t) => observer.observe(t, { childList: true, subtree: true }));
+}
+
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
