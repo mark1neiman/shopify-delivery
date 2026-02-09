@@ -436,6 +436,8 @@ function buildCampaignPayload(pricing, cart) {
         url,
         note: "FREE",
         isGift: true,
+        variantId: numericId ? String(numericId) : undefined,
+        totalQuantity: quantity,
       });
       return;
     }
@@ -473,6 +475,8 @@ function buildCampaignPayload(pricing, cart) {
         url,
         note: noteParts.join(" · ") || undefined,
         isGift: false,
+        variantId: numericId ? String(numericId) : undefined,
+        totalQuantity: quantity,
       });
     });
   });
