@@ -1,3 +1,5 @@
+//shopify-delivery/app/services/pricing-engine.server.ts
+
 import { adminGraphql } from "../shipping.server";
 import { getCampaigns, type Campaign } from "./campaigns.server";
 
@@ -16,9 +18,11 @@ export type PricedLine = {
   appliedCampaignLabels: string[];
   appliedPromoCode?: string;
 
-  // ✅ NEW: explicit gift line (so storefront can auto-add/remove gifts)
+  // ✅ explicit gift line (so storefront can auto-add/remove gifts)
   isGiftLine?: boolean;
   giftCampaignId?: string;
+
+  // ✅ NEW: per-campaign allocated qty for this line
   campaignQuantities?: Record<string, number>;
 };
 
@@ -74,7 +78,7 @@ function toGid(rawId: string) {
 }
 
 type LineState = {
-  // ✅ NEW: unique key, so gift lines do not merge with regular lines
+  // ✅ unique key, so gift lines do not merge with regular lines
   key: string;
 
   variantId: string;
@@ -89,10 +93,12 @@ type LineState = {
   appliedCampaignLabels: Set<string>;
   appliedPromoCode?: string;
 
-  // ✅ NEW: gift marker
+  // ✅ gift marker
   isGiftLine?: boolean;
   giftCampaignId?: string;
-  campaignQuantities?: Map<string, number>;
+
+  // ✅ NEW: allocation map (campaignId -> qty allocated to that campaign)
+  campaignQuantities: Record<string, number>;
 };
 
 type PriceMap = Map<string, { amount: number; currencyCode: string }>;
@@ -109,17 +115,6 @@ function parseMoneyScalar(price: any) {
 
 type RunResult = { ok: true; json: any } | { ok: false; error: any };
 
-/**
- * Shopify Admin GraphQL schema differs by API version:
- * - ProductVariant.price can be:
- *   - MoneyV2 (object) -> price { amount currencyCode }
- *   - Money (scalar)   -> price (string)
- * - Or priceV2 exists: priceV2 { amount currencyCode }
- *
- * IMPORTANT:
- * Shopify GraphQL client can THROW (GraphqlQueryError) when graphQLErrors exist.
- * So we MUST try/catch and continue to the next query.
- */
 async function fetchVariantPrices(admin: any, variantIds: string[]): Promise<PriceMap> {
   const map: PriceMap = new Map();
   if (!variantIds.length) return map;
@@ -266,6 +261,7 @@ function ensureRegularLine(lines: Map<string, LineState>, variantId: string, pri
     freeUnits: 0,
     appliedCampaignIds: new Set(),
     appliedCampaignLabels: new Set(),
+    campaignQuantities: {}, // ✅ NEW
   };
 
   lines.set(key, line);
@@ -297,6 +293,7 @@ function createGiftLine(
     appliedCampaignLabels: new Set([campaign.label]),
     isGiftLine: true,
     giftCampaignId: campaign.id,
+    campaignQuantities: {}, // ✅ NEW (not used for gifts, but keeps shape consistent)
   };
 
   // Make gift free:
@@ -319,13 +316,38 @@ function applyMemberDiscount(lines: Map<string, LineState>, hasMember: boolean) 
 function eligibleUnits(lines: LineState[], eligibleVariantIds: string[]) {
   if (!eligibleVariantIds.length) return [];
   const ids = new Set(eligibleVariantIds.map(toGid));
-
   // ✅ gifts should never count as eligible units/triggers
   return lines.filter((line) => !line.isGiftLine && ids.has(line.variantId));
 }
 
 function totalLineValue(line: LineState) {
   return line.memberUnitPrice * line.quantity - line.discountTotal;
+}
+
+/**
+ * ✅ NEW: allocate N units of eligible trigger lines to a campaign (UI uses this)
+ * - Doesn't change price.
+ * - Adds appliedCampaignIds/Labels.
+ */
+function allocateCampaignUnits(lines: LineState[], campaign: Campaign, unitsNeeded: number) {
+  let remaining = Math.max(0, Number(unitsNeeded || 0));
+  if (remaining <= 0) return;
+
+  for (const line of lines) {
+    if (remaining <= 0) break;
+
+    const already = Number(line.campaignQuantities[campaign.id] || 0);
+    const available = Math.max(0, Number(line.quantity || 0) - already);
+    if (available <= 0) continue;
+
+    const take = Math.min(available, remaining);
+
+    line.campaignQuantities[campaign.id] = already + take;
+    line.appliedCampaignIds.add(campaign.id);
+    line.appliedCampaignLabels.add(campaign.label);
+
+    remaining -= take;
+  }
 }
 
 function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaign) {
@@ -345,30 +367,12 @@ function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaig
   for (const freeUnit of freebies) {
     freeUnit.line.discountTotal += freeUnit.unitPrice;
     freeUnit.line.freeUnits += 1;
+
     freeUnit.line.appliedCampaignIds.add(campaign.id);
     freeUnit.line.appliedCampaignLabels.add(campaign.label);
-  }
-}
 
-function addCampaignQuantity(line: LineState, campaign: Campaign, quantity: number) {
-  if (quantity <= 0) return;
-  line.appliedCampaignIds.add(campaign.id);
-  line.appliedCampaignLabels.add(campaign.label);
-  if (!line.campaignQuantities) line.campaignQuantities = new Map();
-  const current = line.campaignQuantities.get(campaign.id) || 0;
-  line.campaignQuantities.set(campaign.id, current + quantity);
-}
-
-function allocateCampaignUnits(lines: LineState[], requiredCount: number, campaign: Campaign) {
-  if (requiredCount <= 0) return;
-  let remaining = requiredCount;
-
-  for (const line of lines) {
-    if (remaining <= 0) break;
-    const used = Math.min(line.quantity, remaining);
-    if (used <= 0) continue;
-    addCampaignQuantity(line, campaign, used);
-    remaining -= used;
+    // ✅ NEW: mark that 1 unit was allocated to this campaign (for UI)
+    freeUnit.line.campaignQuantities[campaign.id] = Number(freeUnit.line.campaignQuantities[campaign.id] || 0) + 1;
   }
 }
 
@@ -468,6 +472,10 @@ function buildLines(lines: LineState[]): PricedLine[] {
     const subtotal = line.memberUnitPrice * line.quantity - line.discountTotal;
     const finalUnitPrice = line.quantity ? roundMoney(subtotal / line.quantity) : 0;
 
+    const cq = line.campaignQuantities || {};
+    const cqKeys = Object.keys(cq);
+    const cqOut = cqKeys.length ? cq : undefined;
+
     return {
       variantId: line.variantId,
       quantity: line.quantity,
@@ -480,10 +488,11 @@ function buildLines(lines: LineState[]): PricedLine[] {
       appliedCampaignLabels: Array.from(line.appliedCampaignLabels),
       appliedPromoCode: line.appliedPromoCode,
 
-      // ✅ NEW
       isGiftLine: Boolean(line.isGiftLine),
       giftCampaignId: line.giftCampaignId,
-      campaignQuantities: line.campaignQuantities ? Object.fromEntries(line.campaignQuantities) : undefined,
+
+      // ✅ NEW
+      campaignQuantities: cqOut,
     };
   });
 }
@@ -558,9 +567,10 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
       if (totalEligibleQty < campaign.buyQuantity) continue;
 
-      allocateCampaignUnits(eligible, campaign.buyQuantity, campaign);
-      createGiftLine(linesMap, campaign, campaign.freeVariantId, priceMap, 1);
+      // ✅ NEW: allocate EXACT buyQuantity to the campaign (UI needs it)
+      allocateCampaignUnits(eligible, campaign, campaign.buyQuantity);
 
+      createGiftLine(linesMap, campaign, campaign.freeVariantId, priceMap, 1);
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
@@ -580,9 +590,10 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const chosen = toGid(input.freeChoiceVariantId);
       if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
 
-      allocateCampaignUnits(eligible, campaign.buyQuantity, campaign);
-      createGiftLine(linesMap, campaign, chosen, priceMap, 1);
+      // ✅ NEW: allocate EXACT buyQuantity to the campaign (UI needs it)
+      allocateCampaignUnits(eligible, campaign, campaign.buyQuantity);
 
+      createGiftLine(linesMap, campaign, chosen, priceMap, 1);
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
@@ -615,6 +626,7 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
       const chosen = toGid(input.freeChoiceVariantId);
       if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
 
+      // (threshold choice doesn't have buyQuantity triggers to allocate deterministically)
       createGiftLine(linesMap, campaign, chosen, priceMap, 1);
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });

@@ -34,30 +34,22 @@
     let n = startEl.nextSibling;
     while (n && n !== endEl) {
       const next = n.nextSibling;
-      // Удаляем только элементы (TR/LI/...), текстовые узлы можно игнорировать
       if (n.nodeType === 1) n.remove();
       n = next;
     }
   }
 
-  // --- IMPORTANT: was missing in your file (caused render to silently fail) ---
   function stableStringify(obj) {
-    // Безопасная JSON-сериализация со стабильным порядком ключей
     const seen = new WeakSet();
     return JSON.stringify(obj, function (key, value) {
       if (value && typeof value === "object") {
         if (seen.has(value)) return undefined;
         seen.add(value);
-
         if (Array.isArray(value)) return value;
-
-        // сортируем ключи
         const out = {};
         Object.keys(value)
           .sort()
-          .forEach((k) => {
-            out[k] = value[k];
-          });
+          .forEach((k) => (out[k] = value[k]));
         return out;
       }
       return value;
@@ -65,7 +57,6 @@
   }
 
   function buildPayloadKey(payload) {
-    // Берём только то, что влияет на DOM-рендер.
     const p = payload || {};
     const keyObj = {
       showVirtualGifts: !!p.showVirtualGifts,
@@ -100,8 +91,6 @@
       campaignsHtml: typeof p.campaignsHtml === "string" ? p.campaignsHtml : "",
     };
 
-    // Если HTML большой — всё равно ок, но ключ будет большим.
-    // Можно урезать хэшированием, но пока оставим так для простоты/дебага.
     return stableStringify(keyObj);
   }
 
@@ -272,8 +261,6 @@
         const safeTitle = escapeHtml(item.title || "Item");
         const qty = Number(item.quantity || 0);
         const note = item.note ? `<div class="text-sm text-subtext">${escapeHtml(item.note)}</div>` : "";
-        const variantId = item.variantId ? String(item.variantId) : "";
-        const totalQuantity = Number(item.totalQuantity || 0);
         const img = item.image ? String(item.image) : "";
         const link = item.url ? String(item.url) : "";
 
@@ -297,22 +284,9 @@
 
         const priceHtml = item.isGift
           ? `<div class="cart-item__prices">
-          <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
-            <span>FREE</span>
-          </div>
-        </div>`
-          : "";
-
-        const qtyControls = !item.isGift && variantId && Number.isFinite(totalQuantity)
-          ? `<div class="flex items-center gap-2 text-sm">
-              <span class="text-subtext">Total:</span>
-              <button type="button" data-mk-campaign-qty="dec" data-variant-id="${escapeHtml(
-                variantId,
-              )}" data-current-qty="${totalQuantity}" aria-label="Decrease quantity" style="width:28px;height:28px;border:1px solid rgba(0,0,0,.2);border-radius:999px;display:inline-flex;align-items:center;justify-content:center;">−</button>
-              <span data-mk-campaign-qty-value>${totalQuantity}</span>
-              <button type="button" data-mk-campaign-qty="inc" data-variant-id="${escapeHtml(
-                variantId,
-              )}" data-current-qty="${totalQuantity}" aria-label="Increase quantity" style="width:28px;height:28px;border:1px solid rgba(0,0,0,.2);border-radius:999px;display:inline-flex;align-items:center;justify-content:center;">+</button>
+              <div class="price text-right flex flex-wrap items-center gap-x-2 font-body-bolder">
+                <span>FREE</span>
+              </div>
             </div>`
           : "";
 
@@ -328,7 +302,6 @@
         </div>
         ${note}
         <div class="text-sm text-subtext">Qty: ${qty}</div>
-        ${qtyControls}
       </div>
       <div class="grid gap-2 hidden lg:grid">${priceHtml}</div>
       <span class="items-start justify-center relative flex md:hidden btn-remove" aria-hidden="true" style="opacity:.35;pointer-events:none;">
@@ -418,7 +391,6 @@
     });
   }
 
-  // MK FIX: inject CSS to hide old badge pills if some other script still creates them
   (function ensureHideBadgePillsCss() {
     if (document.getElementById("mk-hide-discount-badges-css")) return;
     const style = document.createElement("style");
@@ -434,7 +406,6 @@
     try {
       payloadKey = buildPayloadKey(payload || {});
     } catch (e) {
-      // Никогда не ломаем рендер из-за ключа
       console.warn("[MKCartCampaignUI] buildPayloadKey failed, skipping cache", e);
       payloadKey = "";
     }
@@ -445,10 +416,10 @@
     const campaignBlocks = Array.isArray(payload?.campaignBlocks) ? payload.campaignBlocks : [];
 
     qsa(document, SELECTORS.cartRoot).forEach((cartRoot) => {
+      // campaign blocks
       insertCampaignBlocks(cartRoot, campaignBlocks);
 
-      // MK FIX: If we have campaign blocks, NEVER render gifts to avoid duplicates.
-      // (gift items are already displayed inside campaign block items)
+      // gifts (virtual) — only when there are NO campaign blocks
       const allowVirtualGifts = Boolean(payload?.showVirtualGifts) && campaignBlocks.length === 0;
 
       if (allowVirtualGifts) {
@@ -464,33 +435,6 @@
   window.MKCartCampaignUI = window.MKCartCampaignUI || {};
   let renderInProgress = false;
 
-  async function updateCartQuantity(variantId, nextQty) {
-    const res = await fetch("/cart/change.js", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ id: Number(variantId), quantity: Number(nextQty) }),
-    });
-    if (!res.ok) throw new Error("cart/change.js failed");
-    return res.json();
-  }
-
-  document.addEventListener("click", async (event) => {
-    const btn = event.target?.closest?.("[data-mk-campaign-qty]");
-    if (!btn) return;
-    const action = btn.getAttribute("data-mk-campaign-qty");
-    const variantId = btn.getAttribute("data-variant-id") || "";
-    const currentQty = Number(btn.getAttribute("data-current-qty") || 0);
-    if (!variantId || !Number.isFinite(currentQty)) return;
-
-    const nextQty = action === "dec" ? Math.max(0, currentQty - 1) : currentQty + 1;
-    try {
-      await updateCartQuantity(variantId, nextQty);
-      document.dispatchEvent(new Event("cart:updated"));
-    } catch (e) {
-      console.warn("[MKCartCampaignUI] failed to update quantity", e);
-    }
-  });
-
   function safeRender(payload) {
     if (renderInProgress) return;
     renderInProgress = true;
@@ -505,18 +449,9 @@
     }
   }
 
-  // keep last payload
-  const origRender = function (payload) {
-    safeRender(payload);
-  };
-
   window.MKCartCampaignUI.render = (payload) => {
     window.__MK_CART_PRICING_LAST__ = payload || {};
-    try {
-      origRender(payload);
-    } catch (e) {
-      console.warn("[MKCartCampaignUI] render error", e);
-    }
+    safeRender(payload);
   };
 
   window.addEventListener("mk:cart-pricing", (e) => {
@@ -532,8 +467,11 @@
   const EVENTS = ["cart:updated", "cart:change", "cart:refresh", "ajaxCart:rendered", "shopify:section:load"];
   EVENTS.forEach((ev) => window.addEventListener(ev, () => setTimeout(reapplyLast, 0)));
 
-  // Observe existing cart roots AND cart roots created later (drawer/sections)
   const observedRoots = new WeakSet();
+  const cartObserver = new MutationObserver(() => {
+    if (renderInProgress) return;
+    Promise.resolve().then(reapplyLast);
+  });
 
   function observeRoot(root) {
     if (!root || observedRoots.has(root)) return;
@@ -547,13 +485,7 @@
     qsa(document, SELECTORS.cartRoot).forEach(observeRoot);
   }
 
-  const cartObserver = new MutationObserver(() => {
-    if (renderInProgress) return;
-    Promise.resolve().then(reapplyLast);
-  });
-
   const rootSpawnerObserver = new MutationObserver(() => {
-    // кто-то пересоздал cart drawer / main-cart / sections
     scanAndObserveRoots();
     setTimeout(reapplyLast, 0);
   });
