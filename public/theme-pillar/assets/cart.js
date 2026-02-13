@@ -940,7 +940,17 @@ class FreeShippingGoal extends HTMLElement {
   connectedCallback() {
     this.updateShippingGloal(Number(this.dataset.cartTotal));
     document.addEventListener('cart:updated', (event) => {
-      this.updateShippingGloal(event.detail.cart.items_subtotal_price);
+      const fromEvent = Number(event?.detail?.cart?.items_subtotal_price);
+      const fallbackTotal = Number(event?.detail?.cart?.total_price);
+      const fallbackDataset = Number(this.dataset.cartTotal);
+      const subtotal = Number.isFinite(fromEvent)
+        ? fromEvent
+        : Number.isFinite(fallbackTotal)
+          ? fallbackTotal
+          : Number.isFinite(fallbackDataset)
+            ? fallbackDataset
+            : 0;
+      this.updateShippingGloal(subtotal);
     });
   }
 
@@ -1026,10 +1036,58 @@ const elsCampaigns = () => Array.from(document.querySelectorAll("[data-applied-c
     }
   };
 
+  const toGid = (variantId) => {
+    const raw = String(variantId || "").trim();
+    if (!raw) return "";
+    if (raw.startsWith("gid://")) return raw;
+    return `gid://shopify/ProductVariant/${raw.replace(/[^\d]/g, "")}`;
+  };
+
+  const parseFreeChoiceSelectionsAttr = (raw) => {
+    const text = String(raw || "").trim();
+    if (!text) return [];
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed.map((id) => toGid(id)).filter(Boolean);
+      }
+    } catch {}
+    if (text.includes("|")) {
+      return text
+        .split("|")
+        .map((id) => toGid(id))
+        .filter(Boolean);
+    }
+    const single = toGid(text);
+    return single ? [single] : [];
+  };
+
+  const resolveCustomerIdForPricing = () => {
+    const pickupRoot = document.querySelector("[data-itella-pickup-root='1']");
+    const datasetCustomerId = String(pickupRoot?.getAttribute?.("data-customer-id") || "").trim();
+    if (datasetCustomerId) return datasetCustomerId;
+
+    const datasetLoggedIn = String(pickupRoot?.getAttribute?.("data-customer-logged-in") || "") === "true";
+    if (datasetLoggedIn) return "logged-in";
+
+    const globalCustomerId = String(window.__MK_CUSTOMER_ID || "").trim();
+    if (globalCustomerId) return globalCustomerId;
+
+    if (window.__MK_CUSTOMER_LOGGED_IN === true) return "logged-in";
+
+    const shopifyCustomerId = String(window?.Shopify?.customer_id || window?.Shopify?.customerId || "").trim();
+    if (shopifyCustomerId) return shopifyCustomerId;
+
+    const analyticsCustomerId = String(window?.ShopifyAnalytics?.meta?.page?.customerId || "").trim();
+    if (analyticsCustomerId) return analyticsCustomerId;
+
+    return null;
+  };
+
   const buildPayloadFromCart = (cart) => {
     return {
       mode: "preview",
-      customerId: null,
+      customerId: resolveCustomerIdForPricing(),
       items: (cart.items || []).map((it) => ({
         // You already do this GID mapping in console snippet.
         variantId: `gid://shopify/ProductVariant/${String(it.variant_id).replace(/[^\d]/g, "")}`,
@@ -1038,6 +1096,7 @@ const elsCampaigns = () => Array.from(document.querySelectorAll("[data-applied-c
       shipping: null,
       promoCode: cart.attributes?.itella_promo_code || null,
       freeChoiceVariantId: cart.attributes?.itella_free_choice_variant_id || null,
+      freeChoiceSelections: parseFreeChoiceSelectionsAttr(cart.attributes?.itella_free_choice_selections || ""),
     };
   };
 
@@ -1055,15 +1114,31 @@ const renderPricing = (pricing) => {
 
   const cc = pricing.currencyCode || "EUR";
   const br = pricing.breakdown || {};
+  const promo = pricing.promo || {};
+  const requestedPromoCode = String(promo.requestedCode || "").trim();
+  const appliedPromoCode = String(promo.appliedCode || "").trim();
+  const promoReason = String(promo.reason || "").trim();
   const applied = Array.isArray(pricing.appliedCampaigns) ? pricing.appliedCampaigns : [];
 
   // Breakdown
   const rows = [
     ["Base subtotal", money(br.baseSubtotal ?? 0, cc)],
     ["Campaign discount", br.campaignDiscount ? `-${money(br.campaignDiscount, cc)}` : money(0, cc)],
-    ["Promo discount", br.promoDiscount ? `-${money(br.promoDiscount, cc)}` : money(0, cc)],
+    [
+      appliedPromoCode
+        ? `Promo (${appliedPromoCode})`
+        : requestedPromoCode
+          ? `Promo (${requestedPromoCode})`
+          : "Promo discount",
+      br.promoDiscount ? `-${money(br.promoDiscount, cc)}` : requestedPromoCode ? "Not applied" : money(0, cc),
+    ],
     ["Final subtotal", money(br.finalSubtotal ?? br.baseSubtotal ?? 0, cc)],
   ];
+
+  const promoNoticeHtml =
+    requestedPromoCode && !br.promoDiscount
+      ? `<div style="margin-top:6px;color:#b91c1c;font-size:12px;">${promoReason || "Promo code is not applicable to the current cart."}</div>`
+      : "";
 
   const breakdownHtml = `
     <div style="padding:10px;border:1px solid rgba(0,0,0,.08);border-radius:12px;">
@@ -1074,7 +1149,7 @@ const renderPricing = (pricing) => {
             <span style="opacity:.75;">${k}</span>
             <span style="font-weight:600;">${v}</span>
           </div>`).join("")}
-      </div>
+      </div>${promoNoticeHtml}
     </div>
   `;
   bEls.forEach((el) => (el.innerHTML = breakdownHtml));

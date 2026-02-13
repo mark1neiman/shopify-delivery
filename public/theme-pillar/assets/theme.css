@@ -4306,6 +4306,26 @@ input:is([type=radio])::after {
   align-items: flex-start;
   gap: 0.6rem;
 }
+.product-card__save {
+  position: absolute;
+  top: 1rem;
+  inset-inline-start: 1rem;
+  z-index: 4;
+  cursor: pointer;
+}
+.product-card__save .icon {
+  width: 1.8rem;
+  height: 1.8rem;
+}
+.product-card__save.is-saved {
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.35);
+  color: #dc2626;
+}
+.product-card__save.is-save-error {
+  border-color: #f59e0b;
+  color: #b45309;
+}
 .product-card__quickview {
   position: absolute;
   top: 2rem;
@@ -4481,6 +4501,12 @@ input:is([type=radio])::after {
   .product-card {
     --pcard-info-gap: 1.2rem;
     --pcard-swatches-gap: 0.4rem;
+  }
+  .product-card__save {
+    width: 3.8rem;
+    height: 3.8rem;
+    padding: 0;
+    border-radius: 50%;
   }
   .product-card__quickview {
     display: none;

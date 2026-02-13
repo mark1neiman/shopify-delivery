@@ -218,9 +218,18 @@
 
     const tbody = cartRoot.querySelector(SELECTORS.tbody);
     if (tbody) {
-      const start = tbody.querySelector(SELECTORS.giftsStart);
-      const end = tbody.querySelector(SELECTORS.giftsEnd);
-      if (!start || !end) return;
+      let start = tbody.querySelector(SELECTORS.giftsStart);
+      let end = tbody.querySelector(SELECTORS.giftsEnd);
+      if (!start || !end) {
+        start = document.createElement("tr");
+        start.setAttribute("data-mk-gifts-start", "");
+        start.style.display = "none";
+        end = document.createElement("tr");
+        end.setAttribute("data-mk-gifts-end", "");
+        end.style.display = "none";
+        tbody.prepend(end);
+        tbody.prepend(start);
+      }
 
       removeBetweenMarkers(start, end);
       if (!safeGifts.length) return;
@@ -237,9 +246,18 @@
     const list = cartRoot.querySelector(SELECTORS.list);
     if (!list) return;
 
-    const start = list.querySelector(SELECTORS.giftsStart);
-    const end = list.querySelector(SELECTORS.giftsEnd);
-    if (!start || !end) return;
+    let start = list.querySelector(SELECTORS.giftsStart);
+    let end = list.querySelector(SELECTORS.giftsEnd);
+    if (!start || !end) {
+      start = document.createElement("li");
+      start.setAttribute("data-mk-gifts-start", "");
+      start.style.display = "none";
+      end = document.createElement("li");
+      end.setAttribute("data-mk-gifts-end", "");
+      end.style.display = "none";
+      list.prepend(end);
+      list.prepend(start);
+    }
 
     removeBetweenMarkers(start, end);
     if (!safeGifts.length) return;
@@ -327,9 +345,18 @@
 
     const tbody = cartRoot.querySelector(SELECTORS.tbody);
     if (tbody) {
-      const start = tbody.querySelector(SELECTORS.campaignsStart);
-      const end = tbody.querySelector(SELECTORS.campaignsEnd);
-      if (!start || !end) return;
+      let start = tbody.querySelector(SELECTORS.campaignsStart);
+      let end = tbody.querySelector(SELECTORS.campaignsEnd);
+      if (!start || !end) {
+        start = document.createElement("tr");
+        start.setAttribute("data-mk-campaigns-start", "");
+        start.style.display = "none";
+        end = document.createElement("tr");
+        end.setAttribute("data-mk-campaigns-end", "");
+        end.style.display = "none";
+        tbody.prepend(end);
+        tbody.prepend(start);
+      }
 
       removeBetweenMarkers(start, end);
       if (!safeBlocks.length) return;
@@ -353,9 +380,18 @@
     const list = cartRoot.querySelector(SELECTORS.list);
     if (!list) return;
 
-    const start = list.querySelector(SELECTORS.campaignsStart);
-    const end = list.querySelector(SELECTORS.campaignsEnd);
-    if (!start || !end) return;
+    let start = list.querySelector(SELECTORS.campaignsStart);
+    let end = list.querySelector(SELECTORS.campaignsEnd);
+    if (!start || !end) {
+      start = document.createElement("li");
+      start.setAttribute("data-mk-campaigns-start", "");
+      start.style.display = "none";
+      end = document.createElement("li");
+      end.setAttribute("data-mk-campaigns-end", "");
+      end.style.display = "none";
+      list.prepend(end);
+      list.prepend(start);
+    }
 
     removeBetweenMarkers(start, end);
     if (!safeBlocks.length) return;
@@ -434,17 +470,27 @@
 
   window.MKCartCampaignUI = window.MKCartCampaignUI || {};
   let renderInProgress = false;
+  let queuedPayload = null;
 
   function safeRender(payload) {
-    if (renderInProgress) return;
+    const safePayload = payload || {};
+    if (renderInProgress) {
+      queuedPayload = safePayload;
+      return;
+    }
     renderInProgress = true;
     try {
-      applyPayloadToAllCarts(payload || {});
+      applyPayloadToAllCarts(safePayload);
     } catch (e) {
       console.warn("[MKCartCampaignUI] render error", e);
     } finally {
       setTimeout(() => {
         renderInProgress = false;
+        if (queuedPayload) {
+          const next = queuedPayload;
+          queuedPayload = null;
+          safeRender(next);
+        }
       }, 0);
     }
   }

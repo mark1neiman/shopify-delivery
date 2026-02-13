@@ -41,6 +41,8 @@ export type Campaign =
   | (CampaignBase & {
       type: "CartThresholdFreeChoice";
       thresholdAmount: number;
+      giftQuantity: number;
+      repeatPerThreshold: boolean;
       choiceVariantIds: string[];
     });
 
@@ -167,6 +169,8 @@ export async function listCampaigns(admin: any): Promise<Campaign[]> {
           return {
             ...base,
             thresholdAmount: Number(config.thresholdAmount || 0),
+            giftQuantity: Math.max(1, Number(config.giftQuantity || 1)),
+            repeatPerThreshold: Boolean(config.repeatPerThreshold),
             choiceVariantIds: Array.isArray(config.choiceVariantIds) ? config.choiceVariantIds : [],
           };
         default:

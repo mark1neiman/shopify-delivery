@@ -62,6 +62,21 @@
     assign fetchpriority = 'high'
   endif
 
+  assign save_media = featured_media
+  if save_media
+    if save_media.media_type == 'video' or save_media.media_type == 'external_video' or save_media.media_type == 'model'
+      assign save_media = save_media.preview_image
+    endif
+  endif
+  assign save_image = ''
+  if save_media
+    assign save_image = save_media | image_url: width: 560
+  endif
+  assign save_price = variant.price | money
+  if settings.currency_code_enabled
+    assign save_price = variant.price | money_with_currency
+  endif
+
   assign image_sizes = image_sizes | default: '(max-width: 767px) 42vw, 300px'
 
   assign color_scheme_first = settings.color_schemes | first
@@ -115,6 +130,20 @@
           </div>
         {%- endif -%}
       </a>
+      <button
+        type="button"
+        class="product-card__save btn btn--icon-circle btn--white no-js-hidden"
+        data-save-product-btn
+        data-product-id="{{ product.id }}"
+        data-product-url="{{ product_url }}"
+        data-product-title="{{ product.title | escape }}"
+        data-product-image="{{ save_image }}"
+        data-product-price="{{ save_price | escape }}"
+        aria-pressed="false"
+      >
+        <span class="visually-hidden" data-save-product-label>Save product</span>
+        {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+      </button>
       {%- if enable_quick_add -%}
         {%- liquid
           assign product_form_id = 'quick-add-' | append: section.id | append: product.id

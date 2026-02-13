@@ -1,7 +1,5 @@
 {%- liquid
-  assign variant = product.selected_or_first_available_variant
-
-  assign show_color_swatches = settings.pcard_enable_color_swatches
+  assign selected_variant = product.selected_or_first_available_variant
 
   if show_vendor == null
     assign show_vendor = settings.pcard_show_vendor
@@ -13,10 +11,6 @@
 
   if show_price == null
     assign show_price = settings.pcard_show_price
-  endif
-
-  if show_product_option == null
-    assign show_product_option = settings.pcard_show_color_swatch
   endif
 
   assign first_media_type = product.featured_media.media_type
@@ -56,11 +50,6 @@
 
   assign mobile_hide_quick_add = settings.pcard_mobile_hide_quick_add
 
-  assign atc_button_tag = 'a'
-  unless settings.pcard_choose_options_actions == 'product_page'
-    assign atc_button_tag = 'button'
-  endunless
-
   if use_short_text_for_atc_button == null
     assign use_short_text_for_atc_button = false
   endif
@@ -89,22 +78,46 @@
     assign fetchpriority = 'high'
   endif
 
+  assign save_image = ''
+  if featured_media
+    assign save_image = featured_media | image_url: width: 560
+  endif
+  assign save_price = selected_variant.price | money
+  if settings.currency_code_enabled
+    assign save_price = selected_variant.price | money_with_currency
+  endif
+
+  if pcard_style == null
+    assign pcard_style = settings.pcard_style
+  endif
+
+  assign pcard_color_scheme = pcard_color_scheme | default: settings.pcard_color_scheme
+
+  assign has_bg = false
+  if pcard_color_scheme != section.settings.color_scheme
+    assign has_bg = true
+  endif
+
+  if pcard_title_line_limit == null
+    assign pcard_title_line_limit = settings.pcard_title_line_limit
+  endif
+
   # Update default values here also need to update for pcard-color-swatch.liquid
   assign image_sizes = image_sizes | default: '450px'
   assign image_widths = '70, 140, 165, 355, 450, 535, 710, 900, 1070, 1420'
 -%}
 <div
-  class="product-card product-card-style-boxed color-{{ settings.pcard_color_scheme }} {{ card_wrapper_class }}"
+  class="product-card product-card-style-{{ pcard_style }} color-{{ pcard_color_scheme }} {{ card_wrapper_class }}{% if list_on_mobile %} product-card-list-on-mobile{% endif %}{% if has_bg %} product-card--has-bg{% endif %} h-full"
 >
   <div class="product-card__wrapper h-full">
-    <div class="product-card__image-wrapper{% if second_image == blank %} product-card__image-wrapper--main-only{% endif %} color-{{ settings.pcard_overlay_color_scheme }} bg-none">
+    <div class="product-card__image-wrapper{% if second_image == blank %} product-card__image-wrapper--main-only{% endif %} {% if list_on_mobile %}desktop-{% endif %}color-{{ settings.pcard_overlay_color_scheme }} bg-none">
       <a href="{{ product.url }}" aria-label="{{ product.title | escape }}" tabindex="-1">
         <motion-element data-motion="zoom-out-sm" class="block">
           {%- if featured_media -%}
             {%- unless first_media_type == 'video' or first_media_type == 'external_video' -%}
               <div
                 class="media-wrapper product-card__image product-card__image--main"
-                style="--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio }};"
+                style="--aspect-ratio: {{ image_ratio }}"
               >
                 {%- assign first_image_widths = image_widths | append: ', ' | append: featured_media.width -%}
                 {{
@@ -122,7 +135,7 @@
               {%- unless second_image == blank -%}
                 <div
                   class="media-wrapper product-card__image product-card__image--second inset-full hidden md:block"
-                  style="--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio }};"
+                  style="--aspect-ratio: {{ image_ratio }}"
                 >
                   {%- assign second_image_widths = image_widths | append: ', ' | append: second_image.width -%}
                   {{
@@ -150,10 +163,7 @@
               </div>
             {%- endunless -%}
           {%- else -%}
-            <div
-              class="product-card__image product-card__image--main"
-              style="--aspect-ratio: {{ image_ratio }};--aspect-ratio-mobile: {{ image_ratio }};"
-            >
+            <div class="product-card__image product-card__image--main" style="--aspect-ratio: {{ image_ratio }};">
               {{- 'product-1' | placeholder_svg_tag: 'placeholder-svg' -}}
             </div>
           {%- endif -%}
@@ -171,97 +181,29 @@
           <span class="btn__text flex gap-1 items-center">{%- render 'icon-search', size: 'large' -%}</span>
         </button>
       {%- endif -%}
-      {%- if enable_quick_add -%}
-        {%- liquid
-          assign product_form_id = 'quick-add-' | append: section.id | append: product.id
-          assign qty_rules = false
-          if variant.quantity_rule.min > 1 or variant.quantity_rule.max != null or variant.quantity_rule.increment > 1
-            assign qty_rules = true
-          endif
-        -%}
-        {%- if product.variants.size > 1 or qty_rules -%}
-          <div class="product-card__actions product-card__main-actions{% unless settings.pcard_choose_options_actions == 'product_page' %} no-js-hidden{% endunless %}">
-            <{{ atc_button_tag }}
-              {% if settings.pcard_choose_options_actions == 'product_page' %}
-                href="{{- product_url -}}"
-              {% else %}
-                aria-controls="{{ quick_view_modal_id }}"
-                aria-haspopup="dialog"
-              {% endif %}
-              class="product-card__atc product-card__action-button btn {{ settings.pcard_button_style }}"
-            >
-              <div class="btn__text flex gap-1 items-center">
-                <span class="product-card__atc-icon product-card__action-icon inline-flex md:hidden">
-                  {%- render 'icon-cart', name: settings.cart_icon -%}
-                </span>
-                <span class="product-card__atc-text product-card__action-text">
-                  {%- if use_short_text_for_atc_button -%}
-                    {{- 'products.product.choose_options_short' | t -}}
-                  {%- else -%}
-                    {{- 'products.product.choose_options' | t -}}
-                  {%- endif -%}
-                </span>
-              </div>
-            </{{ atc_button_tag }}>
-          </div>
-        {%- else -%}
-          {%- form 'product',
-            product,
-            id: product_form_id,
-            class: 'product-card__actions product-card__main-actions',
-            novalidate: 'novalidate',
-            data-type: 'add-to-cart-form',
-            is: 'product-form'
-          -%}
-            <input
-              type="hidden"
-              name="id"
-              value="{{- variant.id -}}"
-              class="product-variant-id"
-              {% if variant.available == false %}
-                disabled
-              {% endif %}
-            >
-            <button
-              id="{{ product_form_id }}-submit"
-              type="submit"
-              name="add"
-              {% if variant.available == false %}
-                disabled
-              {% endif %}
-              aria-label="{{ 'products.product.add_to_cart' | t }}"
-              class="product-card__atc product-card__action-button btn {{ settings.pcard_button_style }}"
-            >
-              <div class="btn__text flex gap-1 items-center">
-                <span class="product-card__atc-icon product-card__action-icon inline-flex md:hidden">
-                  {%- render 'icon-cart', name: settings.cart_icon -%}
-                </span>
-                <span class="product-card__atc-text product-card__action-text">
-                  {%- if variant.available -%}
-                    {%- if use_short_text_for_atc_button -%}
-                      {{- 'products.product.add_to_cart_short' | t -}}
-                    {%- else -%}
-                      {{- 'products.product.add_to_cart' | t -}}
-                    {%- endif -%}
-                  {%- else -%}
-                    {{- 'products.product.sold_out' | t -}}
-                  {%- endif -%}
-                </span>
-              </div>
-              {% render 'loading-spinner' %}
-            </button>
-          {%- endform -%}
-        {%- endif -%}
-      {%- endif -%}
+      <button
+        type="button"
+        class="product-card__save btn btn--icon-circle btn--white no-js-hidden"
+        data-save-product-btn
+        data-product-id="{{ product.id }}"
+        data-product-url="{{ product_url }}"
+        data-product-title="{{ product.title | escape }}"
+        data-product-image="{{ save_image }}"
+        data-product-price="{{ save_price | escape }}"
+        aria-pressed="false"
+      >
+        <span class="visually-hidden" data-save-product-label>Save product</span>
+        {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+      </button>
       {%- if enable_compare_checkbox -%}
         <compare-checkbox class="product-card__compare hidden">
           <label
             data-tooltip="left"
             class="flex items-center justify-center cursor-pointer"
-            for="CompareCheckbox-{{ section.id }}-{{ block.id }}-{{ product.id }}"
+            for="CompareCheckbox-{{ section.id }}-{{ block_id }}-{{ product.id }}"
           >
             <input
-              id="CompareCheckbox-{{ section.id }}-{{ block.id }}-{{ product.id }}"
+              id="CompareCheckbox-{{ section.id }}-{{ block_id }}-{{ product.id }}"
               class="js-compare-checkbox"
               type="checkbox"
               name="product-compare"
@@ -298,104 +240,225 @@
       {%- endif -%}
       <h3 class="product-card__title text-pcard-title">
         <a
-          class="reversed-link block {% if settings.pcard_title_line_limit != 'none' %} text-limit-{{ settings.pcard_title_line_limit }}{% endif %}"
+          class="reversed-link block {% if pcard_title_line_limit != 'none' %} text-limit-{{ pcard_title_line_limit }}{% endif %}"
           href="{{ product.url }}"
         >
           <span class="reversed-link__text">{{- product.title -}}</span>
         </a>
       </h3>
       {%- if show_price -%}
-        {% render 'price', product: product, alignment: settings.pcard_content_alignment %}
+        <div id="Price-{{ block_id }}">
+          {% render 'price', product: product, alignment: settings.pcard_content_alignment %}
+        </div>
       {%- endif -%}
-      {%- if show_color_swatches -%}
-        {%- render 'pcard-color-swatch',
-          product: product,
-          image_sizes: image_sizes,
-          image_widths: image_widths,
-          enable_quick_view: enable_quick_view,
-          quick_view_modal_id: quick_view_modal_id
-        -%}
-      {%- endif -%}
-    </div>
-    <div class="product-card__list-actions hidden gap-3 flex-col">
-      {%- if enable_quick_add -%}
-        {%- liquid
-          assign product_form_id = 'list-view-quick-add-' | append: section.id | append: product.id
-          assign qty_rules = false
-          if variant.quantity_rule.min > 1 or variant.quantity_rule.max != null or variant.quantity_rule.increment > 1
-            assign qty_rules = true
-          endif
-        -%}
-        {%- if product.variants.size > 1 or qty_rules -%}
-          <div class="product-card__list-actions-main">
-            <{{ atc_button_tag }}
-              {% if settings.pcard_choose_options_actions == 'product_page' %}
-                href="{{- product_url -}}"
-              {% else %}
-                aria-controls="{{ quick_view_modal_id }}"
-                aria-haspopup="dialog"
-              {% endif %}
-              class="product-card__list-atc btn btn--primary"
-            >
-              <span class="btn__text flex gap-1 items-center">
-                {%- if use_short_text_for_atc_button -%}
-                  {{- 'products.product.choose_options_short' | t -}}
-                {%- else -%}
-                  {{- 'products.product.choose_options' | t -}}
-                {%- endif -%}
-              </span>
-            </{{ atc_button_tag }}>
-          </div>
-        {%- else -%}
-          {%- form 'product',
-            product,
-            id: product_form_id,
-            class: 'product-card__list-actions-main',
-            novalidate: 'novalidate',
-            data-type: 'add-to-cart-form',
-            is: 'product-form'
-          -%}
-            <input
-              type="hidden"
-              name="id"
-              value="{{- variant.id -}}"
-              class="product-variant-id"
-              {% if variant.available == false %}
-                disabled
-              {% endif %}
-            >
-            <button
-              id="{{ product_form_id }}-submit"
-              type="submit"
-              name="add"
-              {% if variant.available == false %}
-                disabled
-              {% endif %}
-              aria-label="{{ 'products.product.add_to_cart' | t }}"
-              class="product-card__list-atc btn btn--primary w-full"
-            >
-              <span class="btn__text flex gap-1 items-center">
-                {%- if variant.available -%}
-                  {%- if use_short_text_for_atc_button -%}
-                    {{- 'products.product.add_to_cart_short' | t -}}
-                  {%- else -%}
-                    {{- 'products.product.add_to_cart' | t -}}
+
+      <div class="product-card__list-actions flex flex-col gap-y-2">
+        {%- if product.available -%}
+          <div class="product-bundle-card__option relative flex items-center gap-x-2">
+            <select-element class="select{% if product.has_only_default_variant %} !hidden{% endif %}">
+              <select
+                name="id"
+                class="form-control form-control--select"
+                aria-label="{{ 'accessibility.select_variant' | t }}"
+                data-price_varies="{{ product.price_varies }}"
+                data-compare_at_price_varies="{{ product.compare_at_price_varies }}"
+              >
+                {%- for variant in product.variants -%}
+                  {%- capture option_ids -%}
+                    {%- for option in variant.options -%}
+                      {{- option.id -}}{%- unless forloop.last -%},{%- endunless -%}
+                    {%- endfor -%}
+                  {%- endcapture -%}
+                  <option
+                    {% if variant == selected_variant %}
+                      selected="selected"
+                    {% endif %}
+                    {% if variant.available == false %}
+                      disabled="disabled"
+                    {% endif %}
+                    value="{{ variant.id }}"
+                    data-available="{{ variant.available }}"
+                    data-price="{{ variant.price }}"
+                    data-compare_at_price="{{ variant.compare_at_price }}"
+                    data-options-id="{{ option_ids }}"
+                  >
+                    {{ variant.title }}
+                    {%- if variant.available == false %} - {{ 'products.product.sold_out' | t }}{% endif -%}
+                  </option>
+                {%- endfor -%}
+              </select>
+              {%- render 'icon-caret-down', size: '2xs' -%}
+            </select-element>
+
+            {%- if product.quantity_price_breaks_configured? -%}
+              {%- liquid
+                assign has_qty_rules = false
+                if selected_variant.quantity_rule.increment > 1 or selected_variant.quantity_rule.min > 1 or selected_variant.quantity_rule.max != null
+                  assign has_qty_rules = true
+                endif
+
+                assign has_vol_pricing = false
+                if selected_variant.quantity_price_breaks.size > 0
+                  assign has_vol_pricing = true
+                endif
+              -%}
+
+              {%- if has_qty_rules or has_vol_pricing -%}
+                {%- capture qty_rules_vol_pricing -%}
+                <button class="btn btn--plain text-sm-extra font-body quantity-popover__toggle" aria-label="{{ 'products.product.volume_pricing.note' | t }}">
+                  <svg class="icon icon-info icon--small" viewBox="0 0 25 24" stroke="currentColor" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12.5 16V11M13 8C13 8.27614 12.7761 8.5 12.5 8.5C12.2239 8.5 12 8.27614 12 8M13 8C13 7.72386 12.7761 7.5 12.5 7.5C12.2239 7.5 12 7.72386 12 8M13 8H12M22.5 12C22.5 17.5228 18.0228 22 12.5 22C6.97715 22 2.5 17.5228 2.5 12C2.5 6.47715 6.97715 2 12.5 2C18.0228 2 22.5 6.47715 22.5 12Z"></path>
+                  </svg>
+                  {% if product.has_only_default_variant %}{{ 'products.product.volume_pricing.note' | t }}{% endif %}
+                </button>
+                <div class="quantity-popover__quantity-rule color-{{ settings.overlay_color_scheme }}">
+                  <button aria-label="{{ 'accessibility.close' | t }}" class="btn btn--plain quantity-popover__close">
+                    {%- render 'icon-close', size: 'extra-small' -%}
+                  </button>
+                  {%- if has_qty_rules -%}
+                    <div class="quantity__rules text-sm">
+                      {%- if selected_variant.quantity_rule.increment > 1 -%}
+                        <span class="divider">
+                          {{-
+                            'products.product.quantity.multiples_of'
+                            | t: quantity: selected_variant.quantity_rule.increment
+                          -}}
+                        </span>
+                      {%- endif -%}
+                      {%- if selected_variant.quantity_rule.min > 1 -%}
+                        <span class="divider">
+                          {{-
+                            'products.product.quantity.minimum_of'
+                            | t: quantity: selected_variant.quantity_rule.min
+                          -}}
+                        </span>
+                      {%- endif -%}
+                      {%- if selected_variant.quantity_rule.max != null -%}
+                        <span class="divider">
+                          {{-
+                            'products.product.quantity.maximum_of'
+                            | t: quantity: selected_variant.quantity_rule.max
+                          -}}
+                        </span>
+                      {%- endif -%}
+                    </div>
                   {%- endif -%}
-                {%- else -%}
-                  {{- 'products.product.sold_out' | t -}}
-                {%- endif -%}
-              </span>
-              {% render 'loading-spinner' %}
-            </button>
-          {%- endform -%}
+                  {%- if has_vol_pricing -%}
+                    {{ 'component-volume-pricing.css' | asset_url | stylesheet_tag }}
+                    <volume-pricing class="block parent-display v-scrollable" id="Volume-{{ block_id }}">
+                      <ul class="list-unstyled">
+                        <li>
+                          <span>{{ selected_variant.quantity_rule.min }}+</span>
+                          {%- liquid 
+                            if settings.currency_code_enabled
+                              assign price = selected_variant.price | money_with_currency
+                            else
+                              assign price = selected_variant.price | money
+                            endif
+                          -%}
+                          <span> {{ 'sections.quick_order_list.each' | t: money: price }}</span>
+                        </li>
+                        {%- for price_break in selected_variant.quantity_price_breaks -%}
+                          <li>
+                            <span>
+                              {{- price_break.minimum_quantity -}}
+                              <span aria-hidden="true">+</span>
+                            </span>
+                            {%- liquid 
+                              if settings.currency_code_enabled
+                                assign price_break_price = price_break.price | money_with_currency
+                              else
+                                assign price_break_price = price_break.price | money
+                              endif
+                            -%}
+                            <span>{{ 'sections.quick_order_list.each' | t: money: price_break_price }}</span>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    </volume-pricing>
+                  {%- endif -%}
+                </div>
+              {%- endcapture -%}
+              {%- endif -%}
+              <script src="{{ 'quantity-popover.js' | asset_url }}" defer="defer"></script>
+              <div class="product-card-bundle__quantity-popover" id="QuantityRule-{{ block_id }}">
+                <quantity-popover
+                  class="flex quantity-popover"
+                  trigger="click"
+                >
+                  {{- qty_rules_vol_pricing -}}
+                </quantity-popover>
+              </div>
+            {%- endif -%}
+          </div>
+        {% else %}
+          <input
+            type="hidden"
+            name="id"
+            value="{{- selected_variant.id -}}"
+            class="product-variant-id"
+            {% if selected_variant.available == false %}
+              disabled
+            {% endif %}
+          >
         {%- endif -%}
-      {%- endif -%}
-      <a href="{{- product_url -}}" class="btn btn--secondary">
-        <span class="btn__text flex gap-1 items-center">{{- 'products.product.view_details' | t -}}</span>
-      </a>
+
+        {%- if product.quantity_price_breaks_configured? -%}
+          {%- assign cart_qty = cart | item_count_for_variant: selected_variant.id -%}
+          <div id="QuantityForm-{{ block_id }}" class="product-bundle-card__quantity hidden">
+            <div class="product-form__quantity">
+              <label class="quantity__label form__label visually-hidden" for="Quantity-{{ block_id }}">
+                <span class="font-body-bolder">{{ 'products.product.quantity.label' | t }}</span>
+              </label>
+              <quantity-input class="quantity" data-section-id="{{ block_id }}" data-product-id="{{ product.id }}">
+                <button class="quantity__button" name="minus" type="button">
+                  <span class="visually-hidden">
+                    {{- 'products.product.quantity.decrease' | t: product: product.title | escape -}}
+                  </span>
+                  {% render 'icon-minus' %}
+                </button>
+                <input
+                  class="quantity__input"
+                  type="number"
+                  name="quantity"
+                  id="Quantity-{{ block_id }}"
+                  data-cart-quantity="{{ cart_qty }}"
+                  step="{{ selected_variant.quantity_rule.increment }}"
+                  value="{{ selected_variant.quantity_rule.min }}"
+                  data-quantity-variant-id="{{ selected_variant.id }}"
+                  data-min="{{ selected_variant.quantity_rule.min }}"
+                  min="{{ selected_variant.quantity_rule.min }}"
+                  {% if selected_variant.quantity_rule.max != null %}
+                    data-max="{{ selected_variant.quantity_rule.max }}"
+                    max="{{ selected_variant.quantity_rule.max }}"
+                  {% endif %}
+                  inputmode="numeric"
+                  autocomplete="off"
+                  form="{{ product_form_id }}"
+                >
+                <button class="quantity__button" name="plus" type="button">
+                  <span class="visually-hidden">
+                    {{- 'products.product.quantity.increase' | t: product: product.title | escape -}}
+                  </span>
+                  {% render 'icon-plus' %}
+                </button>
+              </quantity-input>
+            </div>
+          </div>
+        {%- endif -%}
+      </div>
     </div>
   </div>
   {%- if settings.pcard_choose_options_actions == 'open_popup' or enable_quick_view -%}
     {% render 'quick-view-modal', modal_id: quick_view_modal_id, product: product %}
   {%- endif -%}
 </div>
+{% if selected_variant.featured_media %}
+  <div class="selected-variant-media hidden">
+    {{
+      selected_variant.featured_media
+      | image_url: width: selected_variant.featured_media.width
+      | image_tag: loading: 'lazy', fetchpriority: 'low', widths: image_widths, sizes: image_sizes
+    }}
+  </div>
+{% endif %}

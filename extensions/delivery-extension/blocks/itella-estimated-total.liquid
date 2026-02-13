@@ -1,0 +1,183 @@
+<div class="mk-estimated-total-card" data-mk-estimated-total-block>
+  <div class="mk-estimated-total-row">
+    <span class="mk-estimated-total-title">{{ block.settings.title | escape }}</span>
+    <span
+      class="mk-estimated-total-value"
+      data-mk-estimated-total-value
+      data-mk-estimated-total-default="{{ cart.total_price | money | escape }}"
+    >
+      {{ cart.total_price | money }}
+    </span>
+  </div>
+
+  <div class="mk-estimated-total-meta">
+    <div class="mk-estimated-total-meta-row">
+      <span class="mk-estimated-total-meta-label">{{ block.settings.subtotal_label | escape }}</span>
+      <span
+        class="mk-estimated-total-meta-value"
+        data-mk-estimated-total-subtotal-value
+        data-mk-estimated-total-subtotal-default="{{ cart.total_price | money | escape }}"
+      >
+        {{ cart.total_price | money }}
+      </span>
+    </div>
+
+    <div class="mk-estimated-total-meta-row" data-mk-estimated-total-shipping-row hidden>
+      <span class="mk-estimated-total-meta-label">{{ block.settings.shipping_label | escape }}</span>
+      <span class="mk-estimated-total-meta-value" data-mk-estimated-total-shipping-value></span>
+    </div>
+
+    <div class="mk-estimated-total-meta-row mk-estimated-total-meta-row--discount" data-mk-estimated-total-campaign-row hidden>
+      <span class="mk-estimated-total-meta-label">{{ block.settings.campaign_discount_label | escape }}</span>
+      <span class="mk-estimated-total-meta-value" data-mk-estimated-total-campaign-discount-value></span>
+    </div>
+
+    <div class="mk-estimated-total-meta-row mk-estimated-total-meta-row--discount" data-mk-estimated-total-promo-row hidden>
+      <span
+        class="mk-estimated-total-meta-label"
+        data-mk-estimated-total-promo-label
+        data-mk-estimated-total-promo-label-default="{{ block.settings.promo_discount_label | escape }}"
+      >
+        {{ block.settings.promo_discount_label | escape }}
+      </span>
+      <span class="mk-estimated-total-meta-value" data-mk-estimated-total-promo-discount-value></span>
+    </div>
+
+    <p class="mk-estimated-total-promo-note" data-mk-estimated-total-promo-note hidden></p>
+  </div>
+
+  <p class="mk-estimated-total-note">{{ block.settings.note | escape }}</p>
+</div>
+
+<style>
+  .mk-estimated-total-card {
+    border-radius: 16px;
+    padding: 20px;
+    background: #f3f4f6;
+    display: grid;
+    gap: 8px;
+  }
+
+  .mk-estimated-total-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .mk-estimated-total-title {
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .mk-estimated-total-value {
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+  }
+
+  .mk-estimated-total-note {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+    opacity: 0.84;
+  }
+
+  .mk-estimated-total-meta {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mk-estimated-total-meta-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .mk-estimated-total-meta-label {
+    font-size: 13px;
+    line-height: 1.3;
+    opacity: 0.78;
+  }
+
+  .mk-estimated-total-meta-value {
+    font-size: 14px;
+    line-height: 1.3;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .mk-estimated-total-meta-row--discount .mk-estimated-total-meta-value {
+    color: #15803d;
+  }
+
+  .mk-estimated-total-promo-note {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #b91c1c;
+  }
+
+  @media (max-width: 749px) {
+    .mk-estimated-total-card {
+      padding: 16px;
+    }
+
+    .mk-estimated-total-title,
+    .mk-estimated-total-value {
+      font-size: 24px;
+    }
+  }
+</style>
+
+<script src="{{ 'cart.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Estimated total (MK)",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title",
+      "default": "Estimated total"
+    },
+    {
+      "type": "text",
+      "id": "note",
+      "label": "Note",
+      "default": "Tax included and shipping calculated at checkout"
+    },
+    {
+      "type": "text",
+      "id": "subtotal_label",
+      "label": "Subtotal label",
+      "default": "Subtotal"
+    },
+    {
+      "type": "text",
+      "id": "campaign_discount_label",
+      "label": "Campaign discount label",
+      "default": "Campaign discount"
+    },
+    {
+      "type": "text",
+      "id": "shipping_label",
+      "label": "Shipping label",
+      "default": "Shipping"
+    },
+    {
+      "type": "text",
+      "id": "promo_discount_label",
+      "label": "Promo discount label",
+      "default": "Promo discount"
+    }
+  ]
+}
+{% endschema %}

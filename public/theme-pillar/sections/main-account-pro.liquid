@@ -1,0 +1,350 @@
+{{ 'account-pro.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'account-pro.js' | asset_url }}" defer></script>
+
+{%- liquid
+  assign avatar_seed = customer.first_name | default: customer.email | slice: 0, 1 | upcase
+
+  assign total_spent_cents = 0
+  assign open_orders_count = 0
+  assign fulfilled_orders_count = 0
+
+  for order in customer.orders
+    assign total_spent_cents = total_spent_cents | plus: order.total_price
+    if order.fulfillment_status == 'fulfilled'
+      assign fulfilled_orders_count = fulfilled_orders_count | plus: 1
+    else
+      assign open_orders_count = open_orders_count | plus: 1
+    endif
+  endfor
+
+  assign offers_count = 0
+  capture offers_markup
+    for tag in customer.tags
+      assign up_tag = tag | upcase
+      if up_tag contains 'PROMO:' or up_tag contains 'GIFT:' or up_tag contains 'OFFER:' or up_tag contains 'PRIVATE:'
+        assign offers_count = offers_count | plus: 1
+        assign kind = tag | split: ':' | first | upcase
+        assign value = tag | remove_first: kind | remove_first: ':' | strip
+        if value == blank
+          assign value = tag
+        endif
+        assign badge_text = 'Private offer'
+        if kind contains 'GIFT'
+          assign badge_text = 'Gift'
+        elsif kind contains 'PROMO'
+          assign badge_text = 'Promo'
+        elsif kind contains 'OFFER'
+          assign badge_text = 'Offer'
+        endif
+        echo '<article class="mk-account__offer-item"><strong>' | append: badge_text | append: '</strong><p class="mk-account__card-meta">' | append: value | append: '</p></article>'
+      endif
+    endfor
+  endcapture
+
+  assign recent_seen = ','
+  assign recent_count = 0
+  capture recent_product_cards
+    for order in customer.orders limit: 20
+      for line_item in order.line_items
+        assign product_id = line_item.product.id | default: line_item.product_id
+        assign product_url = line_item.product.url | default: line_item.url
+        if product_id and product_url != blank
+          assign marker = ',' | append: product_id | append: ','
+          unless recent_seen contains marker
+            assign recent_seen = recent_seen | append: product_id | append: ','
+            assign recent_count = recent_count | plus: 1
+            echo '<article class="mk-account__card" data-product-id="' | append: product_id | append: '">'
+              echo '<a href="' | append: product_url | append: '">'
+                if line_item.image
+                  echo line_item.image | image_url: width: 560 | image_tag: loading: 'lazy', class: 'mk-account__card-media', alt: line_item.title
+                elsif line_item.product.featured_image
+                  echo line_item.product.featured_image | image_url: width: 560 | image_tag: loading: 'lazy', class: 'mk-account__card-media', alt: line_item.title
+                else
+                  echo '<span class="mk-account__card-media"></span>'
+                endif
+              echo '</a>'
+              echo '<div class="mk-account__card-body">'
+                echo '<h3 class="mk-account__card-title"><a href="' | append: product_url | append: '">' | append: line_item.title | append: '</a></h3>'
+                echo '<p class="mk-account__card-meta">' | append: line_item.final_price | money | append: '</p>'
+                echo '<p class="mk-account__card-meta">From order ' | append: order.name | append: '</p>'
+              echo '</div>'
+            echo '</article>'
+          endunless
+        endif
+        if recent_count >= 12
+          break
+        endif
+      endfor
+      if recent_count >= 12
+        break
+      endif
+    endfor
+  endcapture
+
+  assign special_seen = ','
+  assign special_count = 0
+  capture special_offer_cards
+    for order in customer.orders limit: 20
+      for line_item in order.line_items
+        assign p = line_item.product
+        if p and p.url and p.compare_at_price_max > p.price
+          assign marker = ',' | append: p.id | append: ','
+          unless special_seen contains marker
+            assign special_seen = special_seen | append: p.id | append: ','
+            assign special_count = special_count | plus: 1
+            assign save_percent = p.compare_at_price_max | minus: p.price | times: 100 | divided_by: p.compare_at_price_max
+            echo '<article class="mk-account__card" data-product-id="' | append: p.id | append: '">'
+              echo '<a href="' | append: p.url | append: '">'
+                if p.featured_image
+                  echo p.featured_image | image_url: width: 560 | image_tag: loading: 'lazy', class: 'mk-account__card-media', alt: p.title
+                else
+                  echo '<span class="mk-account__card-media"></span>'
+                endif
+              echo '</a>'
+              echo '<div class="mk-account__card-body">'
+                echo '<h3 class="mk-account__card-title"><a href="' | append: p.url | append: '">' | append: p.title | append: '</a></h3>'
+                echo '<p class="mk-account__card-meta"><s>' | append: p.compare_at_price_max | money | append: '</s> '
+                echo p.price | money
+                echo '<span class="mk-account__offer-badge">-' | append: save_percent | append: '%</span></p>'
+                echo '<p class="mk-account__card-meta">Based on your purchase history</p>'
+              echo '</div>'
+            echo '</article>'
+          endunless
+        endif
+        if special_count >= 9
+          break
+        endif
+      endfor
+      if special_count >= 9
+        break
+      endif
+    endfor
+  endcapture
+-%}
+
+<section
+  class="mk-account section section--padding"
+  style="--section-padding-top: {{ section.settings.padding_top }}px; --section-padding-bottom: {{ section.settings.padding_bottom }}px;"
+  data-mk-account-root="1"
+>
+  <div class="page-width">
+    <div class="mk-account__shell">
+      <div class="mk-account__layout">
+        <aside class="mk-account__sidebar">
+          <div class="mk-account__brand">
+            <div class="mk-account__avatar">{{ avatar_seed }}</div>
+            <div>
+              <p class="mk-account__brand-name">My Account</p>
+              <p class="mk-account__brand-email">{{ customer.email }}</p>
+            </div>
+          </div>
+
+          <nav class="mk-account__menu" aria-label="Account sections">
+            <button type="button" class="mk-account__menu-btn is-active" data-account-tab-target="dashboard">Dashboard</button>
+            <button type="button" class="mk-account__menu-btn" data-account-tab-target="orders">Orders</button>
+            <button type="button" class="mk-account__menu-btn" data-account-tab-target="history">Watch history</button>
+            <button type="button" class="mk-account__menu-btn" data-account-tab-target="saved">Saved</button>
+            <button type="button" class="mk-account__menu-btn" data-account-tab-target="personal">Personal info</button>
+            <button type="button" class="mk-account__menu-btn" data-account-tab-target="offers">My gifts/promos</button>
+            <button type="button" class="mk-account__menu-btn" data-account-tab-target="special">Special offer</button>
+          </nav>
+
+          <div class="mk-account__sidebar-actions">
+            <a href="{{ routes.account_addresses_url }}" class="btn btn--secondary">Manage addresses</a>
+            <a href="{{ routes.account_logout_url }}" class="btn btn--primary">Log out</a>
+          </div>
+        </aside>
+
+        <main class="mk-account__main">
+          <div class="mk-account__topbar">
+            <input
+              type="search"
+              class="mk-account__search"
+              placeholder="Search by order number, status, total"
+              data-account-search
+            >
+            <div class="mk-account__chips">
+              <span class="mk-account__chip">{{ customer.orders_count }} orders</span>
+              <span class="mk-account__chip">{{ customer.tags.size }} tags</span>
+            </div>
+          </div>
+
+          <section class="mk-account__panel is-active" data-account-tab-panel="dashboard">
+            <h2 class="mk-account__title h4">Dashboard</h2>
+            <div class="mk-account__grid mk-account__grid--kpi">
+              <article class="mk-account__kpi">
+                <p class="mk-account__kpi-label">Total orders</p>
+                <p class="mk-account__kpi-value">{{ customer.orders_count }}</p>
+              </article>
+              <article class="mk-account__kpi">
+                <p class="mk-account__kpi-label">Open orders</p>
+                <p class="mk-account__kpi-value">{{ open_orders_count }}</p>
+              </article>
+              <article class="mk-account__kpi">
+                <p class="mk-account__kpi-label">Total spent</p>
+                <p class="mk-account__kpi-value">{{ total_spent_cents | money_without_trailing_zeros }}</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="mk-account__panel" data-account-tab-panel="orders">
+            <h2 class="mk-account__title h4">Orders</h2>
+            <div class="mk-account__table-wrap">
+              <table class="mk-account__table" role="table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Date</th>
+                    <th>Payment</th>
+                    <th>Fulfillment</th>
+                    <th>Total</th>
+                    <th>View</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {%- for order in customer.orders -%}
+                    <tr data-order-row="{{ order.name }} {{ order.financial_status_label }} {{ order.fulfillment_status_label }} {{ order.total_price | money }}">
+                      <td><a href="{{ order.customer_url }}">{{ order.name }}</a></td>
+                      <td>{{ order.created_at | time_tag: format: 'date' }}</td>
+                      <td>{{ order.financial_status_label }}</td>
+                      <td>{{ order.fulfillment_status_label }}</td>
+                      <td>{{ order.total_net_amount | money_with_currency }}</td>
+                      <td>
+                        <a href="{{ order.customer_url }}" class="btn btn--secondary btn--small">View order</a>
+                      </td>
+                    </tr>
+                  {%- else -%}
+                    <tr>
+                      <td colspan="6" class="mk-account__muted">No orders yet.</td>
+                    </tr>
+                  {%- endfor -%}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="mk-account__panel" data-account-tab-panel="history">
+            <h2 class="mk-account__title h4">Watch history</h2>
+            <p class="mk-account__muted">Products you recently interacted with. If no browser history exists, we show your recent purchased items.</p>
+            <div class="mk-account__cards" data-history-cards>
+              {{ recent_product_cards }}
+            </div>
+            <div class="mk-account__empty" data-history-empty {% if recent_count > 0 %}hidden{% endif %}>
+              No history yet. Visit product pages to start building your watch history.
+            </div>
+          </section>
+
+          <section class="mk-account__panel" data-account-tab-panel="saved">
+            <h2 class="mk-account__title h4">Saved</h2>
+            <p class="mk-account__muted">Products you liked with the Save button.</p>
+            <div class="mk-account__cards" data-saved-cards></div>
+            <div class="mk-account__empty" data-saved-empty>
+              No saved products yet. Tap Save on any product card.
+            </div>
+          </section>
+
+          <section class="mk-account__panel" data-account-tab-panel="personal">
+            <h2 class="mk-account__title h4">Personal info</h2>
+            <div class="mk-account__field-grid">
+              <div class="mk-account__field">
+                <p class="mk-account__field-label">First name</p>
+                <p class="mk-account__field-value">{{ customer.first_name | default: '-' }}</p>
+              </div>
+              <div class="mk-account__field">
+                <p class="mk-account__field-label">Last name</p>
+                <p class="mk-account__field-value">{{ customer.last_name | default: '-' }}</p>
+              </div>
+              <div class="mk-account__field">
+                <p class="mk-account__field-label">Email</p>
+                <p class="mk-account__field-value">{{ customer.email }}</p>
+              </div>
+              <div class="mk-account__field">
+                <p class="mk-account__field-label">Phone</p>
+                <p class="mk-account__field-value">{{ customer.default_address.phone | default: '-' }}</p>
+              </div>
+              <div class="mk-account__field">
+                <p class="mk-account__field-label">Default address</p>
+                <p class="mk-account__field-value">
+                  {{ customer.default_address.address1 }}{% if customer.default_address.city %}, {{ customer.default_address.city }}{% endif %}
+                </p>
+              </div>
+              <div class="mk-account__field">
+                <p class="mk-account__field-label">Postal code</p>
+                <p class="mk-account__field-value">{{ customer.default_address.zip | default: '-' }}</p>
+              </div>
+            </div>
+            <div class="mk-account__chips" style="margin-top:12px;">
+              <a href="{{ routes.account_addresses_url }}" class="btn btn--secondary">Edit addresses</a>
+              <form method="post" action="/account/recover">
+                <input type="hidden" name="form_type" value="recover_customer_password">
+                <input type="hidden" name="utf8" value="✓">
+                <input type="hidden" name="email" value="{{ customer.email }}">
+                <button type="submit" class="btn btn--secondary">Send password reset email</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="mk-account__panel" data-account-tab-panel="offers">
+            <h2 class="mk-account__title h4">My gifts / promos</h2>
+            <p class="mk-account__muted">Personal offers detected from customer tags like <code>PROMO:CODE</code> or <code>GIFT:VALUE</code>.</p>
+            <div class="mk-account__offer-list">
+              {% if offers_count > 0 %}
+                {{ offers_markup }}
+              {% else %}
+                <div class="mk-account__empty">
+                  No personal promos yet. Add customer tags in Admin (for example <code>PROMO:VIP15</code>).
+                </div>
+              {% endif %}
+            </div>
+          </section>
+
+          <section class="mk-account__panel" data-account-tab-panel="special">
+            <h2 class="mk-account__title h4">Special offer</h2>
+            <p class="mk-account__muted">Products you buy often and currently have a discount.</p>
+            <div class="mk-account__cards">
+              {% if special_count > 0 %}
+                {{ special_offer_cards }}
+              {% else %}
+                <div class="mk-account__empty">
+                  No active special offers based on your purchase history right now.
+                </div>
+              {% endif %}
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Main account pro",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section spacing"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 64
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 2,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 64
+    }
+  ]
+}
+{% endschema %}

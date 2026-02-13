@@ -1,5 +1,5 @@
 // shopify-delivery/extensions/delivery-extension/assets/itella-pickup.js
-// VERSION 2026-02-07 v9
+// VERSION 2026-02-11 v10
 // Fix: cart qty +/- re-render -> block stuck in Loading forever
 // - Adds global re-init (MutationObserver) to init new roots after Shopify replaces cart HTML
 // - Keeps per-root state isolated
@@ -7,7 +7,7 @@
 // - Keeps promo synced ONLY via syncPromoAttributes (no duplicates)
 
 (function () {
-  console.log("[ITELLA PICKUP] VERSION 2026-02-07 v9 (reinit after cart rerender)");
+  console.log("[ITELLA PICKUP] VERSION 2026-02-11 v10 (reinit after cart rerender)");
 
   // ---------- GLOBAL GUARDS ----------
   if (window.__itellaPickupV9Booted) {
@@ -18,6 +18,54 @@
     return;
   }
   window.__itellaPickupV9Booted = true;
+
+  const PICKUP_DEBUG =
+    (typeof window !== "undefined" && window.__ITELLA_PICKUP_DEBUG === true) ||
+    (typeof location !== "undefined" &&
+      /(?:\?|&)itella_debug=1(?:&|$)/.test(String(location.search || "")));
+
+  const runtime = (window.__itellaPickupRuntime =
+    window.__itellaPickupRuntime || {
+      configCache: null,
+      configPromise: null,
+      pointsCacheByUrl: {},
+      pointsPromiseByUrl: {},
+      cartCache: null,
+      cartCacheAt: 0,
+      cartPromise: null,
+      totalsSignature: "",
+      stats: {
+        cartRead: 0,
+        cartWrite: 0,
+        configRead: 0,
+        pointsRead: 0,
+        prepareRead: 0,
+      },
+    });
+
+  function pickupDebug(...args) {
+    if (!PICKUP_DEBUG) return;
+    console.debug("[itella debug]", ...args);
+  }
+
+  window.__itellaPickupGetStats = function () {
+    return { ...runtime.stats };
+  };
+
+  window.__itellaPickupResetStats = function () {
+    Object.keys(runtime.stats).forEach((k) => {
+      runtime.stats[k] = 0;
+    });
+    pickupDebug("stats reset");
+  };
+
+  async function trackedFetch(url, options, statKey) {
+    if (statKey && runtime.stats[statKey] != null) {
+      runtime.stats[statKey] += 1;
+    }
+    pickupDebug("fetch", { url: String(url || ""), statKey });
+    return await fetch(url, options);
+  }
 
   // ---------- GLOBAL HELPERS ----------
   function debounce(fn, ms) {
@@ -148,6 +196,8 @@
 
     // PROMO
     const promoInput = root.querySelector("#pickup-promo");
+    const promoApplyBtn = root.querySelector("#pickup-promo-apply");
+    const promoStatus = root.querySelector("#pickup-promo-status");
 
     const woltWrap = root.querySelector("#pickup-wolt");
     const woltNotice = root.querySelector("#pickup-wolt-notice");
@@ -185,6 +235,12 @@
       EE: "https://production.parcely.app/locations_1_1.json",
       LV: "https://production.parcely.app/locations_2_1.json",
       LT: "https://production.parcely.app/locations_3_1.json",
+    };
+    const COUNTRY_DIAL_CODES = {
+      EE: "372",
+      LV: "371",
+      LT: "370",
+      FI: "358",
     };
 
     // Fallback if proxy config isn't available yet
@@ -248,6 +304,7 @@
 
     const customerDefaults = {
       loggedIn: root.dataset.customerLoggedIn === "true",
+      id: (root.dataset.customerId || "").trim(),
       email: (root.dataset.customerEmail || "").trim(),
       name: (root.dataset.customerName || "").trim(),
       address1: (root.dataset.customerAddress1 || "").trim(),
@@ -273,12 +330,77 @@
       return (s || "").toString().replace(/[^\d+]/g, "").trim();
     }
 
-    function combinePhone(code, phone) {
-      const c = sanitizePhone(code);
-      const p = sanitizePhone(phone);
+    function normalizePhoneCode(code, countryCode) {
+      const raw = String(code || "").trim();
+      const digits = raw.replace(/[^\d]/g, "");
+      if (!digits && countryCode) {
+        const inferred = COUNTRY_DIAL_CODES[String(countryCode || "").toUpperCase()];
+        if (inferred) return `+${inferred}`;
+      }
+      return digits ? `+${digits}` : "";
+    }
+
+    function stripPhoneCountryCode(code, phone, countryCode) {
+      const normalizedCode = normalizePhoneCode(code, countryCode);
+      const codeDigits = normalizedCode.replace(/[^\d]/g, "");
+      const raw = sanitizePhone(phone);
+      if (!raw || !codeDigits) return raw;
+
+      const digits = raw.replace(/[^\d]/g, "");
+      if (!digits.startsWith(codeDigits)) return raw;
+
+      const localDigits = digits.slice(codeDigits.length);
+      return localDigits || "";
+    }
+
+    function combinePhone(code, phone, countryCode) {
+      const c = normalizePhoneCode(code, countryCode);
+      const pRaw = sanitizePhone(phone);
+      let p = stripPhoneCountryCode(c, pRaw, countryCode) || pRaw;
+      const codeDigits = String(c || "").replace(/[^\d]/g, "");
+      if (codeDigits && p) {
+        const pDigits = String(p).replace(/[^\d]/g, "");
+        if (pDigits.startsWith(codeDigits + codeDigits)) {
+          p = pDigits.slice(codeDigits.length);
+        }
+      }
       if (!c && !p) return "";
       if (c && p) return `${c} ${p}`.trim();
       return (c || p).trim();
+    }
+
+    function setPromoStatus(text, tone) {
+      if (!promoStatus) return;
+      if (!text) {
+        promoStatus.hidden = true;
+        promoStatus.textContent = "";
+        promoStatus.removeAttribute("data-tone");
+        return;
+      }
+      promoStatus.hidden = false;
+      promoStatus.textContent = text;
+      promoStatus.setAttribute("data-tone", tone || "ok");
+    }
+
+    function notifyPricingRefresh() {
+      try {
+        const cachedCart = runtime.cartCache && typeof runtime.cartCache === "object" ? runtime.cartCache : null;
+        const subtotal =
+          Number(cachedCart?.items_subtotal_price) ||
+          Number(cachedCart?.total_price) ||
+          0;
+        const detail = {
+          source: "itella-promo",
+          force: true,
+          cart: {
+            ...(cachedCart || {}),
+            items_subtotal_price: subtotal,
+          },
+        };
+
+        // Use cart:refresh to avoid theme listeners that expect strict cart:updated payload shape.
+        document.dispatchEvent(new CustomEvent("cart:refresh", { detail }));
+      } catch {}
     }
 
     function isSameDay(dateA, dateB) {
@@ -318,22 +440,48 @@
 
     let cartAttributes = null;
 
+    function setCartCache(cart) {
+      if (!cart || typeof cart !== "object") return;
+      runtime.cartCache = cart;
+      runtime.cartCacheAt = Date.now();
+      cartAttributes = cart.attributes || {};
+    }
+
     async function fetchJSON(url) {
-      const res = await fetch(url, { cache: "no-store" });
+      const res = await trackedFetch(url, { cache: "no-store" }, "pointsRead");
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       return await res.json();
     }
 
-    async function readCartAttributes() {
-      const res = await fetch("/cart.js", { cache: "no-store" });
-      const cart = await res.json();
-      cartAttributes = cart.attributes || {};
-      return cartAttributes;
+    async function readCart(force = false) {
+      const now = Date.now();
+      if (runtime.cartPromise) {
+        return await runtime.cartPromise;
+      }
+      if (!force && runtime.cartCache && now - runtime.cartCacheAt < 500) {
+        return runtime.cartCache;
+      }
+
+      runtime.cartPromise = (async () => {
+        const res = await trackedFetch("/cart.js", { cache: "no-store" }, "cartRead");
+        const cart = await res.json();
+        setCartCache(cart);
+        return cart;
+      })();
+
+      try {
+        return await runtime.cartPromise;
+      } finally {
+        runtime.cartPromise = null;
+      }
     }
 
-    async function readCart() {
-      const res = await fetch("/cart.js", { cache: "no-store" });
-      return await res.json();
+    async function readCartAttributes(force = false) {
+      const cacheFresh = runtime.cartCacheAt && Date.now() - runtime.cartCacheAt < 500;
+      if (!force && cartAttributes && cacheFresh) return cartAttributes;
+      const cart = await readCart(force);
+      cartAttributes = cart.attributes || {};
+      return cartAttributes;
     }
 
     function attributesMatch(current, payload) {
@@ -350,13 +498,20 @@
 
       const nextAttributes = { ...current, ...payload };
 
-      await fetch("/cart/update.js", {
+      await trackedFetch(
+        "/cart/update.js",
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ attributes: nextAttributes }),
-      });
+        },
+        "cartWrite",
+      );
 
       cartAttributes = nextAttributes;
+      if (runtime.cartCache && typeof runtime.cartCache === "object") {
+        runtime.cartCache.attributes = nextAttributes;
+      }
     }
 
     function getCountryConfig(code) {
@@ -409,12 +564,26 @@
       return value.toFixed(2);
     }
 
-    async function updateCartTotals(price) {
-      const cart = await readCart();
+    function formatAmount(amount, currency) {
+      const value = Number(amount || 0);
+      if (!Number.isFinite(value)) return "0.00";
+      if (typeof Intl !== "undefined" && currency) {
+        try {
+          return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(value);
+        } catch {}
+      }
+      return value.toFixed(2);
+    }
+
+    async function updateCartTotals(price, cartSnapshot) {
+      const cart = cartSnapshot || (await readCart());
       const currency = cart.currency || cart.currency_code || cart.presentment_currency;
       const deliveryCents = parsePriceToCents(price);
       const subtotalCents = cart.total_price || 0;
       const totalWithDelivery = subtotalCents + deliveryCents;
+      const sig = `${currency}|${subtotalCents}|${deliveryCents}`;
+      if (runtime.totalsSignature === sig) return;
+      runtime.totalsSignature = sig;
 
       // NOTE: totals live outside the block, so this remains global
       const totalTargets = document.querySelectorAll(
@@ -480,6 +649,24 @@
       };
     }
 
+    function parseFreeChoiceSelectionsFromAttrs(attrs) {
+      const raw = String(attrs?.itella_free_choice_selections || "").trim();
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((id) => String(id || "").trim()).filter(Boolean);
+        }
+      } catch {}
+      if (raw.includes("|")) {
+        return raw
+          .split("|")
+          .map((id) => String(id || "").trim())
+          .filter(Boolean);
+      }
+      return [raw];
+    }
+
     function getCityValue() {
       const city = normalize(cityInput?.value);
       if (city) return city;
@@ -531,15 +718,46 @@
       await updateWoltAvailability();
     }
 
-    async function syncPromoAttributes() {
+    async function syncPromoAttributes(options = {}) {
       if (!promoInput) return;
 
       const prev = cartAttributes ?? (await readCartAttributes());
+      const prevCode = String(prev?.itella_promo_code || "").trim();
       await writeCartAttributes(getPromoPayload());
 
       const next = cartAttributes ?? (await readCartAttributes());
+      const nextCode = String(next?.itella_promo_code || "").trim();
       if (shouldInvalidateDraft(prev, next)) {
         await writeCartAttributes({ itella_draft_order_invoice_url: "" });
+      }
+
+      const changed = prevCode !== nextCode;
+      if (changed || options.forceRefresh) {
+        notifyPricingRefresh();
+      }
+
+      if (options.showStatus) {
+        if (!nextCode) {
+          setPromoStatus("Promo code cleared.", "ok");
+        } else {
+          let preview = null;
+          try {
+            preview = await previewPromoStatus(nextCode);
+          } catch {}
+
+          const promoDiscount = Number(preview?.discount || 0);
+          const appliedCode = String(preview?.promo?.appliedCode || nextCode).trim();
+          const reason = String(preview?.promo?.reason || "").trim();
+
+          if (promoDiscount > 0) {
+            setPromoStatus(
+              `Applied ${appliedCode}: -${formatAmount(promoDiscount, preview?.currencyCode || "")}`,
+              "ok",
+            );
+          } else {
+            setPromoStatus(reason || "Promo code is not applicable to current cart.", "error");
+          }
+        }
       }
     }
 
@@ -569,10 +787,59 @@
       return out;
     }
 
+    async function previewPromoStatus(promoCode) {
+      const code = String(promoCode || "").trim();
+      if (!code) return null;
+
+      const cart = await readCart(true);
+      const attrs = cart.attributes || {};
+      const payloadItems = (cart.items || [])
+        .filter((item) => !(item?.properties && String(item.properties._mk_gift) === "1"))
+        .map((item) => ({
+          variantId: `gid://shopify/ProductVariant/${item.variant_id}`,
+          quantity: Number(item.quantity || 0),
+        }))
+        .filter((item) => item.variantId && Number(item.quantity || 0) > 0);
+
+      if (!payloadItems.length) return null;
+
+      const payload = {
+        mode: "preview",
+        customerId: customerDefaults.id || (customerDefaults.loggedIn ? "logged-in" : null),
+        items: payloadItems,
+        promoCode: code,
+        freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
+        freeChoiceSelections: parseFreeChoiceSelectionsFromAttrs(attrs),
+      };
+
+      const res = await trackedFetch(
+        PREPARE_ENDPOINT,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(payload),
+        },
+        "prepareRead",
+      );
+      if (!res.ok) return null;
+
+      const json = await res.json();
+      return {
+        promo: json?.pricing?.promo || null,
+        discount: Number(json?.pricing?.breakdown?.promoDiscount || 0),
+        currencyCode:
+          json?.pricing?.currencyCode ||
+          cart.currency ||
+          cart.currency_code ||
+          cart.presentment_currency ||
+          "",
+      };
+    }
+
     async function createDraftOrder() {
       console.log("[itella] createDraftOrder called", new Date().toISOString());
 
-      const cart = await readCart();
+      const cart = await readCart(true);
       if (!cart?.items?.length) return null;
 
       const attrs = await readCartAttributes();
@@ -611,7 +878,7 @@
 
       const payload = {
         mode: "checkout",
-        customerId: null, // if later you expose customerId in DOM, put it here
+        customerId: customerDefaults.id || (customerDefaults.loggedIn ? "logged-in" : null),
         items: payloadItems,
         shipping: {
           method:
@@ -632,6 +899,7 @@
           phone: combinePhone(
             attrs.itella_recipient_phone_code || "",
             attrs.itella_recipient_phone || "",
+            attrs.itella_pickup_country || state.country || "",
           ),
         },
         delivery: {
@@ -650,15 +918,20 @@
         },
         promoCode: (attrs.itella_promo_code || "").trim() || null,
         freeChoiceVariantId: attrs.itella_free_choice_variant_id || null,
+        freeChoiceSelections: parseFreeChoiceSelectionsFromAttrs(attrs),
       };
 
       console.log("[itella] checkout payload:", payload);
 
-      const res = await fetch(PREPARE_ENDPOINT, {
+      const res = await trackedFetch(
+        PREPARE_ENDPOINT,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      });
+        },
+        "prepareRead",
+      );
 
       if (!res.ok) {
         let errText = "";
@@ -814,22 +1087,45 @@
     }
 
     async function loadConfig() {
-      try {
-        let proxyRes = await fetch(CONFIG_ENDPOINT_PRIMARY, { cache: "no-store" });
-        if (!proxyRes.ok) {
-          proxyRes = await fetch(CONFIG_ENDPOINT_FALLBACK, { cache: "no-store" });
-        }
-        if (proxyRes.ok) {
-          const proxyJson = await proxyRes.json();
-          if (proxyJson?.config && !proxyJson?.warning) {
-            return { config: proxyJson.config, usedFallback: false };
-          }
-        }
-      } catch {
-        // ignore proxy failure and fall through to fallback
-      }
+      if (runtime.configCache) return runtime.configCache;
+      if (runtime.configPromise) return await runtime.configPromise;
 
-      return { config: FALLBACK_CONFIG, usedFallback: true };
+      runtime.configPromise = (async () => {
+        try {
+          let proxyRes = await trackedFetch(
+            CONFIG_ENDPOINT_PRIMARY,
+            { cache: "no-store" },
+            "configRead",
+          );
+          if (!proxyRes.ok) {
+            proxyRes = await trackedFetch(
+              CONFIG_ENDPOINT_FALLBACK,
+              { cache: "no-store" },
+              "configRead",
+            );
+          }
+          if (proxyRes.ok) {
+            const proxyJson = await proxyRes.json();
+            if (proxyJson?.config && !proxyJson?.warning) {
+              const out = { config: proxyJson.config, usedFallback: false };
+              runtime.configCache = out;
+              return out;
+            }
+          }
+        } catch {
+          // ignore proxy failure and fall through to fallback
+        }
+
+        const fallbackOut = { config: FALLBACK_CONFIG, usedFallback: true };
+        runtime.configCache = fallbackOut;
+        return fallbackOut;
+      })();
+
+      try {
+        return await runtime.configPromise;
+      } finally {
+        runtime.configPromise = null;
+      }
     }
 
     async function loadPoints() {
@@ -842,7 +1138,23 @@
       }
 
       const url = LOCATIONS_BY_COUNTRY[state.country] || LOCATIONS_BY_COUNTRY.EE;
-      const data = await fetchJSON(url);
+      let data = runtime.pointsCacheByUrl[url];
+      if (!data) {
+        const existingPromise = runtime.pointsPromiseByUrl[url];
+        if (existingPromise) {
+          data = await existingPromise;
+        } else {
+          runtime.pointsPromiseByUrl[url] = fetchJSON(url).then((json) => {
+            runtime.pointsCacheByUrl[url] = json;
+            return json;
+          });
+          try {
+            data = await runtime.pointsPromiseByUrl[url];
+          } finally {
+            delete runtime.pointsPromiseByUrl[url];
+          }
+        }
+      }
 
       const points = [];
       for (const townBlock of data) {
@@ -869,7 +1181,7 @@
       }
     }
 
-    async function setCountry(code, countryOverride) {
+    async function setCountry(code, countryOverride, options = {}) {
       state.country = code;
       const country = countryOverride || getCountryConfig(code);
       if (!country) return;
@@ -877,23 +1189,45 @@
       setCountryUI(country);
 
       const allowedProviders = country.providers || [];
-      state.provider = allowedProviders[0] || "smartposti";
+      const providerOverride = String(options.providerOverride || "").trim();
+      state.provider =
+        providerOverride && allowedProviders.includes(providerOverride)
+          ? providerOverride
+          : allowedProviders[0] || "smartposti";
 
       renderProviders(allowedProviders, country.pricesByProvider, country);
 
       const prev = cartAttributes ?? (await readCartAttributes());
-      await syncProviderAttributes(country, state.provider);
+      if (options.syncProvider !== false) {
+        await syncProviderAttributes(country, state.provider);
 
-      const next = cartAttributes ?? (await readCartAttributes());
-      if (shouldInvalidateDraft(prev, next)) {
-        await writeCartAttributes({ itella_draft_order_invoice_url: "" });
+        const next = cartAttributes ?? (await readCartAttributes());
+        if (shouldInvalidateDraft(prev, next)) {
+          await writeCartAttributes({ itella_draft_order_invoice_url: "" });
+        }
       }
 
       await updateWoltVisibility();
       await setPointsVisibility();
 
-      await clearPickupSelection(code, state.provider);
+      const shouldKeepSelection =
+        Boolean(options.preserveSelection) &&
+        state.provider === "smartposti" &&
+        String(prev.itella_pickup_id || "").trim() !== "" &&
+        String(prev.itella_pickup_country || "").toUpperCase() === String(code || "").toUpperCase() &&
+        String(prev.itella_pickup_provider || "") === String(state.provider || "");
+
+      if (!shouldKeepSelection) {
+        await clearPickupSelection(code, state.provider);
+      }
       await loadPoints();
+
+      if (shouldKeepSelection) {
+        setCurrentUI(prev);
+        if (pointLabel) {
+          pointLabel.textContent = prev.itella_pickup_name || i18n.textSelected;
+        }
+      }
     }
 
     async function clearPickupSelection(countryCode = state.country, provider = state.provider) {
@@ -1109,8 +1443,27 @@
 
     // Promo field (separate sync)
     if (promoInput) {
-      promoInput.addEventListener("change", syncPromoAttributes);
-      promoInput.addEventListener("blur", syncPromoAttributes);
+      promoInput.addEventListener("change", () => syncPromoAttributes({ forceRefresh: true }));
+      promoInput.addEventListener("blur", () => syncPromoAttributes({ forceRefresh: true }));
+      promoInput.addEventListener("input", () => {
+        setPromoStatus("", "");
+      });
+      promoInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        syncPromoAttributes({ forceRefresh: true, showStatus: true });
+      });
+    }
+
+    if (promoApplyBtn) {
+      promoApplyBtn.addEventListener("click", async () => {
+        promoApplyBtn.disabled = true;
+        try {
+          await syncPromoAttributes({ forceRefresh: true, showStatus: true });
+        } finally {
+          promoApplyBtn.disabled = false;
+        }
+      });
     }
 
     if (cityInput) {
@@ -1156,6 +1509,7 @@
       const phoneCombined = combinePhone(
         latestAttrs.itella_recipient_phone_code || "",
         latestAttrs.itella_recipient_phone || "",
+        latestAttrs.itella_pickup_country || state.country || "",
       );
       if (!phoneCombined) missing.push("Phone");
 
@@ -1190,15 +1544,7 @@
         try {
           if (!(await validateCheckout())) return;
 
-          // 1) Use cached invoice URL first
-          const attrs0 = await readCartAttributes();
-          const cachedUrl = (attrs0.itella_draft_order_invoice_url || "").trim();
-          if (cachedUrl) {
-            window.location.href = cachedUrl;
-            return;
-          }
-
-          // 2) Create/update draft
+          // Always create/update draft to avoid stale checkout data.
           const draftOrder = await createDraftOrder();
           console.log("[itella] draft order response:", draftOrder);
           const invoiceUrl = (draftOrder?.invoiceUrl || "").trim();
@@ -1207,7 +1553,7 @@
             return;
           }
 
-          // 3) Fallback: try reading again
+          // Fallback: try reading cart attrs one more time.
           const attrs1 = await readCartAttributes();
           const url = (attrs1.itella_draft_order_invoice_url || "").trim();
           if (url) {
@@ -1248,8 +1594,10 @@
       renderCountryMenu(finalCountries);
 
       // Restore from cart
-      const attrs = await readCartAttributes();
-      await updateCartTotals(attrs.itella_delivery_price || "");
+      const cartSnapshot = await readCart(true);
+      const attrs = cartSnapshot.attributes || {};
+      cartAttributes = attrs;
+      await updateCartTotals(attrs.itella_delivery_price || "", cartSnapshot);
 
       if (nameInput) nameInput.value = attrs.itella_recipient_name || customerDefaults.name || "";
       if (addressInput) {
@@ -1262,7 +1610,15 @@
         phoneCodeInput.value =
           (attrs.itella_recipient_phone_code || "").trim() || phoneCodeInput.value || "";
       }
-      if (phoneInput) phoneInput.value = attrs.itella_recipient_phone || customerDefaults.phone || "";
+      if (phoneInput) {
+        const storedPhone = (attrs.itella_recipient_phone || "").trim();
+        const fallbackPhone = stripPhoneCountryCode(
+          phoneCodeInput?.value || "",
+          customerDefaults.phone || "",
+          attrs.itella_pickup_country || state.country || "",
+        );
+        phoneInput.value = storedPhone || fallbackPhone || customerDefaults.phone || "";
+      }
       if (emailInput) emailInput.value = attrs.itella_recipient_email || customerDefaults.email || "";
 
       if (promoInput) promoInput.value = (attrs.itella_promo_code || "").trim();
@@ -1289,30 +1645,36 @@
       const startCountry = finalCountries.find((c) => c.code === restoredCountry)
         ? restoredCountry
         : finalCountries[0]?.code || "EE";
-
-      await setCountry(startCountry);
-
-      // Validate restored provider against allowed providers
       const restoredProvider = (attrs.itella_pickup_provider || "").trim();
+      await setCountry(startCountry, null, {
+        providerOverride: restoredProvider,
+        preserveSelection: true,
+        syncProvider: false,
+      });
+
       const country = getCountryConfig(startCountry);
-      const allowed = country?.providers || [];
+      if (!country) return;
 
-      if (restoredProvider) {
-        if (!allowed.includes(restoredProvider)) {
-          state.provider = allowed[0] || "smartposti";
-          await writeCartAttributes({ itella_pickup_provider: state.provider });
-        } else {
-          state.provider = restoredProvider;
-        }
+      const expectedProvider = state.provider || "smartposti";
+      const needsProviderSync =
+        String(attrs.itella_pickup_country || "").toUpperCase() !== startCountry ||
+        String(attrs.itella_pickup_provider || "") !== expectedProvider;
 
-        if (country) {
-          renderProviders(country.providers, country.pricesByProvider, country);
-          await syncProviderAttributes(country, state.provider);
-          await setPointsVisibility();
-          await loadPoints();
-          await updateWoltVisibility();
+      if (needsProviderSync) {
+        const prev = cartAttributes ?? (await readCartAttributes());
+        await syncProviderAttributes(country, expectedProvider);
+        const next = cartAttributes ?? (await readCartAttributes());
+        if (shouldInvalidateDraft(prev, next)) {
+          await writeCartAttributes({ itella_draft_order_invoice_url: "" });
         }
       }
+
+      pickupDebug("boot complete", {
+        country: startCountry,
+        provider: expectedProvider,
+        hasPickupId: Boolean((attrs.itella_pickup_id || "").trim()),
+        stats: runtime.stats,
+      });
     }
 
     boot().catch((err) => {

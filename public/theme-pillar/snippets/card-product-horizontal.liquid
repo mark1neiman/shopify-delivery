@@ -52,6 +52,15 @@
     assign fetchpriority = 'high'
   endif
 
+  assign save_image = ''
+  if featured_media
+    assign save_image = featured_media | image_url: width: 560
+  endif
+  assign save_price = variant.price | money
+  if settings.currency_code_enabled
+    assign save_price = variant.price | money_with_currency
+  endif
+
   # Update default values here also need to update for pcard-color-swatch.liquid
   assign image_sizes = image_sizes | default: '160px'
   assign image_widths = '80, 160, 240'
@@ -111,6 +120,20 @@
           {%- endif -%}
         </motion-element>
       </a>
+      <button
+        type="button"
+        class="product-card__save btn btn--icon-circle btn--white no-js-hidden"
+        data-save-product-btn
+        data-product-id="{{ product.id }}"
+        data-product-url="{{ product_url }}"
+        data-product-title="{{ product.title | escape }}"
+        data-product-image="{{ save_image }}"
+        data-product-price="{{ save_price | escape }}"
+        aria-pressed="false"
+      >
+        <span class="visually-hidden" data-save-product-label>Save product</span>
+        {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+      </button>
     </div>
     <div class="product-card__info flex-1 text-left">
       {%- if show_vendor and product.vendor != blank -%}

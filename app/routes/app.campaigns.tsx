@@ -7,6 +7,7 @@ import {
   Text,
   TextField,
   Select,
+  Checkbox,
   Button,
   InlineStack,
   BlockStack,
@@ -69,6 +70,8 @@ export type CartThresholdDiscountCampaign = CampaignBase & {
 export type CartThresholdFreeChoiceCampaign = CampaignBase & {
   type: "CartThresholdFreeChoice";
   thresholdAmount: number;
+  giftQuantity: number;
+  repeatPerThreshold: boolean;
   choiceVariantIds: string[];
 };
 
@@ -81,6 +84,7 @@ export type Campaign =
 
 type LoaderData = {
   campaigns: Campaign[];
+  memberDiscountPercent: number;
   metafieldId: string | null;
   shopId: string;
 };
@@ -93,7 +97,9 @@ type ActionData = { ok: true } | { ok: false; error: string };
 
 const META_NAMESPACE = "mkx";
 const META_KEY = "campaigns";
+const SETTINGS_KEY = "pricing_settings";
 const META_TYPE = "json";
+const DEFAULT_LOGGED_IN_DISCOUNT_PERCENT = 15;
 
 function safeJsonParse<T>(value: string | null | undefined, fallback: T): T {
   if (!value) return fallback;
@@ -164,6 +170,7 @@ function VariantPicker({
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState<VariantOption[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [selectedOptionsById, setSelectedOptionsById] = React.useState<Record<string, VariantOption>>({});
 
   // very small debounce to avoid spamming the server
   const debounceRef = React.useRef<number | null>(null);
@@ -224,6 +231,47 @@ function VariantPicker({
     onChange(selectedIds.filter((variantId) => variantId !== id));
   }
 
+  React.useEffect(() => {
+    const missingIds = selectedIds.filter((id) => !selectedOptionsById[id]);
+    if (!missingIds.length) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`/app/api/variants?ids=${encodeURIComponent(missingIds.join(","))}`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const items = Array.isArray(data?.items) ? data.items : [];
+
+        if (cancelled) return;
+
+        const next: Record<string, VariantOption> = {};
+        items.forEach((item: any) => {
+          const id = toGidVariant(String(item.id || ""));
+          if (!id) return;
+          next[id] = {
+            id,
+            title: String(item.title || id),
+            sku: item.sku ? String(item.sku) : undefined,
+          };
+        });
+
+        if (!Object.keys(next).length) return;
+        setSelectedOptionsById((prev) => ({ ...prev, ...next }));
+      } catch {
+        // ignore lookup errors in picker UX
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedIds, selectedOptionsById]);
+
   return (
     <BlockStack gap="200">
       <TextField
@@ -281,9 +329,14 @@ function VariantPicker({
         ) : (
           selectedIds.map((id) => (
             <InlineStack key={id} align="space-between" blockAlign="center" gap="200">
-              <Text as="span" variant="bodySm">
-                {id}
-              </Text>
+              <BlockStack gap="100">
+                <Text as="span" variant="bodySm">
+                  {selectedOptionsById[id]?.title || id}
+                </Text>
+                <Text as="span" tone="subdued" variant="bodySm">
+                  {selectedOptionsById[id]?.sku ? `${selectedOptionsById[id]?.sku} • ${id}` : id}
+                </Text>
+              </BlockStack>
               <Button size="slim" tone="critical" onClick={() => removeVariant(id)}>
                 Remove
               </Button>
@@ -310,6 +363,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
           id
           value
         }
+        pricingSettings: metafield(namespace: "${META_NAMESPACE}", key: "${SETTINGS_KEY}") {
+          id
+          value
+        }
       }
     }
   `;
@@ -323,10 +380,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   const mf = json?.data?.shop?.metafield;
+  const settingsMf = json?.data?.shop?.pricingSettings;
   const campaigns = safeJsonParse<Campaign[]>(mf?.value, []);
+  const rawSettings = safeJsonParse<Record<string, unknown>>(settingsMf?.value, {});
+  const rawPercent = Number(rawSettings?.loggedInDiscountPercent ?? DEFAULT_LOGGED_IN_DISCOUNT_PERCENT);
+  const memberDiscountPercent = Number.isFinite(rawPercent)
+    ? Math.max(0, Math.min(100, rawPercent))
+    : DEFAULT_LOGGED_IN_DISCOUNT_PERCENT;
 
   const data: LoaderData = {
     campaigns,
+    memberDiscountPercent,
     metafieldId: mf?.id ?? null,
     shopId,
   };
@@ -342,6 +406,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const form = await request.formData();
   const jsonText = String(form.get("campaignsJson") ?? "").trim();
+  const memberDiscountRaw = Number(String(form.get("memberDiscountPercent") ?? DEFAULT_LOGGED_IN_DISCOUNT_PERCENT));
+  const memberDiscountPercent = Number.isFinite(memberDiscountRaw)
+    ? Math.max(0, Math.min(100, memberDiscountRaw))
+    : DEFAULT_LOGGED_IN_DISCOUNT_PERCENT;
   if (!jsonText) {
     const out: ActionData = { ok: false, error: "campaignsJson is empty" };
     return new Response(JSON.stringify(out), {
@@ -376,7 +444,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return {
         ...base,
         type: "BuyXGetOneFree",
-        buyQuantity: toNumber((c as any).buyQuantity, 2),
+        buyQuantity: toNumber((c as any).buyQuantity, 4),
         eligibleVariantIds: uniq(((c as any).eligibleVariantIds ?? []).map(toGidVariant)),
       };
     }
@@ -419,6 +487,8 @@ export async function action({ request }: ActionFunctionArgs) {
       ...base,
       type: "CartThresholdFreeChoice",
       thresholdAmount: toNumber((c as any).thresholdAmount, 150),
+      giftQuantity: Math.max(1, toNumber((c as any).giftQuantity, 1)),
+      repeatPerThreshold: Boolean((c as any).repeatPerThreshold),
       choiceVariantIds: uniq(((c as any).choiceVariantIds ?? []).map(toGidVariant)),
     };
   });
@@ -459,6 +529,13 @@ export async function action({ request }: ActionFunctionArgs) {
         key: META_KEY,
         type: META_TYPE,
         value: JSON.stringify(sanitized),
+      },
+      {
+        ownerId: shopId,
+        namespace: META_NAMESPACE,
+        key: SETTINGS_KEY,
+        type: META_TYPE,
+        value: JSON.stringify({ loggedInDiscountPercent: memberDiscountPercent }),
       },
     ],
   };
@@ -503,11 +580,12 @@ function typeLabel(t: CampaignType): string {
  * ========================================================================== */
 
 export default function CampaignsPage() {
-  const { campaigns: initialCampaigns } = useLoaderData() as LoaderData;
+  const { campaigns: initialCampaigns, memberDiscountPercent: initialMemberDiscountPercent } = useLoaderData() as LoaderData;
   const actionData = useActionData() as ActionData | undefined;
   const nav = useNavigation();
 
   const [campaigns, setCampaigns] = React.useState<Campaign[]>(() => clone(initialCampaigns));
+  const [memberDiscountPercent, setMemberDiscountPercent] = React.useState<number>(initialMemberDiscountPercent);
   const [selectedType, setSelectedType] = React.useState<CampaignType>("BuyXGetOneFree");
 
   const isSaving = nav.state !== "idle";
@@ -536,7 +614,7 @@ export default function CampaignsPage() {
     let next: Campaign;
 
     if (selectedType === "BuyXGetOneFree") {
-      next = { ...base, type: "BuyXGetOneFree", buyQuantity: 2, eligibleVariantIds: [] };
+      next = { ...base, type: "BuyXGetOneFree", buyQuantity: 4, eligibleVariantIds: [] };
     } else if (selectedType === "BuyXGetZFree") {
       next = {
         ...base,
@@ -565,6 +643,8 @@ export default function CampaignsPage() {
         ...base,
         type: "CartThresholdFreeChoice",
         thresholdAmount: 150,
+        giftQuantity: 1,
+        repeatPerThreshold: false,
         choiceVariantIds: [],
       };
     }
@@ -577,11 +657,12 @@ export default function CampaignsPage() {
       return (
         <BlockStack gap="300">
           <TextField
-            label="Buy quantity (X)"
+            label="Set size (X, incl. free item)"
             type="number"
             value={String(c.buyQuantity)}
             onChange={(value: string) => updateCampaign(idx, { ...c, buyQuantity: toNumber(value, 0) })}
             autoComplete="off"
+            helpText="Example: X=4 means in each 4 eligible items, 1 cheapest item is free."
           />
 
           <TextField
@@ -733,6 +814,22 @@ export default function CampaignsPage() {
         />
 
         <TextField
+          label="Gift quantity per threshold"
+          type="number"
+          value={String(c.giftQuantity ?? 1)}
+          onChange={(value: string) => updateCampaign(idx, { ...c, giftQuantity: Math.max(1, toNumber(value, 1)) })}
+          autoComplete="off"
+          helpText="How many free choice items are granted when threshold is met."
+        />
+
+        <Checkbox
+          label="Repeat for each threshold step"
+          checked={Boolean(c.repeatPerThreshold ?? false)}
+          onChange={(value: boolean) => updateCampaign(idx, { ...c, repeatPerThreshold: value })}
+          helpText="If enabled: gifts scale by floor(subtotal / thresholdAmount)."
+        />
+
+        <TextField
           label="Choice variant IDs (gifts) (auto-filled)"
           value={variantIdsToText(c.choiceVariantIds)}
           onChange={() => undefined}
@@ -873,6 +970,18 @@ export default function CampaignsPage() {
 
               <Form method="post">
                 <input type="hidden" name="campaignsJson" value={JSON.stringify(campaigns)} />
+                <TextField
+                  label="Logged-in customer discount (%)"
+                  type="number"
+                  name="memberDiscountPercent"
+                  value={String(memberDiscountPercent)}
+                  onChange={(value: string) =>
+                    setMemberDiscountPercent(Math.max(0, Math.min(100, toNumber(value, DEFAULT_LOGGED_IN_DISCOUNT_PERCENT))))
+                  }
+                  autoComplete="off"
+                  helpText="Applied for any authenticated storefront customer, regardless of role."
+                />
+                <div style={{ height: 12 }} />
                 <InlineStack gap="300" align="end">
                   <Button submit variant="primary" loading={isSaving}>
                     Save campaigns

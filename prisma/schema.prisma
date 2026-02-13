@@ -40,3 +40,110 @@ model PickupConfig {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model InvoiceSettings {
+  id             String   @id @default(cuid())
+  shop           String   @unique
+  triggerTopic   String   @default("orders/paid")
+  enabled        Boolean  @default(false)
+  defaultLocale  String   @default("en")
+  fromName       String?
+  fromEmail      String?
+  replyToEmail   String?
+  emailSubjectEn String?
+  emailSubjectEt String?
+  emailBodyEn    String?
+  emailBodyEt    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model InvoiceTemplate {
+  id              String   @id @default(cuid())
+  shop            String
+  locale          String
+  name            String
+  description     String?
+  activeVersionId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([shop, locale])
+  @@unique([shop, locale, name])
+}
+
+model InvoiceTemplateVersion {
+  id          String   @id @default(cuid())
+  templateId  String
+  version     Int
+  isPublished Boolean  @default(false)
+  html        String
+  css         String?
+  tokensJson  String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([templateId, isPublished])
+  @@unique([templateId, version])
+}
+
+model InvoiceLocaleMapping {
+  id             String   @id @default(cuid())
+  shop           String
+  storefrontLang String
+  invoiceLocale  String
+  templateId     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([shop, storefrontLang])
+  @@index([shop, invoiceLocale])
+}
+
+model InvoiceDocument {
+  id             String   @id @default(cuid())
+  shop           String
+  orderId        String
+  orderName      String?
+  orderEmail     String?
+  locale         String
+  status         String   @default("generated")
+  pdfStorageType String?
+  pdfStorageKey  String?
+  pdfUrl         String?
+  checksum       String?
+  sentAt         DateTime?
+  sentToEmail    String?
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([shop, createdAt])
+  @@unique([shop, orderId, locale])
+}
+
+model InvoiceJob {
+  id           String   @id @default(cuid())
+  shop         String
+  triggerTopic String
+  orderId      String
+  orderName    String?
+  orderEmail   String?
+  orderLocale  String?
+  status       String   @default("queued")
+  attempts     Int      @default(0)
+  maxAttempts  Int      @default(5)
+  lastError    String?
+  payloadJson  String?
+  lockedAt     DateTime?
+  lockOwner    String?
+  runAfter     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([shop, status, runAfter])
+  @@index([status, createdAt])
+  @@unique([shop, triggerTopic, orderId])
+}

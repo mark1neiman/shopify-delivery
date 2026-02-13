@@ -48,6 +48,8 @@ export type CartThresholdDiscountCampaign = CampaignBase & {
 export type CartThresholdFreeChoiceCampaign = CampaignBase & {
   type: "CartThresholdFreeChoice";
   thresholdAmount: number;
+  giftQuantity: number;
+  repeatPerThreshold: boolean;
   choiceVariantIds: string[];
 };
 
@@ -62,10 +64,10 @@ export const DEFAULT_CAMPAIGNS: Campaign[] = [
   {
     id: "bxgo-default",
     type: "BuyXGetOneFree",
-    label: "Buy 2 get 1 free",
+    label: "Buy 4 items, cheapest 1 free",
     priority: 10,
     stackable: true,
-    buyQuantity: 2,
+    buyQuantity: 4,
     eligibleVariantIds: [],
   },
   {
@@ -94,6 +96,8 @@ export const DEFAULT_CAMPAIGNS: Campaign[] = [
     priority: 40,
     stackable: false,
     thresholdAmount: 150,
+    giftQuantity: 1,
+    repeatPerThreshold: false,
     choiceVariantIds: [],
   },
   {
@@ -153,7 +157,7 @@ export function normalizeCampaigns(raw: unknown): Campaign[] {
       out.push({
         ...base,
         type,
-        buyQuantity: asNumber(item.buyQuantity, 2),
+        buyQuantity: asNumber(item.buyQuantity, 4),
         eligibleVariantIds: asStringArray(item.eligibleVariantIds),
       });
       continue;
@@ -201,6 +205,8 @@ export function normalizeCampaigns(raw: unknown): Campaign[] {
         ...base,
         type,
         thresholdAmount: asNumber(item.thresholdAmount, 150),
+        giftQuantity: Math.max(1, asNumber(item.giftQuantity, 1)),
+        repeatPerThreshold: asBool(item.repeatPerThreshold, false),
         choiceVariantIds: asStringArray(item.choiceVariantIds),
       });
       continue;

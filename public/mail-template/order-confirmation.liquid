@@ -1,0 +1,435 @@
+{%- comment -%}
+  Order confirmation (iHerb-inspired, stable email layout)
+  - Table-based
+  - Conservative typography for Gmail/Outlook
+  - Single-column order items + totals to avoid broken rendering
+{%- endcomment -%}
+<!doctype html>
+<html lang="{{ locale | default: 'en' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no">
+    <title>{{ email_title | default: shop.name }}</title>
+
+    {{ content_for_header }}
+
+    <style>
+      html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+      * { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { border-collapse: collapse !important; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+      img { border: 0; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; display: block; }
+      a { text-decoration: none; }
+
+      .preheader {
+        display: none !important;
+        visibility: hidden;
+        opacity: 0;
+        color: transparent;
+        height: 0;
+        width: 0;
+        overflow: hidden;
+        mso-hide: all;
+      }
+
+      .outer { background: #efefef; }
+      .container { width: 620px; max-width: 620px; }
+      .card { background: #ffffff; border: 1px solid #dddddd; }
+      .content { padding: 22px 24px; }
+      .top-line { height: 4px; background: #2f8f2f; }
+
+      .h1 { margin: 0; font-size: 34px; line-height: 38px; font-weight: 700; color: #131313; }
+      .h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; color: #131313; }
+      .h3 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 700; color: #131313; }
+      .text { margin: 0; font-size: 15px; line-height: 22px; color: #222222; }
+      .small { margin: 0; font-size: 13px; line-height: 19px; color: #555555; }
+      .hr { height: 1px; line-height: 1px; font-size: 0; background: #1f1f1f; }
+      .hr-soft { height: 1px; line-height: 1px; font-size: 0; background: #dcdcdc; }
+
+      .totals td { padding: 6px 0; font-size: 15px; line-height: 21px; }
+      .totals .label { color: #252525; }
+      .totals .value { text-align: right; font-weight: 600; color: #111111; }
+      .saved { color: #2f8f2f; font-weight: 700; }
+      .grand td { font-size: 17px; line-height: 24px; font-weight: 700; }
+
+      .cta { background: #f6873a; border-radius: 4px; }
+      .cta a {
+        display: block;
+        padding: 13px 14px;
+        font-size: 18px;
+        line-height: 22px;
+        font-weight: 700;
+        color: #ffffff !important;
+        text-align: center;
+      }
+      .cta-secondary { background: #2f8f2f; border-radius: 4px; }
+      .cta-secondary a {
+        display: block;
+        padding: 12px 14px;
+        font-size: 16px;
+        line-height: 20px;
+        font-weight: 700;
+        color: #ffffff !important;
+        text-align: center;
+      }
+
+      .feature { background: #2f8f2f; }
+      .feature td {
+        color: #ffffff;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+        text-align: center;
+        padding: 11px 8px;
+      }
+
+      @media screen and (max-width: 680px) {
+        .container { width: 100% !important; max-width: 100% !important; }
+        .content { padding: 16px !important; }
+        .stack { display: block !important; width: 100% !important; }
+        .stack-spacer { display: none !important; }
+        .h1 { font-size: 30px !important; line-height: 34px !important; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="preheader">Thank you for your order{% if order %} {{ order.name }}{% endif %} at {{ shop.name }}.</div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="outer">
+      <tr>
+        <td align="center" style="padding: 0 8px;">
+          <table role="presentation" width="620" cellpadding="0" cellspacing="0" class="container card">
+            <tr><td class="top-line"></td></tr>
+
+            <tr>
+              <td class="content" style="padding-bottom: 10px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td width="165" style="vertical-align: middle;">
+                      {% assign notification_logo_url = 'https://delivery.nanails.eu/images/nana-logo.png' %}
+                      {% if notification_logo_url != blank %}
+                        <img src="{{ notification_logo_url }}" alt="{{ shop.name }}" width="130" style="width: 130px; height: auto;">
+                      {% endif %}
+                      {% if notification_logo_url == blank %}
+                        <div style="font-family: Arial, sans-serif; font-size: 18px; line-height: 20px; color: #2f8f2f; font-weight: 700; margin-top: 4px;">NANAILS.EU</div>
+                      {% endif %}
+                    </td>
+                    <td style="vertical-align: middle; padding-left: 8px;">
+                      <p class="h1">Thank You for Your Order</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="content" style="padding-top: 0; padding-bottom: 16px;">
+                <p class="text">We'll send you tracking information when the order ships.</p>
+              </td>
+            </tr>
+
+            {% if order %}
+              {% assign invoice_url = '' %}
+              {% assign invoice_download_url = '' %}
+              {% assign member_discount_applied = false %}
+              {% assign member_discount_percent = '' %}
+              {% assign member_discount_amount = '' %}
+              {% assign member_discount_currency = '' %}
+              {% if order.metafields.custom.vat_invoice_url != blank %}
+                {% assign invoice_url = order.metafields.custom.vat_invoice_url.value | default: order.metafields.custom.vat_invoice_url %}
+              {% endif %}
+              {% if order.attributes %}
+                {% for attribute in order.attributes %}
+                  {% assign attr_key = attribute.first | downcase %}
+                  {% assign attr_value = attribute.last | strip %}
+                  {% if attr_key == 'itella_draft_order_invoice_url' and attr_value != blank and invoice_url == blank %}
+                    {% assign invoice_url = attr_value %}
+                  {% elsif attr_key == 'itella_member_discount_applied' %}
+                    {% assign attr_value_down = attr_value | downcase %}
+                    {% if attr_value_down == 'true' or attr_value_down == '1' or attr_value_down == 'yes' %}
+                      {% assign member_discount_applied = true %}
+                    {% endif %}
+                  {% elsif attr_key == 'itella_member_discount_percent' and attr_value != blank %}
+                    {% assign member_discount_percent = attr_value %}
+                    {% assign member_discount_applied = true %}
+                  {% elsif attr_key == 'itella_member_discount_amount' and attr_value != blank %}
+                    {% assign member_discount_amount = attr_value %}
+                    {% assign member_discount_applied = true %}
+                  {% elsif attr_key == 'itella_member_discount_currency' and attr_value != blank %}
+                    {% assign member_discount_currency = attr_value %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+              {% if member_discount_applied and member_discount_percent == blank %}
+                {% assign member_discount_percent = '15' %}
+              {% endif %}
+              {% if invoice_url != blank %}
+                {% if invoice_url contains '?' %}
+                  {% assign invoice_download_url = invoice_url | append: '&download=1' %}
+                {% else %}
+                  {% assign invoice_download_url = invoice_url | append: '?download=1' %}
+                {% endif %}
+              {% endif %}
+
+              {% if member_discount_applied %}
+                <tr>
+                  <td class="content" style="padding-top: 0; padding-bottom: 8px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3fbf3;border:1px solid #cfe7cf;border-radius:4px;">
+                      <tr>
+                        <td style="padding:12px 14px;font-family:Arial,sans-serif;font-size:15px;line-height:21px;color:#1f5f1f;">
+                          <strong>{{ member_discount_percent }}% member discount</strong> was applied to product prices for your NANAILS.EU customer account.
+                          {% if member_discount_amount != blank %}
+                            <br><span style="font-size:13px;color:#3f6d3f;">Saved: {{ member_discount_amount }}{% if member_discount_currency != blank %} {{ member_discount_currency }}{% endif %}</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              {% endif %}
+
+              <tr>
+                <td class="content" style="padding-top: 0; padding-bottom: 8px;">
+                  <p class="h1" style="font-size: 48px; line-height: 52px;">Order # {{ order.name }}</p>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="content" style="padding-top: 0; padding-bottom: 0;"><div class="hr"></div></td>
+              </tr>
+
+              <tr>
+                <td class="content" style="padding-top: 14px; padding-bottom: 10px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    {% for line in order.line_items %}
+                      <tr>
+                        <td style="padding: 11px 0; border-bottom: 1px solid #dedede;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="78" style="vertical-align: top;">
+                                {% if line.image %}
+                                  <img src="{{ line.image | img_url: '140x140', scale: 2 }}" alt="{{ line.title }}" width="64" height="64" style="width: 64px; height: 64px; border: 1px solid #d8d8d8;">
+                                {% else %}
+                                  <table role="presentation" width="64" height="64" cellpadding="0" cellspacing="0" style="border: 1px solid #d8d8d8;"><tr><td></td></tr></table>
+                                {% endif %}
+                              </td>
+                              <td style="vertical-align: top; padding-right: 8px;">
+                                <p class="text" style="font-weight: 600;">{{ line.product.title }}</p>
+                                {% if line.variant.title != blank and line.variant.title != 'Default Title' %}
+                                  <p class="small" style="margin-top: 3px;">{{ line.variant.title }}</p>
+                                {% endif %}
+                                <p class="small" style="margin-top: 4px;">QTY: {{ line.quantity }}</p>
+                              </td>
+                              <td width="96" style="vertical-align: top; text-align: right; white-space: nowrap;">
+                                <p class="text" style="font-weight: 700;">{{ line.final_line_price | money }}</p>
+                                {% if line.original_line_price > line.final_line_price %}
+                                  <p class="small" style="text-decoration: line-through; margin-top: 3px;">{{ line.original_line_price | money }}</p>
+                                {% endif %}
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </table>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="content" style="padding-top: 8px; padding-bottom: 8px;">
+                  {% if order.total_discounts > 0 %}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 8px;">
+                      <tr>
+                        <td class="h2 saved">You Saved</td>
+                        <td class="h2 saved" style="text-align: right;">{{ order.total_discounts | money }}</td>
+                      </tr>
+                    </table>
+                  {% endif %}
+
+                  <div class="hr"></div>
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="totals" style="margin-top: 8px;">
+                    <tr>
+                      <td class="label">Subtotal</td>
+                      <td class="value">{{ order.subtotal_price | money }}</td>
+                    </tr>
+                    {% if order.total_discounts > 0 %}
+                      <tr>
+                        <td class="label">Discount</td>
+                        <td class="value">-{{ order.total_discounts | money }}</td>
+                      </tr>
+                    {% endif %}
+                    <tr>
+                      <td class="label">Shipping</td>
+                      <td class="value">
+                        {% if order.shipping_price and order.shipping_price > 0 %}
+                          {{ order.shipping_price | money }}
+                        {% else %}
+                          Free
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% if order.total_tax > 0 %}
+                      <tr>
+                        <td class="label">Tax</td>
+                        <td class="value">{{ order.total_tax | money }}</td>
+                      </tr>
+                    {% endif %}
+                    <tr><td colspan="2" style="padding: 8px 0;"><div class="hr"></div></td></tr>
+                    <tr class="grand">
+                      <td>Order Total</td>
+                      <td class="value">{{ order.total_price | money }}</td>
+                    </tr>
+                  </table>
+
+                  {% assign earned_credit = order.total_price | times: 0.1 %}
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 10px; border: 1px solid #2f8f2f;">
+                    <tr>
+                      <td style="background:#2f8f2f; color:#ffffff; font-size:14px; line-height:18px; font-weight:700; padding:10px 12px;">Loyalty Credit Earned</td>
+                      <td style="text-align:right; color:#2f8f2f; font-size:24px; line-height:26px; font-weight:700; padding:10px 12px; white-space:nowrap;">{{ earned_credit | money }}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="content" style="padding-top: 8px; padding-bottom: 4px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td class="stack" width="50%" style="vertical-align: top;">
+                        <p class="h3" style="margin-bottom: 6px;">Shipping Info</p>
+                        <div class="hr" style="margin-bottom: 8px;"></div>
+                        {% if order.shipping_lines.size > 0 %}
+                          <p class="small">Ship With: <strong style="color:#1b1b1b;">{{ order.shipping_lines.first.title }}</strong></p>
+                        {% endif %}
+                        {% if order.shipping_address %}
+                          <p class="small" style="margin-top: 6px; color:#222222;">
+                            {{ order.shipping_address.name }}<br>
+                            {{ order.shipping_address.address1 }}{% if order.shipping_address.address2 != blank %}, {{ order.shipping_address.address2 }}{% endif %}<br>
+                            {{ order.shipping_address.zip }} {{ order.shipping_address.city }}<br>
+                            {{ order.shipping_address.country }}
+                          </p>
+                        {% endif %}
+                      </td>
+
+                      <td class="stack-spacer" width="24"></td>
+
+                      <td class="stack" width="50%" style="vertical-align: top;">
+                        <p class="h3" style="margin-bottom: 6px;">Payment Info</p>
+                        <div class="hr" style="margin-bottom: 8px;"></div>
+                        <p class="small">Paid With:
+                          <strong style="color:#1b1b1b;">
+                            {% if order.gateway %}
+                              {{ order.gateway }}
+                            {% elsif order.payment_gateway_names and order.payment_gateway_names.size > 0 %}
+                              {{ order.payment_gateway_names | join: ', ' }}
+                            {% else %}
+                              Payment method
+                            {% endif %}
+                          </strong>
+                        </p>
+                        {% if order.billing_address %}
+                          <p class="small" style="margin-top: 6px; color:#222222;">
+                            {{ order.billing_address.name }}<br>
+                            {{ order.billing_address.address1 }}{% if order.billing_address.address2 != blank %}, {{ order.billing_address.address2 }}{% endif %}<br>
+                            {{ order.billing_address.zip }} {{ order.billing_address.city }}<br>
+                            {{ order.billing_address.country }}
+                          </p>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              {% if order.order_status_url != blank or invoice_url != blank %}
+                <tr>
+                  <td class="content" style="padding-top: 8px;">
+                    {% if order.order_status_url != blank %}
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td class="cta"><a href="{{ order.order_status_url }}">Check Order Status</a></td>
+                        </tr>
+                      </table>
+                    {% endif %}
+                    {% if invoice_url != blank %}
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 10px;">
+                        <tr>
+                          <td class="cta-secondary">
+                            <a href="{{ invoice_download_url }}" target="_blank">Download VAT Invoice PDF</a>
+                          </td>
+                        </tr>
+                      </table>
+                      <p class="small" style="margin-top: 8px;">
+                        Can't download? <a href="{{ invoice_url }}" target="_blank" style="color:#2f8f2f; font-weight:700;">Open invoice in browser</a>
+                      </p>
+                    {% endif %}
+                    {% if order.order_status_url != blank %}
+                      <p class="small" style="margin-top: 8px;">Before this order ships, you can change or cancel your order from the order status page.</p>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endif %}
+
+              <tr>
+                <td class="content" style="padding-top: 10px; padding-bottom: 4px;"><div class="hr"></div></td>
+              </tr>
+
+              <tr>
+                <td class="content" style="padding-top: 6px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="feature">
+                    <tr>
+                      <td>10% credit on every order</td>
+                      <td>Quality and delivery guaranteed</td>
+                      <td>Authentic products</td>
+                      <td>Shipping to 150+ countries</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            {% endif %}
+
+            <tr>
+              <td class="content" style="padding-top: 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="vertical-align: middle;">
+                      {% if shop.email_logo_url != blank %}
+                        <img src="{{ shop.email_logo_url }}" alt="{{ shop.name }}" width="90" style="width:90px; height:auto; opacity:0.85;">
+                      {% else %}
+                        <div style="font-size:22px; line-height:24px; font-weight:700; color:#6e6e6e;">{{ shop.name }}</div>
+                      {% endif %}
+                    </td>
+                    <td style="text-align: right; vertical-align: middle;">
+                      <a href="{{ shop.url }}" style="font-size:12px; color:#666666;">Contact</a>
+                      <span style="color:#b0b0b0; padding:0 6px;">|</span>
+                      <a href="{{ shop.url }}" style="font-size:12px; color:#666666;">Privacy</a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p class="small" style="margin-top: 10px;">
+                  {% if shop.address != blank %}
+                    {{ shop.name }}<br>{{ shop.address | strip_html | strip }}
+                  {% else %}
+                    {{ shop.name }}
+                  {% endif %}
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" width="620" cellpadding="0" cellspacing="0" class="container">
+            <tr>
+              <td align="center" style="padding: 12px 10px 22px 10px; font-size: 12px; line-height: 18px; color: #7c7c7c;">
+                You received this email because you placed an order at {{ shop.name }}.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

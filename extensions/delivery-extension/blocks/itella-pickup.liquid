@@ -17,6 +17,7 @@
   data-text-search-placeholder="{{ 'pickup.text.search_placeholder' | t }}"
   data-text-fallback="{{ 'pickup.text.fallback_notice' | t }}"
   data-customer-logged-in="{% if customer %}true{% else %}false{% endif %}"
+  data-customer-id="{{ customer.id | default: '' | escape }}"
   data-customer-email="{{ customer.email | escape }}"
   data-customer-name="{{ last_address.name | escape }}"
   data-customer-address1="{{ last_address.address1 | escape }}"
@@ -32,7 +33,11 @@
         <!-- Promo code -->
     <div class="pickup-field">
       <label for="pickup-promo">Promo code</label>
-      <input id="pickup-promo" class="pickup-input" type="text" placeholder="Enter promo code" />
+      <div class="pickup-promo-row">
+        <input id="pickup-promo" class="pickup-input" type="text" placeholder="Enter promo code" />
+        <button id="pickup-promo-apply" class="pickup-promo-apply" type="button">Apply</button>
+      </div>
+      <div id="pickup-promo-status" class="pickup-promo-status" hidden></div>
       <div style="font-size:12px;opacity:.65;margin-top:2px">
         If your code is valid, discount will be applied in checkout.
       </div>
@@ -183,6 +188,30 @@
     gap:10px;
   }
   .pickup-title{font-weight:600;margin-bottom:2px}
+  .pickup-promo-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .pickup-promo-row .pickup-input{
+    flex:1;
+  }
+  .pickup-promo-apply{
+    border:1px solid rgba(0,0,0,.14);
+    border-radius:10px;
+    background:#fff;
+    padding:10px 14px;
+    font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .pickup-promo-status{
+    font-size:12px;
+    opacity:.8;
+    margin-top:2px;
+  }
+  .pickup-promo-status[data-tone="ok"]{color:#166534}
+  .pickup-promo-status[data-tone="error"]{color:#991b1b}
   .pickup-select{
     width:100%;
     display:flex;
@@ -301,6 +330,11 @@
   }
   [hidden] { display: none !important; }
 </style>
+
+<script>
+  window.__MK_CUSTOMER_LOGGED_IN = {% if customer %}true{% else %}false{% endif %};
+  window.__MK_CUSTOMER_ID = "{{ customer.id | default: '' | escape }}";
+</script>
 
 <script src="{{ 'itella-pickup.js' | asset_url }}" defer></script>
 <script src="{{ 'cart-campaign-ui.js' | asset_url }}" defer></script>

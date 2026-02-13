@@ -529,6 +529,17 @@ product-info.use-color-scheme-in-container > .product {
 .product-form__buttons .shopify-payment-button {
   width: 100%;
 }
+.product-form__button-dynamic {
+  width: 100%;
+}
+.product-form__button-dynamic .shopify-payment-button {
+  width: 100%;
+}
+.product__block--buy_buttons .product-form__save {
+  position: relative;
+  z-index: 20;
+  pointer-events: auto;
+}
 .product-form__submit {
   position: relative;
   flex-grow: 1;

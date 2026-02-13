@@ -3,6 +3,20 @@
     assign wrap_class = ''
     assign visibility = block.settings.visibility
     assign style = block.settings.style
+    assign save_media = product.featured_media
+    if save_media
+      if save_media.media_type == 'video' or save_media.media_type == 'external_video' or save_media.media_type == 'model'
+        assign save_media = save_media.preview_image
+      endif
+    endif
+    assign save_image = ''
+    if save_media
+      assign save_image = save_media | image_url: width: 800
+    endif
+    assign save_price = product.selected_or_first_available_variant.price | money
+    if settings.currency_code_enabled
+      assign save_price = product.selected_or_first_available_variant.price | money_with_currency
+    endif
   -%}
   {%- if style == 'minimalist' -%}
     {%- liquid
@@ -50,6 +64,22 @@
         </div>
       </div>
       <div class="product-form__buttons flex items-center">
+        <button
+          type="button"
+          class="product-form__save btn btn--secondary btn--small relative z-20 pointer-events-auto"
+          data-save-product-btn
+          data-product-id="{{ product.id }}"
+          data-product-url="{{ product.url }}"
+          data-product-title="{{ product.title | escape }}"
+          data-product-image="{{ save_image }}"
+          data-product-price="{{ save_price | escape }}"
+          aria-pressed="false"
+        >
+          <span class="btn__text flex items-center gap-1">
+            {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+            <span data-save-product-label class="visually-hidden">Save product</span>
+          </span>
+        </button>
         <button
           type="submit"
           name="add"
@@ -195,6 +225,22 @@
             </div>
           {% endif %}
           <div class="product-form__buttons flex items-center gap-2">
+            <button
+              type="button"
+              class="product-form__save btn btn--secondary relative z-20 pointer-events-auto"
+              data-save-product-btn
+              data-product-id="{{ product.id }}"
+              data-product-url="{{ product.url }}"
+              data-product-title="{{ product.title | escape }}"
+              data-product-image="{{ save_image }}"
+              data-product-price="{{ save_price | escape }}"
+              aria-pressed="false"
+            >
+              <span class="btn__text flex items-center gap-1">
+                {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+                <span data-save-product-label class="visually-hidden">Save product</span>
+              </span>
+            </button>
             {%- if block.settings.show_atc_button -%}
               <button
                 type="submit"
@@ -214,12 +260,12 @@
                 {% render 'loading-spinner' %}
               </button>
             {% endif %}
-            {%- if show_dynamic_checkout_buttons -%}
-              <div class="product-form__button-dynamic hidden md:block">
-                {{ form | payment_button }}
-              </div>
-            {%- endif -%}
           </div>
+          {%- if show_dynamic_checkout_buttons -%}
+            <div class="product-form__button-dynamic hidden md:block">
+              {{ form | payment_button }}
+            </div>
+          {%- endif -%}
         {%- endform -%}
       </sticky-atc-bar>
       <script type="application/json">

@@ -31,6 +31,127 @@
           </p>
           {{ order.shipping_address | format_address }}
         </div>
+        {%- liquid
+          assign delivery_title = ''
+          assign pickup_provider = ''
+          assign pickup_country = ''
+          assign pickup_name = ''
+          assign recipient_name = ''
+          assign recipient_phone = ''
+          assign recipient_email = ''
+
+          for attribute in order.attributes
+            if attribute.last == blank
+              continue
+            endif
+
+            assign attribute_key = attribute.first | replace: '_', ' ' | replace: '-', ' ' | strip | downcase
+            assign attribute_prefix = attribute_key | slice: 0, 7
+            if attribute_prefix == 'itella '
+              assign attribute_key = attribute_key | remove_first: 'itella '
+            endif
+
+            case attribute_key
+              when 'delivery title'
+                assign delivery_title = attribute.last
+              when 'pickup provider'
+                assign pickup_provider = attribute.last
+              when 'pickup country'
+                assign pickup_country = attribute.last
+              when 'pickup name'
+                assign pickup_name = attribute.last
+              when 'recipient name'
+                assign recipient_name = attribute.last
+              when 'recipient phone'
+                assign recipient_phone = attribute.last
+              when 'recipient email'
+                assign recipient_email = attribute.last
+            endcase
+          endfor
+
+          if delivery_title == blank and order.shipping_methods.size > 0
+            assign delivery_title = order.shipping_methods.first.title
+          endif
+
+          assign show_delivery_details = false
+          if delivery_title != blank or pickup_provider != blank or pickup_country != blank or pickup_name != blank or recipient_name != blank or recipient_phone != blank or recipient_email != blank
+            assign show_delivery_details = true
+          endif
+        -%}
+        {%- if show_delivery_details -%}
+          <div class="customer__widget blocks-radius flex flex-col gap-y-3">
+            <h2 class="h5">Delivery details</h2>
+            <ul role="list" class="list-unstyled flex flex-col gap-y-2">
+              {%- if delivery_title != blank -%}
+                <li>
+                  <strong>Delivery:</strong>
+                  {{ delivery_title }}
+                </li>
+              {%- endif -%}
+              {%- if pickup_provider != blank -%}
+                <li>
+                  <strong>Pickup provider:</strong>
+                  {{ pickup_provider }}
+                </li>
+              {%- endif -%}
+              {%- if pickup_country != blank -%}
+                <li>
+                  <strong>Pickup country:</strong>
+                  {{ pickup_country }}
+                </li>
+              {%- endif -%}
+              {%- if pickup_name != blank -%}
+                <li>
+                  <strong>Pickup name:</strong>
+                  {{ pickup_name }}
+                </li>
+              {%- endif -%}
+              {%- if recipient_name != blank -%}
+                <li>
+                  <strong>Recipient name:</strong>
+                  {{ recipient_name }}
+                </li>
+              {%- endif -%}
+              {%- if recipient_phone != blank -%}
+                <li>
+                  <strong>Recipient phone:</strong>
+                  {{ recipient_phone }}
+                </li>
+              {%- endif -%}
+              {%- if recipient_email != blank -%}
+                <li>
+                  <strong>Recipient email:</strong>
+                  {{ recipient_email }}
+                </li>
+              {%- endif -%}
+            </ul>
+          </div>
+        {%- endif -%}
+        {%- liquid
+          assign vat_invoice_url = ''
+          assign vat_invoice_download_url = ''
+          if order.metafields.custom.vat_invoice_url != blank
+            assign vat_invoice_url = order.metafields.custom.vat_invoice_url.value | default: order.metafields.custom.vat_invoice_url
+            if vat_invoice_url contains '?'
+              assign vat_invoice_download_url = vat_invoice_url | append: '&download=1'
+            else
+              assign vat_invoice_download_url = vat_invoice_url | append: '?download=1'
+            endif
+          endif
+        -%}
+        {%- if vat_invoice_url != blank -%}
+          <div class="customer__widget blocks-radius flex flex-col gap-y-3">
+            <h2 class="h5">VAT invoice</h2>
+            <div class="flex flex-wrap gap-2">
+              <a href="{{ vat_invoice_url }}" target="_blank" rel="noopener" class="btn btn--secondary">
+                Open PDF
+              </a>
+              <a href="{{ vat_invoice_download_url }}" target="_blank" rel="noopener" class="btn">
+                Download PDF
+              </a>
+            </div>
+          </div>
+        {%- endif -%}
       </div>
       <div class="customer__content">
         <div class="rich-text rich-text--tight">

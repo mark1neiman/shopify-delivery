@@ -44,11 +44,26 @@ export type PricingResult = {
   lines: PricedLine[];
   breakdown: PricingBreakdown;
   appliedCampaigns: AppliedCampaign[];
+  promo: {
+    requestedCode: string | null;
+    appliedCode: string | null;
+    label: string | null;
+    discount: number;
+    reason: string | null;
+  };
   needsFreeChoice: boolean;
   choiceContext?: {
     campaignId: string;
     label: string;
     choices: string[];
+    giftQty?: number;
+    choiceOptions?: Array<{
+      variantId: string;
+      label: string;
+      price?: number;
+      currencyCode?: string;
+    }>;
+    selectedChoices?: string[];
   };
   currencyCode: string;
 };
@@ -58,9 +73,12 @@ export type PricingInput = {
   customerId: string | null;
   promoCode: string | null;
   freeChoiceVariantId: string | null;
+  freeChoiceSelections?: string[] | null;
 };
 
-const MEMBER_DISCOUNT_RATE = 0.15;
+const SETTINGS_NAMESPACE = "mkx";
+const SETTINGS_KEY = "pricing_settings";
+const DEFAULT_LOGGED_IN_DISCOUNT_PERCENT = 15;
 
 function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
@@ -75,6 +93,15 @@ function toGid(rawId: string) {
   if (!id) return "";
   if (id.startsWith("gid://")) return id;
   return `gid://shopify/ProductVariant/${id}`;
+}
+
+function toCustomerGid(rawId: string | null | undefined) {
+  const id = String(rawId || "").trim();
+  if (!id) return "";
+  if (id.startsWith("gid://")) return id;
+  const numeric = id.replace(/[^\d]/g, "");
+  if (!numeric) return "";
+  return `gid://shopify/Customer/${numeric}`;
 }
 
 type LineState = {
@@ -102,6 +129,29 @@ type LineState = {
 };
 
 type PriceMap = Map<string, { amount: number; currencyCode: string }>;
+
+type PromoCodeDefinition = {
+  code: string;
+  title: string | null;
+  type: "percentage" | "fixed";
+  value: number;
+  stackable: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  minimumSubtotal: number;
+  minimumQuantity: number;
+  customerSelectionType: "all" | "customers" | "segments";
+  customerIds: Set<string>;
+  itemSelectionType: "all" | "products" | "collections";
+  productIds: Set<string>;
+  variantIds: Set<string>;
+  collectionIds: Set<string>;
+};
+
+type VariantPromoMeta = {
+  productId: string;
+  collectionIds: Set<string>;
+};
 
 function safeNumber(n: any) {
   const v = Number.parseFloat(String(n ?? 0).replace(",", "."));
@@ -238,6 +288,149 @@ async function fetchVariantPrices(admin: any, variantIds: string[]): Promise<Pri
   return map;
 }
 
+type VariantLabelMap = Map<string, string>;
+
+async function fetchVariantLabels(admin: any, variantIds: string[]): Promise<VariantLabelMap> {
+  const ids = Array.from(new Set((variantIds || []).map((id) => toGid(id)).filter(Boolean)));
+  const out: VariantLabelMap = new Map();
+  if (!ids.length) return out;
+
+  const query = `#graphql
+    query VariantLabels($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        ... on ProductVariant {
+          id
+          title
+          product { title }
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await adminGraphql(admin, query, { variables: { ids } });
+    const json = await res.json();
+    const nodes = json?.data?.nodes || [];
+
+    for (const node of nodes) {
+      const id = String(node?.id || "");
+      if (!id) continue;
+
+      const productTitle = String(node?.product?.title || "").trim();
+      const variantTitle = String(node?.title || "").trim();
+      const hasSpecificVariant = variantTitle && variantTitle.toLowerCase() !== "default title";
+      const label = productTitle
+        ? hasSpecificVariant
+          ? `${productTitle} - ${variantTitle}`
+          : productTitle
+        : variantTitle || id;
+
+      out.set(id, label);
+    }
+  } catch {
+    return out;
+  }
+
+  return out;
+}
+
+async function fetchVariantPromoMeta(admin: any, variantIds: string[]): Promise<Map<string, VariantPromoMeta>> {
+  const ids = Array.from(new Set((variantIds || []).map((id) => toGid(id)).filter(Boolean)));
+  const out = new Map<string, VariantPromoMeta>();
+  if (!ids.length) return out;
+
+  const query = `#graphql
+    query VariantPromoMeta($ids: [ID!]!) {
+      nodes(ids: $ids) {
+        ... on ProductVariant {
+          id
+          product {
+            id
+            collections(first: 100) {
+              nodes { id }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await adminGraphql(admin, query, { variables: { ids } });
+    const json = await res.json();
+    const nodes = json?.data?.nodes || [];
+
+    for (const node of nodes) {
+      const variantId = String(node?.id || "");
+      if (!variantId) continue;
+      const productId = String(node?.product?.id || "");
+      const collections = Array.isArray(node?.product?.collections?.nodes) ? node.product.collections.nodes : [];
+      const collectionIds = new Set<string>(
+        collections.map((c: any) => String(c?.id || "").trim()).filter(Boolean),
+      );
+
+      out.set(variantId, { productId, collectionIds });
+    }
+  } catch {
+    return out;
+  }
+
+  return out;
+}
+
+function buildChoiceOptions(
+  choiceIds: string[],
+  priceMap: PriceMap,
+  labelMap: VariantLabelMap,
+): Array<{ variantId: string; label: string; price?: number; currencyCode?: string }> {
+  const out: Array<{ variantId: string; label: string; price?: number; currencyCode?: string }> = [];
+  const seen = new Set<string>();
+
+  for (const raw of choiceIds || []) {
+    const variantId = toGid(raw);
+    if (!variantId || seen.has(variantId)) continue;
+    seen.add(variantId);
+
+    const price = priceMap.get(variantId);
+    out.push({
+      variantId,
+      label: labelMap.get(variantId) || variantId,
+      price: Number.isFinite(Number(price?.amount)) ? Number(price?.amount) : undefined,
+      currencyCode: price?.currencyCode ? String(price.currencyCode) : undefined,
+    });
+  }
+
+  return out;
+}
+
+async function fetchLoggedInDiscountRate(admin: any): Promise<number> {
+  const query = `#graphql
+    query PricingSettings {
+      shop {
+        metafield(namespace: "${SETTINGS_NAMESPACE}", key: "${SETTINGS_KEY}") {
+          value
+        }
+      }
+    }
+  `;
+
+  try {
+    const res = await adminGraphql(admin, query);
+    const json = await res.json();
+    const rawValue = json?.data?.shop?.metafield?.value;
+    const parsed = rawValue ? JSON.parse(rawValue) : {};
+
+    const percentRaw = Number(
+      parsed?.loggedInDiscountPercent ?? parsed?.memberDiscountPercent ?? DEFAULT_LOGGED_IN_DISCOUNT_PERCENT,
+    );
+    const percent = Number.isFinite(percentRaw) ? percentRaw : DEFAULT_LOGGED_IN_DISCOUNT_PERCENT;
+    const clamped = Math.max(0, Math.min(100, percent));
+    return clamped / 100;
+  } catch {
+    return DEFAULT_LOGGED_IN_DISCOUNT_PERCENT / 100;
+  }
+}
+
 // ✅ Regular line: key == variantId (GID)
 function ensureRegularLine(lines: Map<string, LineState>, variantId: string, priceMap: PriceMap, quantity: number) {
   const normalized = toGid(variantId);
@@ -304,12 +497,13 @@ function createGiftLine(
   return line;
 }
 
-function applyMemberDiscount(lines: Map<string, LineState>, hasMember: boolean) {
+function applyMemberDiscount(lines: Map<string, LineState>, hasMember: boolean, discountRate: number) {
   if (!hasMember) return;
+  const rate = Math.max(0, Math.min(1, Number(discountRate || 0)));
   for (const line of lines.values()) {
     // ✅ do not apply member discount to gift line (cosmetic; gift is already free)
     if (line.isGiftLine) continue;
-    line.memberUnitPrice = roundMoney(line.baseUnitPrice * (1 - MEMBER_DISCOUNT_RATE));
+    line.memberUnitPrice = roundMoney(line.baseUnitPrice * (1 - rate));
   }
 }
 
@@ -350,30 +544,89 @@ function allocateCampaignUnits(lines: LineState[], campaign: Campaign, unitsNeed
   }
 }
 
+function paidUnitsForLine(line: LineState) {
+  return Math.max(0, Number(line.quantity || 0) - Number(line.freeUnits || 0));
+}
+
+function applyLineFreeUnits(line: LineState, quantity: number, campaign: Campaign) {
+  const qty = Math.max(0, Number(quantity || 0));
+  if (qty <= 0) return;
+
+  line.discountTotal += line.memberUnitPrice * qty;
+  line.freeUnits += qty;
+
+  line.appliedCampaignIds.add(campaign.id);
+  line.appliedCampaignLabels.add(campaign.label);
+
+  // ✅ mark allocated free units for UI/debug payload
+  line.campaignQuantities[campaign.id] = Number(line.campaignQuantities[campaign.id] || 0) + qty;
+}
+
 function applyFreeUnits(lines: LineState[], freeCount: number, campaign: Campaign) {
   if (freeCount <= 0) return;
 
-  const unitPool: { line: LineState; unitPrice: number }[] = [];
+  const unitPool: { line: LineState; unitPrice: number; sourceQty: number; order: number }[] = [];
+  let order = 0;
   for (const line of lines) {
-    const paidUnits = Math.max(0, line.quantity - line.freeUnits);
+    const paidUnits = paidUnitsForLine(line);
     for (let i = 0; i < paidUnits; i += 1) {
-      unitPool.push({ line, unitPrice: line.memberUnitPrice });
+      unitPool.push({
+        line,
+        unitPrice: line.memberUnitPrice,
+        sourceQty: Math.max(0, Number(line.quantity || 0)),
+        order: order++,
+      });
     }
   }
 
-  unitPool.sort((a, b) => a.unitPrice - b.unitPrice);
+  // Deterministic tie-breaker:
+  // 1) cheaper units first
+  // 2) if same price, prefer lines with smaller quantity (keeps FREE line stable in mixed carts)
+  // 3) preserve original pool order
+  unitPool.sort((a, b) => {
+    const byPrice = a.unitPrice - b.unitPrice;
+    if (byPrice !== 0) return byPrice;
+    const byQty = a.sourceQty - b.sourceQty;
+    if (byQty !== 0) return byQty;
+    return a.order - b.order;
+  });
   const freebies = unitPool.slice(0, freeCount);
 
   for (const freeUnit of freebies) {
-    freeUnit.line.discountTotal += freeUnit.unitPrice;
-    freeUnit.line.freeUnits += 1;
-
-    freeUnit.line.appliedCampaignIds.add(campaign.id);
-    freeUnit.line.appliedCampaignLabels.add(campaign.label);
-
-    // ✅ NEW: mark that 1 unit was allocated to this campaign (for UI)
-    freeUnit.line.campaignQuantities[campaign.id] = Number(freeUnit.line.campaignQuantities[campaign.id] || 0) + 1;
+    applyLineFreeUnits(freeUnit.line, 1, campaign);
   }
+}
+
+function applyBuyXGetOneFree(lines: LineState[], setSize: number, campaign: Campaign) {
+  const normalizedSetSize = Math.max(0, Number(setSize || 0));
+  if (normalizedSetSize <= 0) return 0;
+
+  const totalPaidEligibleQty = sum(lines.map((line) => paidUnitsForLine(line)));
+  const totalFreeCount = Math.floor(totalPaidEligibleQty / normalizedSetSize);
+  if (totalFreeCount <= 0) return 0;
+
+  // Step 1:
+  // If a single line already forms full sets on its own (e.g. 4+4 with X=4),
+  // grant those free units on that line first to avoid ambiguous cross-line allocation.
+  let granted = 0;
+  for (const line of lines) {
+    const linePaidQty = paidUnitsForLine(line);
+    const lineFreeCount = Math.floor(linePaidQty / normalizedSetSize);
+    if (lineFreeCount <= 0) continue;
+
+    applyLineFreeUnits(line, lineFreeCount, campaign);
+    granted += lineFreeCount;
+  }
+
+  // Step 2:
+  // Remaining free units come from mixed "leftover" units across lines by cheapest-first logic.
+  const remainingFree = totalFreeCount - granted;
+  if (remainingFree > 0) {
+    applyFreeUnits(lines, remainingFree, campaign);
+    granted += remainingFree;
+  }
+
+  return granted;
 }
 
 function distributeDiscount(lines: LineState[], discountAmount: number, campaign?: Campaign) {
@@ -402,8 +655,8 @@ function distributeDiscount(lines: LineState[], discountAmount: number, campaign
   });
 }
 
-async function validatePromoCode(admin: any, code: string) {
-  const query = `#graphql
+async function validatePromoCode(admin: any, code: string): Promise<PromoCodeDefinition | null> {
+  const queryFull = `#graphql
     query PromoCode($code: String!) {
       codeDiscountNodeByCode(code: $code) {
         id
@@ -411,12 +664,100 @@ async function validatePromoCode(admin: any, code: string) {
           __typename
           ... on DiscountCodeBasic {
             title
+            startsAt
+            endsAt
+            customerSelection {
+              __typename
+              ... on DiscountCustomerAll {
+                allCustomers
+              }
+              ... on DiscountCustomers {
+                customers(first: 250) {
+                  nodes { id }
+                }
+              }
+              ... on DiscountCustomerSegments {
+                segments {
+                  id
+                }
+              }
+            }
+            minimumRequirement {
+              __typename
+              ... on DiscountMinimumSubtotal {
+                greaterThanOrEqualToSubtotal {
+                  amount
+                  currencyCode
+                }
+              }
+              ... on DiscountMinimumQuantity {
+                greaterThanOrEqualToQuantity
+              }
+            }
             customerGets {
               value {
                 __typename
-                ... on DiscountPercentage { percentage }
+                ... on DiscountPercentage {
+                  percentage
+                }
                 ... on DiscountAmount {
-                  amount { amount currencyCode }
+                  amount {
+                    amount
+                    currencyCode
+                  }
+                }
+              }
+              items {
+                __typename
+                ... on AllDiscountItems {
+                  allItems
+                }
+                ... on DiscountProducts {
+                  products(first: 250) {
+                    nodes { id }
+                  }
+                  productVariants(first: 250) {
+                    nodes { id }
+                  }
+                }
+                ... on DiscountCollections {
+                  collections(first: 250) {
+                    nodes { id }
+                  }
+                }
+              }
+            }
+            combinesWith {
+              orderDiscounts
+              productDiscounts
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const queryFallback = `#graphql
+    query PromoCodeFallback($code: String!) {
+      codeDiscountNodeByCode(code: $code) {
+        id
+        codeDiscount {
+          __typename
+          ... on DiscountCodeBasic {
+            title
+            startsAt
+            endsAt
+            customerGets {
+              value {
+                __typename
+                ... on DiscountPercentage {
+                  percentage
+                }
+                ... on DiscountAmount {
+                  amount {
+                    amount
+                    currencyCode
+                  }
                 }
               }
             }
@@ -431,40 +772,187 @@ async function validatePromoCode(admin: any, code: string) {
   `;
 
   try {
-    const res = await adminGraphql(admin, query, { variables: { code } });
-    const json = await res.json();
+    const normalizedCode = String(code || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toUpperCase();
+    if (!normalizedCode) return null;
 
-    const discount = json.data?.codeDiscountNodeByCode?.codeDiscount;
-    if (!discount) return null;
+    function buildPromo(discount: any, strict: boolean): PromoCodeDefinition | null {
+      if (!discount || discount?.__typename !== "DiscountCodeBasic") return null;
 
-    const value = discount.customerGets?.value;
-    const combinesWith = discount.combinesWith ?? { orderDiscounts: true, productDiscounts: true };
-    const stackable = Boolean(combinesWith.orderDiscounts || combinesWith.productDiscounts);
+      const value = discount?.customerGets?.value;
+      const combinesWith = discount?.combinesWith ?? { orderDiscounts: true, productDiscounts: true };
+      const stackable = Boolean(combinesWith.orderDiscounts || combinesWith.productDiscounts);
 
-    if (value?.__typename === "DiscountPercentage") {
-      const rawPercent = Number(value.percentage ?? 0);
+      let type: "percentage" | "fixed" | null = null;
+      let numericValue = 0;
+      if (value?.__typename === "DiscountPercentage") {
+        const rawPercent = Number(value?.percentage ?? 0);
+        type = "percentage";
+        numericValue = rawPercent > 1 ? rawPercent : rawPercent * 100;
+      } else if (value?.__typename === "DiscountAmount") {
+        type = "fixed";
+        numericValue = Number(value?.amount?.amount ?? 0);
+      }
+      if (!type || !Number.isFinite(numericValue) || numericValue <= 0) return null;
+
+      const customerSelection = strict ? discount?.customerSelection : null;
+      const customerSelectionType: PromoCodeDefinition["customerSelectionType"] =
+        customerSelection?.__typename === "DiscountCustomers"
+          ? "customers"
+          : customerSelection?.__typename === "DiscountCustomerSegments"
+            ? "segments"
+            : "all";
+      const customerIds = new Set<string>();
+      if (customerSelection?.__typename === "DiscountCustomers") {
+        const nodes = customerSelection?.customers?.nodes || [];
+        for (const n of nodes) {
+          const customerId = toCustomerGid(String(n?.id || ""));
+          if (customerId) customerIds.add(customerId);
+        }
+      }
+
+      let minimumSubtotal = 0;
+      let minimumQuantity = 0;
+      const minimumRequirement = strict ? discount?.minimumRequirement : null;
+      if (minimumRequirement?.__typename === "DiscountMinimumSubtotal") {
+        minimumSubtotal = Number(minimumRequirement?.greaterThanOrEqualToSubtotal?.amount ?? 0);
+      } else if (minimumRequirement?.__typename === "DiscountMinimumQuantity") {
+        minimumQuantity = Number(minimumRequirement?.greaterThanOrEqualToQuantity ?? 0);
+      }
+      if (!Number.isFinite(minimumSubtotal) || minimumSubtotal < 0) minimumSubtotal = 0;
+      if (!Number.isFinite(minimumQuantity) || minimumQuantity < 0) minimumQuantity = 0;
+
+      const items = strict ? discount?.customerGets?.items : null;
+      const itemSelectionType: PromoCodeDefinition["itemSelectionType"] =
+        items?.__typename === "DiscountProducts"
+          ? "products"
+          : items?.__typename === "DiscountCollections"
+            ? "collections"
+            : "all";
+
+      const productIds = new Set<string>();
+      const variantIds = new Set<string>();
+      const collectionIds = new Set<string>();
+
+      if (items?.__typename === "DiscountProducts") {
+        const products = Array.isArray(items?.products?.nodes) ? items.products.nodes : [];
+        const variants = Array.isArray(items?.productVariants?.nodes) ? items.productVariants.nodes : [];
+        products.forEach((p: any) => {
+          const id = String(p?.id || "").trim();
+          if (id) productIds.add(id);
+        });
+        variants.forEach((v: any) => {
+          const id = toGid(String(v?.id || ""));
+          if (id) variantIds.add(id);
+        });
+      }
+
+      if (items?.__typename === "DiscountCollections") {
+        const collections = Array.isArray(items?.collections?.nodes) ? items.collections.nodes : [];
+        collections.forEach((c: any) => {
+          const id = String(c?.id || "").trim();
+          if (id) collectionIds.add(id);
+        });
+      }
+
       return {
-        code,
-        type: "percentage" as const,
-        value: rawPercent > 1 ? rawPercent : rawPercent * 100,
+        code: normalizedCode,
+        title: String(discount?.title || "").trim() || null,
+        type,
+        value: numericValue,
         stackable,
+        startsAt: discount?.startsAt ? String(discount.startsAt) : null,
+        endsAt: discount?.endsAt ? String(discount.endsAt) : null,
+        minimumSubtotal,
+        minimumQuantity,
+        customerSelectionType,
+        customerIds,
+        itemSelectionType,
+        productIds,
+        variantIds,
+        collectionIds,
       };
     }
 
-    if (value?.__typename === "DiscountAmount") {
-      const amount = Number(value.amount?.amount ?? 0);
-      return {
-        code,
-        type: "fixed" as const,
-        value: Number.isFinite(amount) ? amount : 0,
-        stackable,
-      };
+    let discount: any = null;
+    let strict = true;
+
+    try {
+      const res = await adminGraphql(admin, queryFull, { variables: { code: normalizedCode } });
+      const json = await res.json();
+      const hasErrors = Array.isArray(json?.errors) && json.errors.length > 0;
+      if (hasErrors) {
+        try {
+          console.warn("[pricing] promo full query errors", {
+            code: normalizedCode,
+            errors: json.errors?.map((e: any) => String(e?.message || "")).slice(0, 5),
+          });
+        } catch {}
+      }
+      discount = json?.data?.codeDiscountNodeByCode?.codeDiscount || null;
+      if (!discount || hasErrors) {
+        strict = false;
+      }
+    } catch {
+      strict = false;
     }
 
-    return null;
+    if (!discount || !strict) {
+      const resFallback = await adminGraphql(admin, queryFallback, { variables: { code: normalizedCode } });
+      const jsonFallback = await resFallback.json();
+      if (Array.isArray(jsonFallback?.errors) && jsonFallback.errors.length) {
+        try {
+          console.warn("[pricing] promo fallback query errors", {
+            code: normalizedCode,
+            errors: jsonFallback.errors?.map((e: any) => String(e?.message || "")).slice(0, 5),
+          });
+        } catch {}
+      }
+      discount = jsonFallback?.data?.codeDiscountNodeByCode?.codeDiscount || discount;
+      strict = false;
+    }
+
+    return buildPromo(discount, strict);
   } catch {
     return null;
   }
+}
+
+function promoIsActiveNow(promo: PromoCodeDefinition) {
+  const nowTs = Date.now();
+  const startsAtTs = promo.startsAt ? Date.parse(promo.startsAt) : NaN;
+  const endsAtTs = promo.endsAt ? Date.parse(promo.endsAt) : NaN;
+
+  if (Number.isFinite(startsAtTs) && nowTs < startsAtTs) return false;
+  if (Number.isFinite(endsAtTs) && nowTs > endsAtTs) return false;
+  return true;
+}
+
+function lineMatchesPromoScope(
+  line: LineState,
+  promo: PromoCodeDefinition,
+  variantPromoMeta: Map<string, VariantPromoMeta>,
+) {
+  if (line.isGiftLine) return false;
+  if (promo.itemSelectionType === "all") return true;
+
+  const variantId = toGid(line.variantId);
+  if (promo.variantIds.has(variantId)) return true;
+
+  const meta = variantPromoMeta.get(variantId);
+  if (!meta) return false;
+
+  if (promo.productIds.size && promo.productIds.has(meta.productId)) return true;
+
+  if (promo.collectionIds.size) {
+    for (const collectionId of meta.collectionIds) {
+      if (promo.collectionIds.has(collectionId)) return true;
+    }
+  }
+
+  return false;
 }
 
 function buildLines(lines: LineState[]): PricedLine[] {
@@ -502,8 +990,19 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     variantId: toGid(item.variantId),
     quantity: item.quantity,
   }));
+  const normalizedFreeChoiceSelections = Array.isArray(input.freeChoiceSelections)
+    ? input.freeChoiceSelections.map((id) => toGid(id)).filter(Boolean)
+    : [];
 
   const campaignsFromAdmin = await getCampaigns(admin);
+
+  const choiceVariantIdsFromCampaigns = campaignsFromAdmin
+    .flatMap((campaign) => {
+      if (campaign.type === "BuyXGetZChoice") return campaign.choiceVariantIds;
+      if (campaign.type === "CartThresholdFreeChoice") return campaign.choiceVariantIds;
+      return [];
+    })
+    .filter(Boolean);
 
   const campaignVariantIds = campaignsFromAdmin
     .flatMap((campaign) => {
@@ -514,10 +1013,13 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     })
     .filter(Boolean);
 
-  const extraVariantIds = [input.freeChoiceVariantId ?? "", ...campaignVariantIds].filter(Boolean);
+  const extraVariantIds = [input.freeChoiceVariantId ?? "", ...normalizedFreeChoiceSelections, ...campaignVariantIds].filter(
+    Boolean,
+  );
 
   const variantIds = Array.from(new Set([...normalizedItems.map((i) => i.variantId), ...extraVariantIds]));
   const priceMap = await fetchVariantPrices(admin, variantIds);
+  const choiceLabelMap = await fetchVariantLabels(admin, choiceVariantIdsFromCampaigns);
 
   const first = priceMap.values().next().value as { amount: number; currencyCode: string } | undefined;
   const currencyCode = first?.currencyCode ?? "USD";
@@ -529,7 +1031,8 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     ensureRegularLine(linesMap, item.variantId, priceMap, item.quantity);
   }
 
-  applyMemberDiscount(linesMap, Boolean(input.customerId));
+  const loggedInDiscountRate = await fetchLoggedInDiscountRate(admin);
+  applyMemberDiscount(linesMap, Boolean(input.customerId), loggedInDiscountRate);
 
   const appliedCampaigns: { id: string; type: Campaign["type"]; label: string }[] = [];
   let needsFreeChoice = false;
@@ -545,18 +1048,19 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     const allLines = Array.from(linesMap.values());
     const regularLines = allLines.filter((l) => !l.isGiftLine);
 
-    // ✅ thresholds use ONLY regular lines (exclude gifts)
+    // ✅ regular subtotal before campaign discounts (but after member pricing)
     const memberSubtotal = sum(regularLines.map((l) => l.memberUnitPrice * l.quantity));
+    // ✅ current payable subtotal after already-applied campaign discounts
+    const payableSubtotal = sum(regularLines.map((l) => totalLineValue(l)));
 
     if (campaign.type === "BuyXGetOneFree") {
       const eligible = eligibleUnits(regularLines, campaign.eligibleVariantIds);
-      const totalEligibleQty = sum(eligible.map((l) => l.quantity));
-      if (totalEligibleQty < campaign.buyQuantity + 1) continue;
+      const setSize = Math.max(0, Number(campaign.buyQuantity || 0));
+      if (setSize <= 0) continue;
 
-      const freeCount = Math.floor(totalEligibleQty / (campaign.buyQuantity + 1));
-      if (freeCount <= 0) continue;
+      const granted = applyBuyXGetOneFree(eligible, setSize, campaign);
+      if (granted <= 0) continue;
 
-      applyFreeUnits(eligible, freeCount, campaign);
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
@@ -565,12 +1069,15 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
 
       const eligible = eligibleUnits(regularLines, campaign.triggerVariantIds);
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
-      if (totalEligibleQty < campaign.buyQuantity) continue;
+      const buyQty = Math.max(0, Number(campaign.buyQuantity || 0));
+      if (buyQty <= 0 || totalEligibleQty < buyQty) continue;
+      const giftQty = Math.floor(totalEligibleQty / buyQty);
+      if (giftQty <= 0) continue;
 
-      // ✅ NEW: allocate EXACT buyQuantity to the campaign (UI needs it)
-      allocateCampaignUnits(eligible, campaign, campaign.buyQuantity);
+      // allocate trigger units proportional to number of granted gifts
+      allocateCampaignUnits(eligible, campaign, buyQty * giftQty);
 
-      createGiftLine(linesMap, campaign, campaign.freeVariantId, priceMap, 1);
+      createGiftLine(linesMap, campaign, campaign.freeVariantId, priceMap, giftQty);
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
@@ -579,30 +1086,56 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
 
       const eligible = eligibleUnits(regularLines, campaign.triggerVariantIds);
       const totalEligibleQty = sum(eligible.map((l) => l.quantity));
-      if (totalEligibleQty < campaign.buyQuantity) continue;
+      const buyQty = Math.max(0, Number(campaign.buyQuantity || 0));
+      if (buyQty <= 0 || totalEligibleQty < buyQty) continue;
+      const giftQty = Math.floor(totalEligibleQty / buyQty);
+      if (giftQty <= 0) continue;
 
-      if (!input.freeChoiceVariantId) {
-        needsFreeChoice = true;
-        choiceContext = { campaignId: campaign.id, label: campaign.label, choices: campaign.choiceVariantIds };
-        break;
+      const allowedChoices = campaign.choiceVariantIds.map(toGid);
+      const choiceOptions = buildChoiceOptions(allowedChoices, priceMap, choiceLabelMap);
+      const allowedSet = new Set(allowedChoices);
+      const preferredSingle = toGid(input.freeChoiceVariantId || "");
+      const preferredSelections = normalizedFreeChoiceSelections.filter((id) => allowedSet.has(id));
+      const selectedChoices = preferredSelections.length
+        ? preferredSelections.slice(0, giftQty)
+        : preferredSingle && allowedSet.has(preferredSingle)
+          ? [preferredSingle]
+          : [allowedChoices[0]];
+
+      while (selectedChoices.length < giftQty) {
+        selectedChoices.push(selectedChoices[0] || allowedChoices[0]);
       }
 
-      const chosen = toGid(input.freeChoiceVariantId);
-      if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
+      choiceContext = {
+        campaignId: campaign.id,
+        label: campaign.label,
+        choices: allowedChoices,
+        giftQty,
+        choiceOptions,
+        selectedChoices,
+      };
 
-      // ✅ NEW: allocate EXACT buyQuantity to the campaign (UI needs it)
-      allocateCampaignUnits(eligible, campaign, campaign.buyQuantity);
+      const giftCountByVariant = new Map<string, number>();
+      selectedChoices.forEach((variantId) => {
+        const prev = giftCountByVariant.get(variantId) || 0;
+        giftCountByVariant.set(variantId, prev + 1);
+      });
 
-      createGiftLine(linesMap, campaign, chosen, priceMap, 1);
+      // allocate trigger units proportional to number of granted gifts
+      allocateCampaignUnits(eligible, campaign, buyQty * giftQty);
+
+      giftCountByVariant.forEach((qty, variantId) => {
+        if (qty > 0) createGiftLine(linesMap, campaign, variantId, priceMap, qty);
+      });
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
 
     if (campaign.type === "CartThresholdDiscount") {
-      if (memberSubtotal < campaign.thresholdAmount) continue;
+      if (payableSubtotal < campaign.thresholdAmount) continue;
 
       let discountAmount = 0;
       if (campaign.discount.type === "percentage") {
-        discountAmount = roundMoney(memberSubtotal * (campaign.discount.value / 100));
+        discountAmount = roundMoney(payableSubtotal * (campaign.discount.value / 100));
       } else {
         discountAmount = campaign.discount.value;
       }
@@ -614,20 +1147,48 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
     }
 
     if (campaign.type === "CartThresholdFreeChoice") {
-      if (memberSubtotal < campaign.thresholdAmount) continue;
+      const thresholdAmount = Math.max(0, Number(campaign.thresholdAmount || 0));
+      if (thresholdAmount <= 0 || payableSubtotal < thresholdAmount) continue;
       if (!campaign.choiceVariantIds.length) continue;
 
-      if (!input.freeChoiceVariantId) {
-        needsFreeChoice = true;
-        choiceContext = { campaignId: campaign.id, label: campaign.label, choices: campaign.choiceVariantIds };
-        break;
+      const allowedChoices = campaign.choiceVariantIds.map(toGid);
+      const choiceOptions = buildChoiceOptions(allowedChoices, priceMap, choiceLabelMap);
+      const allowedSet = new Set(allowedChoices);
+      const preferredSingle = toGid(input.freeChoiceVariantId || "");
+      const preferredSelections = normalizedFreeChoiceSelections.filter((id) => allowedSet.has(id));
+      const baseGiftQty = Math.max(1, Number(campaign.giftQuantity || 1));
+      const thresholdHits = campaign.repeatPerThreshold ? Math.floor(payableSubtotal / thresholdAmount) : 1;
+      const giftQty = Math.max(0, baseGiftQty * Math.max(1, thresholdHits));
+      if (giftQty <= 0) continue;
+
+      const selectedChoices = preferredSelections.length
+        ? preferredSelections.slice(0, giftQty)
+        : preferredSingle && allowedSet.has(preferredSingle)
+          ? [preferredSingle]
+          : [allowedChoices[0]];
+
+      while (selectedChoices.length < giftQty) {
+        selectedChoices.push(selectedChoices[0] || allowedChoices[0]);
       }
 
-      const chosen = toGid(input.freeChoiceVariantId);
-      if (!campaign.choiceVariantIds.map(toGid).includes(chosen)) continue;
+      choiceContext = {
+        campaignId: campaign.id,
+        label: campaign.label,
+        choices: allowedChoices,
+        giftQty,
+        choiceOptions,
+        selectedChoices,
+      };
 
-      // (threshold choice doesn't have buyQuantity triggers to allocate deterministically)
-      createGiftLine(linesMap, campaign, chosen, priceMap, 1);
+      const giftCountByVariant = new Map<string, number>();
+      selectedChoices.forEach((variantId) => {
+        const prev = giftCountByVariant.get(variantId) || 0;
+        giftCountByVariant.set(variantId, prev + 1);
+      });
+
+      giftCountByVariant.forEach((qty, variantId) => {
+        if (qty > 0) createGiftLine(linesMap, campaign, variantId, priceMap, qty);
+      });
 
       appliedCampaigns.push({ id: campaign.id, type: campaign.type, label: campaign.label });
     }
@@ -646,35 +1207,87 @@ export async function pricingEngine(admin: any, input: PricingInput): Promise<Pr
   // ✅ campaignDiscount counts only discounts on regular lines (gifts excluded)
   const campaignDiscount = roundMoney(sum(regularLines.map((l) => l.discountTotal)));
 
+  const requestedPromoCode = String(input.promoCode || "").trim() || null;
   let promoDiscount = 0;
+  let promoAppliedCode: string | null = null;
+  let promoLabel: string | null = null;
+  let promoReason: string | null = null;
 
-  if (!needsFreeChoice && input.promoCode) {
-    const promo = await validatePromoCode(admin, input.promoCode);
-    if (promo && (promo.stackable || appliedCampaigns.length === 0)) {
-      const subtotalAfterCampaigns = memberSubtotal - campaignDiscount;
-
-      if (promo.type === "percentage") {
-        promoDiscount = roundMoney(subtotalAfterCampaigns * (promo.value / 100));
-      } else {
-        promoDiscount = roundMoney(promo.value);
+  if (!needsFreeChoice && requestedPromoCode) {
+    const promo = await validatePromoCode(admin, requestedPromoCode);
+    if (!promo) {
+      promoReason = "Promo code is invalid or unsupported.";
+    } else if (!promo.stackable && appliedCampaigns.length > 0) {
+      promoReason = "Promo code cannot be combined with active campaigns.";
+    } else if (!promoIsActiveNow(promo)) {
+      promoReason = "Promo code is not active for the current date.";
+    } else if (promo.customerSelectionType === "segments") {
+      promoReason = "Promo code is limited to a customer segment.";
+    } else {
+      const customerId = toCustomerGid(input.customerId);
+      if (promo.customerSelectionType === "customers") {
+        if (!customerId || !promo.customerIds.has(customerId)) {
+          promoReason = "Promo code is not available for this customer.";
+        }
       }
 
-      // ✅ promo applies only to regular lines
-      distributeDiscount(regularLines, promoDiscount);
+      if (!promoReason) {
+        let variantPromoMeta = new Map<string, VariantPromoMeta>();
+        if (promo.itemSelectionType !== "all") {
+          variantPromoMeta = await fetchVariantPromoMeta(
+            admin,
+            regularLines.map((line) => line.variantId),
+          );
+        }
 
-      for (const line of regularLines) {
-        line.appliedPromoCode = promo.code;
+        const eligiblePromoLines = regularLines.filter((line) =>
+          lineMatchesPromoScope(line, promo, variantPromoMeta),
+        );
+        const eligiblePromoSubtotal = roundMoney(
+          sum(eligiblePromoLines.map((line) => Math.max(0, totalLineValue(line)))),
+        );
+        const eligiblePromoQuantity = sum(eligiblePromoLines.map((line) => Math.max(0, line.quantity)));
+
+        if (!eligiblePromoLines.length || eligiblePromoSubtotal <= 0) {
+          promoReason = "Promo code does not apply to products in the cart.";
+        } else if (promo.minimumSubtotal > 0 && eligiblePromoSubtotal < promo.minimumSubtotal) {
+          promoReason = "Cart does not meet promo minimum subtotal requirement.";
+        } else if (promo.minimumQuantity > 0 && eligiblePromoQuantity < promo.minimumQuantity) {
+          promoReason = "Cart does not meet promo minimum quantity requirement.";
+        } else {
+          if (promo.type === "percentage") {
+            promoDiscount = roundMoney(eligiblePromoSubtotal * (promo.value / 100));
+          } else {
+            promoDiscount = roundMoney(Math.min(promo.value, eligiblePromoSubtotal));
+          }
+
+          if (promoDiscount > 0) {
+            distributeDiscount(eligiblePromoLines, promoDiscount);
+            for (const line of eligiblePromoLines) {
+              line.appliedPromoCode = promo.code;
+            }
+            promoAppliedCode = promo.code;
+            promoLabel = promo.title;
+          }
+        }
       }
     }
   }
 
-  const finalSubtotal = roundMoney(memberSubtotal - campaignDiscount - promoDiscount);
+  const finalSubtotal = roundMoney(Math.max(0, memberSubtotal - campaignDiscount - promoDiscount));
   const pricedLines = buildLines(allLines);
 
   return {
     lines: pricedLines,
     breakdown: { baseSubtotal, memberDiscount, campaignDiscount, promoDiscount, finalSubtotal },
     appliedCampaigns,
+    promo: {
+      requestedCode: requestedPromoCode,
+      appliedCode: promoAppliedCode,
+      label: promoLabel,
+      discount: promoDiscount,
+      reason: promoReason,
+    },
     needsFreeChoice,
     choiceContext,
     currencyCode,

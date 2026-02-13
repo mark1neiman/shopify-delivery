@@ -78,6 +78,15 @@
     assign fetchpriority = 'high'
   endif
 
+  assign save_image = ''
+  if featured_media
+    assign save_image = featured_media | image_url: width: 560
+  endif
+  assign save_price = selected_variant.price | money
+  if settings.currency_code_enabled
+    assign save_price = selected_variant.price | money_with_currency
+  endif
+
   if pcard_style == null
     assign pcard_style = settings.pcard_style
   endif
@@ -172,6 +181,20 @@
           <span class="btn__text flex gap-1 items-center">{%- render 'icon-search', size: 'large' -%}</span>
         </button>
       {%- endif -%}
+      <button
+        type="button"
+        class="product-card__save btn btn--icon-circle btn--white no-js-hidden"
+        data-save-product-btn
+        data-product-id="{{ product.id }}"
+        data-product-url="{{ product_url }}"
+        data-product-title="{{ product.title | escape }}"
+        data-product-image="{{ save_image }}"
+        data-product-price="{{ save_price | escape }}"
+        aria-pressed="false"
+      >
+        <span class="visually-hidden" data-save-product-label>Save product</span>
+        {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+      </button>
       {%- if enable_compare_checkbox -%}
         <compare-checkbox class="product-card__compare hidden">
           <label

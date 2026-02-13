@@ -23,6 +23,7 @@ export default function App() {
         <s-app-nav>
           <s-link href="/app/pickup-settings">Pickup settings</s-link>
           <s-link href="/app/campaigns">Campaigns</s-link>
+          <s-link href="/app/invoice">invoices</s-link>
         </s-app-nav>
 
         <Outlet />

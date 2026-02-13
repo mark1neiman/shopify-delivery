@@ -19,13 +19,21 @@ type DraftOrderPayload = {
   // optional: if you want the draft to match preview totals,
   // pass pricing from /apps/checkout/prepare response
   pricing?: {
-    lines?: { variantId: string; quantity: number }[];
+    lines?: { variantId: string; quantity: number; isGiftLine?: boolean }[];
     breakdown?: {
       baseSubtotal?: number;
       finalSubtotal?: number;
       memberDiscount?: number;
       campaignDiscount?: number;
       promoDiscount?: number;
+    };
+    appliedCampaigns?: { id?: string; type?: string; label?: string }[];
+    promo?: {
+      requestedCode?: string | null;
+      appliedCode?: string | null;
+      label?: string | null;
+      discount?: number;
+      reason?: string | null;
     };
     currencyCode?: string;
   };
@@ -95,6 +103,61 @@ function parseDecimalPrice(price?: string) {
 function safeTrim(v: any) {
   if (v === null || v === undefined) return "";
   return String(v).trim();
+}
+
+function normalizeCheckoutPhone(phone?: string, countryCode?: string) {
+  const raw = safeTrim(phone).replace(/[^\d+]/g, "");
+  if (!raw) return "";
+
+  const cc = String(countryCode || "").trim().toUpperCase();
+  const dialByCountry: Record<string, string> = {
+    EE: "372",
+    LV: "371",
+    LT: "370",
+    FI: "358",
+  };
+  const inferredDial = dialByCountry[cc] || "";
+  const digitsOnly = raw.replace(/[^\d]/g, "");
+
+  if (raw.startsWith("+")) {
+    if (inferredDial && digitsOnly.startsWith(inferredDial + inferredDial)) {
+      return `+${inferredDial}${digitsOnly.slice(inferredDial.length * 2)}`;
+    }
+    return `+${digitsOnly}`;
+  }
+
+  if (!inferredDial) {
+    return digitsOnly ? `+${digitsOnly}` : "";
+  }
+
+  let local = digitsOnly;
+  if (local.startsWith(inferredDial + inferredDial)) {
+    local = local.slice(inferredDial.length * 2);
+  } else if (local.startsWith(inferredDial)) {
+    local = local.slice(inferredDial.length);
+  }
+  return `+${inferredDial}${local}`;
+}
+
+function firstNonEmpty(...values: unknown[]): string {
+  for (const value of values) {
+    const normalized = safeTrim(value);
+    if (normalized) return normalized;
+  }
+  return "";
+}
+
+function pushCustomAttribute(
+  target: Array<{ key: string; value: string }>,
+  existingKeys: Set<string>,
+  key: string,
+  value: unknown,
+) {
+  const normalizedKey = safeTrim(key);
+  const normalizedValue = safeTrim(value);
+  if (!normalizedKey || !normalizedValue || existingKeys.has(normalizedKey)) return;
+  target.push({ key: normalizedKey, value: normalizedValue });
+  existingKeys.add(normalizedKey);
 }
 
 function maskEmail(email: string) {
@@ -238,22 +301,140 @@ export async function action({ request }: ActionFunctionArgs) {
 
   // customAttributes (order attributes in Shopify draft)
   const customAttributes: { key: string; value: string }[] = [];
+  const existingCustomAttributeKeys = new Set<string>();
   const attrs = payload.attributes || {};
+  const sa = payload.shippingAddress;
 
   // optionally keep promoCode visible in draft attributes
   const promo = safeTrim(payload.promoCode);
   if (promo) attrs["promo_code"] = promo;
 
   for (const [key, value] of Object.entries(attrs)) {
-    if (value === null || value === undefined) continue;
-    const v = String(value).trim();
-    if (!v) continue;
-    customAttributes.push({ key, value: v });
+    pushCustomAttribute(customAttributes, existingCustomAttributeKeys, key, value);
+  }
+
+  const fromName = splitName(sa?.name);
+  const recipientName = firstNonEmpty(
+    sa?.name,
+    [safeTrim(sa?.firstName || fromName.firstName), safeTrim(sa?.lastName || fromName.lastName)].filter(Boolean).join(" "),
+  );
+  const normalizedRecipientPhone = normalizeCheckoutPhone(
+    sa?.phone,
+    firstNonEmpty(sa?.countryCode, payload.delivery?.country),
+  );
+  const inferredItellaAttributes: Record<string, string> = {
+    itella_delivery_title: firstNonEmpty(payload.delivery?.title),
+    itella_delivery_price: firstNonEmpty(payload.delivery?.price),
+    itella_delivery_currency: firstNonEmpty(payload.delivery?.currency),
+    itella_pickup_provider: firstNonEmpty(payload.delivery?.provider),
+    itella_pickup_id: firstNonEmpty(payload.delivery?.pickupId),
+    itella_pickup_name: firstNonEmpty(payload.delivery?.pickupName),
+    itella_pickup_address: firstNonEmpty(payload.delivery?.pickupAddress),
+    itella_pickup_country: firstNonEmpty(payload.delivery?.country, sa?.countryCode),
+    itella_recipient_name: recipientName,
+    itella_recipient_address1: firstNonEmpty(sa?.address1),
+    itella_recipient_city: firstNonEmpty(sa?.city),
+    itella_recipient_zip: firstNonEmpty(sa?.zip),
+    itella_recipient_phone: normalizedRecipientPhone,
+    itella_recipient_email: firstNonEmpty(payload.email),
+  };
+  for (const [key, value] of Object.entries(inferredItellaAttributes)) {
+    pushCustomAttribute(customAttributes, existingCustomAttributeKeys, key, value);
+  }
+
+  const memberDiscountAmount = Number(payload.pricing?.breakdown?.memberDiscount ?? 0);
+  const memberBaseSubtotal = Number(payload.pricing?.breakdown?.baseSubtotal ?? 0);
+  if (Number.isFinite(memberDiscountAmount) && memberDiscountAmount > 0) {
+    const computedPercent =
+      Number.isFinite(memberBaseSubtotal) && memberBaseSubtotal > 0
+        ? Math.round((memberDiscountAmount / memberBaseSubtotal) * 100)
+        : 15;
+    const memberDiscountPercent =
+      Number.isFinite(computedPercent) && computedPercent > 0 ? computedPercent : 15;
+    const memberDiscountCurrency = safeTrim(payload.pricing?.currencyCode) || safeTrim(payload.delivery?.currency) || "EUR";
+
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_member_discount_applied",
+      "true",
+    );
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_member_discount_percent",
+      String(memberDiscountPercent),
+    );
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_member_discount_amount",
+      memberDiscountAmount.toFixed(2),
+    );
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_member_discount_currency",
+      memberDiscountCurrency,
+    );
+  }
+
+  const campaignLabels = Array.isArray(payload.pricing?.appliedCampaigns)
+    ? payload.pricing.appliedCampaigns
+        .map((campaign: any) => safeTrim(campaign?.label))
+        .filter(Boolean)
+    : [];
+  const campaignDiscountAmount = Number(payload.pricing?.breakdown?.campaignDiscount ?? 0);
+  if (campaignLabels.length > 0) {
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_campaign_labels",
+      campaignLabels.join(" | "),
+    );
+  }
+  if (Number.isFinite(campaignDiscountAmount) && campaignDiscountAmount > 0) {
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_campaign_discount_amount",
+      campaignDiscountAmount.toFixed(2),
+    );
+  }
+
+  const appliedPromoCode = safeTrim(payload.pricing?.promo?.appliedCode);
+  const promoDiscountAmount = Number(payload.pricing?.breakdown?.promoDiscount ?? 0);
+  if (appliedPromoCode) {
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_promo_code",
+      appliedPromoCode,
+    );
+  }
+  if (Number.isFinite(promoDiscountAmount) && promoDiscountAmount > 0) {
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_promo_discount_amount",
+      promoDiscountAmount.toFixed(2),
+    );
+  }
+
+  const giftLinesCount = Array.isArray(payload.pricing?.lines)
+    ? payload.pricing.lines.filter((line: any) => Boolean(line?.isGiftLine)).length
+    : 0;
+  if (giftLinesCount > 0) {
+    pushCustomAttribute(
+      customAttributes,
+      existingCustomAttributeKeys,
+      "itella_gift_items_count",
+      String(giftLinesCount),
+    );
   }
 
   // shippingAddress
   const shippingAddressInput: any = {};
-  const sa = payload.shippingAddress;
   if (sa && Object.values(sa).some(Boolean)) {
     const fromName = splitName(sa.name);
     const firstName = safeTrim(sa.firstName || fromName.firstName);

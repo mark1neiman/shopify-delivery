@@ -20,6 +20,21 @@
     if block.settings.show_dynamic_checkout and gift_card_recipient_feature_active == false
       assign show_dynamic_checkout = true
     endif
+
+    assign save_media = product.featured_media
+    if save_media
+      if save_media.media_type == 'video' or save_media.media_type == 'external_video' or save_media.media_type == 'model'
+        assign save_media = save_media.preview_image
+      endif
+    endif
+    assign save_image = ''
+    if save_media
+      assign save_image = save_media | image_url: width: 800
+    endif
+    assign save_price = product.selected_or_first_available_variant.price | money
+    if settings.currency_code_enabled
+      assign save_price = product.selected_or_first_available_variant.price | money_with_currency
+    endif
   -%}
   <div
     class="product-form"
@@ -358,10 +373,28 @@
           </span>
           {%- render 'loading-spinner' -%}
         </button>
-        {%- if show_dynamic_checkout -%}
-          {{ form | payment_button }}
-        {%- endif -%}
+        <button
+          type="button"
+          class="product-form__save btn btn--secondary relative z-20 pointer-events-auto"
+          data-save-product-btn
+          data-product-id="{{ product.id }}"
+          data-product-url="{{ product.url }}"
+          data-product-title="{{ product.title | escape }}"
+          data-product-image="{{ save_image }}"
+          data-product-price="{{ save_price | escape }}"
+          aria-pressed="false"
+        >
+          <span class="btn__text flex items-center gap-1 pointer-events-none">
+            {% render 'icon-heart', size: 'small', thickness: 'regular' %}
+            <span data-save-product-label>Save product</span>
+          </span>
+        </button>
       </div>
+      {%- if show_dynamic_checkout -%}
+        <div class="product-form__button-dynamic">
+          {{ form | payment_button }}
+        </div>
+      {%- endif -%}
       <div class="product-form__error-message blocks-radius-md alert alert--error" role="alert" hidden></div>
     {%- endform -%}
   </div>
